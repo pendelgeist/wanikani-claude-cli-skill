@@ -1,0 +1,19 @@
+{
+  "name": "wanikani-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Do WaniKani lessons and reviews from the terminal, or as a Claude Code skill.",
+  "bin": {
+    "wanikani": "./bin/wanikani.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "wanakana": "^5.3.1"
+  }
+}
