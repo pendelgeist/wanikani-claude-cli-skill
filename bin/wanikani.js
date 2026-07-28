@@ -6,6 +6,7 @@ import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { submitCommand } from "../lib/commands/submit.js";
+import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 
 const HELP = `wanikani <command> [options]
 
@@ -16,10 +17,18 @@ Commands:
   queue [--limit N]     Due reviews as JSON, with answer keys — for Claude to drive the quiz itself
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
+  submit-batch          Submit several graded reviews in one call — reads a JSON array of
+                        {assignmentId, wrongMeaning, wrongReading} from stdin
 
 Auth:
   Set WANIKANI_API_TOKEN in your environment (Settings → API Tokens on wanikani.com).
 `;
+
+async function readStdin() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8");
+}
 
 async function main() {
   const [, , command, ...rest] = process.argv;
@@ -70,6 +79,20 @@ async function main() {
         wrongMeaning: Number(values["wrong-meaning"]),
         wrongReading: Number(values["wrong-reading"]),
       });
+      break;
+    }
+    case "submit-batch": {
+      const raw = await readStdin();
+      let items;
+      try {
+        items = JSON.parse(raw);
+      } catch {
+        throw new Error("submit-batch expects a JSON array on stdin: [{assignmentId, wrongMeaning, wrongReading}, ...]");
+      }
+      if (!Array.isArray(items)) {
+        throw new Error("submit-batch expects a JSON array on stdin, got: " + typeof items);
+      }
+      await submitBatchCommand(client, items);
       break;
     }
     default:

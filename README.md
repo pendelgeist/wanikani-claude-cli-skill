@@ -56,10 +56,16 @@ Optionally `npm link` to get a `wanikani` command on your `$PATH`.
 Open this repo in Claude Code and ask it to do your WaniKani reviews (or use
 `/wanikani` if it's registered as a slash command). See
 [`.claude/skills/wanikani/SKILL.md`](.claude/skills/wanikani/SKILL.md) for
-what it does: it calls `wanikani queue` to get due reviews with their answer
-keys, quizzes you in chat using its own judgment on typos/phrasing (more
-forgiving than the plain CLI's exact matching), and calls `wanikani submit`
-per item as you go.
+what it does: it calls `wanikani queue --limit 10` to get a batch of due
+reviews with their answer keys, quizzes you in chat using its own judgment on
+typos/phrasing (more forgiving than the plain CLI's exact matching), then
+submits the whole batch in one `wanikani submit-batch` call before fetching
+the next 10 — so a 600-review session is a couple dozen tool calls, not
+hundreds.
+
+Never paste your API token into the chat — the skill is instructed to read
+it from your shell environment or a local `.env` file instead, precisely so
+it never ends up typed into a command (and therefore into a transcript).
 
 ## How grading works
 
@@ -81,6 +87,18 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
+| `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
+
+## Caching
+
+Subject content (characters, meanings, readings, mnemonics) is cached
+locally at `~/.cache/wanikani-cli/subjects.json` the first time each subject
+is fetched — WaniKani's own docs recommend caching subjects aggressively
+since they rarely change. There's no TTL/expiry; if a subject's content
+ever changes upstream and you want fresh data, delete that file (or point
+`WANIKANI_CACHE_DIR` at an empty directory). Nothing else is cached —
+assignments, reviews, and summary data are always fetched live since they
+change constantly.
 
 ## Notes
 
