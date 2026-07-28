@@ -8,7 +8,27 @@ Code skill that drives the quiz conversationally.
 
 ```
 npm install
-export WANIKANI_API_TOKEN=...   # wanikani.com → Settings → API Tokens
+```
+
+Create a token at wanikani.com → Settings → API Tokens → "Create a Personal
+Access Token". All tokens get read access to every `GET` endpoint (that
+covers `summary`, `lessons`, and `queue`) — you only need to check boxes for
+write access this tool actually uses:
+
+- **`assignments:start`** — required for `lessons --start` (marks a lesson
+  as started, moving it into the review queue)
+- **`reviews:create`** — required for `review` and `submit` (records review
+  results, advancing SRS stages)
+
+Leave `study_materials:create`, `study_materials:update`, and `user:update`
+unchecked — nothing in this repo uses them. If you only ever plan to run
+`summary`/`queue`/`lessons` (no `--start`) and never `review`/`submit`, you
+can leave every box unchecked and generate a read-only token instead.
+
+Then:
+
+```
+export WANIKANI_API_TOKEN=...
 ```
 
 (Or copy `.env.example` to `.env`, fill in the token, and run commands with

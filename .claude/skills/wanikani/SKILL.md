@@ -11,6 +11,11 @@ environment — if a run fails with "No API token found", ask the user to run
 `export WANIKANI_API_TOKEN=...` (from wanikani.com → Settings → API Tokens)
 and try again.
 
+The token needs the `reviews:create` permission checked for `submit`/`review`
+to work, and `assignments:start` for `lessons --start`. If a write call fails
+with 403, that's almost certainly a missing permission checkbox on the token
+(see README.md) — tell the user which one, don't just retry.
+
 Run all commands from the repo root with `node bin/wanikani.js <command>`.
 Run `npm install` first if `node_modules/wanakana` doesn't exist yet.
 
