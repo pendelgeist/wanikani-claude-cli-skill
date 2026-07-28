@@ -51,14 +51,29 @@ match would reject, which is a better experience than the raw CLI.
    `queue --limit 10` again — items just submitted have moved out of the
    due queue, so this naturally returns the next batch, not repeats.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
-3. For each item, ask for the meaning in one message (e.g. "猫 — meaning?").
-   Judge correctness against `meanings`/`auxiliaryMeanings` yourself — accept
-   reasonable synonyms and minor typos, reject anything matching a `blacklist`
-   entry even if it seems plausible. If wrong, say so and let them retry;
-   keep a count of how many wrong attempts happened for this item.
-4. If `needsReading` is true, do the same for the reading (kana). Accept kana
-   or romaji from the user; compare against `readings`.
-5. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
+3. Prompt each item so it's clear both parts can be answered together in one
+   line. For items with `needsReading: true`: "毛 — meaning (and reading, if
+   you want both at once)?" For meaning-only items (radicals,
+   kana_vocabulary): just "meaning?". A reply like "fur, ke" or "fur / ke" or
+   even just "fur ke" on one line should grade both parts from that single
+   message — don't make the user split it into two turns unless they want to.
+   Parse whichever part looks like a reading (kana, or romaji per `readings`)
+   as the reading and the rest as the meaning; order doesn't matter ("ke fur"
+   works the same as "fur, ke"). If they only gave the meaning, grade that and
+   ask "Reading?" as a quick follow-up.
+4. Judge both parts against the item's own data, not exact string matching:
+   meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
+   and minor typos; reject anything matching a `blacklist` entry even if it
+   seems plausible), reading against `readings` (accept kana or romaji). Keep
+   a running count of wrong attempts per item, per part.
+5. **Auto-advance by default**: whether an item was right or wrong, say so
+   briefly and move straight into the next item's prompt in the same
+   message — don't wait for the user to say "next" or "continue" between
+   items. Only pause the advance if the user explicitly asks to slow down,
+   review an answer, or stop (e.g. "wait", "hold on", "explain that one") —
+   treat that as a standing preference for the rest of the session once
+   they've said it, not a one-off.
+6. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
    you go — don't shell out per item. Once the whole local batch (all ~10)
    has been quizzed, submit it in **one** bash call via `submit-batch`,
    piping a JSON array on stdin:
@@ -77,13 +92,15 @@ match would reject, which is a better experience than the raw CLI.
    the `submit-batch` call runs), nothing has been sent to WaniKani yet for
    that batch — the user just re-answers those items next time, nothing is
    corrupted or double-counted.
-6. Fetch the next `queue --limit 10` batch and repeat until the queue comes
+7. Fetch the next `queue --limit 10` batch and repeat until the queue comes
    back empty, then summarize: how many reviewed, how many perfect (zero
    wrong attempts on both parts).
 
-Keep the pace conversational — one item at a time, don't dump the whole
-batch as a wall of text. The goal is fewer *tool calls*, not fewer or
-shorter chat turns with the user.
+Keep the pace conversational — one item's result + the next item's prompt
+per message, not a wall of text for the whole batch at once. The goal is
+fewer *tool calls* and less *waiting on the user for "next"*, not fewer or
+shorter chat turns — auto-advancing means more turns happen back-to-back,
+which is the point.
 
 ## Lessons
 
