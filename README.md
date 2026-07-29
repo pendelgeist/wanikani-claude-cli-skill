@@ -6,33 +6,42 @@ Code skill that drives the quiz conversationally.
 
 ## Setup
 
-```
-npm install
-```
+1. Install dependencies:
 
-Create a token at wanikani.com → Settings → API Tokens → "Create a Personal
-Access Token". All tokens get read access to every `GET` endpoint (that
-covers `summary`, `lessons`, and `queue`) — you only need to check boxes for
-write access this tool actually uses:
+   ```
+   npm install
+   ```
 
-- **`assignments:start`** — required for `lessons --start` (marks a lesson
-  as started, moving it into the review queue)
-- **`reviews:create`** — required for `review` and `submit` (records review
-  results, advancing SRS stages)
+2. Get an API token: sign in at [wanikani.com/dashboard](https://www.wanikani.com/dashboard),
+   then go to [Settings → API Tokens](https://www.wanikani.com/settings/personal_access_tokens)
+   → "Create a Personal Access Token". Every token gets read access to
+   `summary`/`lessons`/`queue` for free — only check boxes for the write
+   access this tool actually uses:
 
-Leave `study_materials:create`, `study_materials:update`, and `user:update`
-unchecked — nothing in this repo uses them. If you only ever plan to run
-`summary`/`queue`/`lessons` (no `--start`) and never `review`/`submit`, you
-can leave every box unchecked and generate a read-only token instead.
+   | Permission | Needed for |
+   | --- | --- |
+   | `assignments:start` | `lessons --start` |
+   | `reviews:create` | `review`, `submit`, `submit-batch` |
 
-Then:
+   Leave `study_materials:*` and `user:update` unchecked — nothing here uses
+   them. If you'll only ever run `summary`/`queue`/`lessons` (no `--start`,
+   `review`, or `submit`), skip checking anything and generate a read-only
+   token.
 
-```
-export WANIKANI_API_TOKEN=...
-```
+3. Make the token available to the CLI — either:
 
-(Or copy `.env.example` to `.env`, fill in the token, and run commands with
-`node --env-file=.env bin/wanikani.js ...`.)
+   ```
+   export WANIKANI_API_TOKEN=...
+   ```
+
+   or copy `.env.example` to `.env`, paste the token in, and run commands
+   with `node --env-file=.env bin/wanikani.js ...`.
+
+4. Confirm it works:
+
+   ```
+   node bin/wanikani.js summary
+   ```
 
 ## Usage (plain CLI)
 
@@ -61,7 +70,10 @@ reviews with their answer keys, quizzes you in chat using its own judgment on
 typos/phrasing (more forgiving than the plain CLI's exact matching), then
 submits the whole batch in one `wanikani submit-batch` call before fetching
 the next 10 — so a 600-review session is a couple dozen tool calls, not
-hundreds.
+hundreds. You can answer meaning and reading together in one line (e.g.
+"fur, ke"), it auto-advances to the next item without needing you to say
+"next", and it links out to [Jisho](https://jisho.org/) on anything you get
+wrong so you can dig into it right away.
 
 Never paste your API token into the chat — the skill is instructed to read
 it from your shell environment or a local `.env` file instead, precisely so
