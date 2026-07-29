@@ -74,8 +74,13 @@ match would reject, which is a better experience than the raw CLI.
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. When an item is wrong (either part), drop a Jisho link for it alongside
-   the correction so the user can dig in right away:
+5. When correcting a wrong reading, give the kana only — don't tack on a
+   romaji gloss in parentheses (e.g. "it's あたり, not 回り", not "it's あたり
+   (atari), not mawari (that's 回り, different word)"). Same anywhere else a
+   reading gets mentioned, like onyomi/kunyomi call-outs.
+
+   When an item is wrong (either part), also drop a Jisho link for it
+   alongside the correction so the user can dig in right away:
    `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
    e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).
    Skip this for radicals with a null `characters` — link `documentUrl`
