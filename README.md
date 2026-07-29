@@ -34,8 +34,8 @@ Code skill that drives the quiz conversationally.
    export WANIKANI_API_TOKEN=...
    ```
 
-   or copy `.env.example` to `.env`, paste the token in, and run commands
-   with `node --env-file=.env bin/wanikani.js ...`.
+   or copy `.env.example` to `.env` and paste the token in — the CLI
+   auto-loads `.env` from the repo root on startup, no flags needed.
 
 4. Confirm it works:
 

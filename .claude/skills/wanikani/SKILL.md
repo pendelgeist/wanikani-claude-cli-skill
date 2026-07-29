@@ -14,16 +14,15 @@ process.
 verbatim into the visible tool call, and from there into logs/transcripts,
 so it's effectively a leak. Instead:
 
-- First try running a command plain: `node bin/wanikani.js summary`. If the
-  user's shell already has `WANIKANI_API_TOKEN` exported (e.g. from their
-  `.bashrc`), this just works and needs nothing further from you.
-- If that fails with "No API token found", check for a `.env` file in the
-  repo root. If it exists, run commands with
-  `node --env-file=.env bin/wanikani.js <command>` instead.
-- If there's no `.env` either, tell the user to run
-  `cp .env.example .env` and paste their token into it (wanikani.com →
-  Settings → API Tokens), then retry with `--env-file=.env`. Do not ask them
-  to paste the token into the chat, and do not type it into a command yourself.
+- Just run commands plain: `node bin/wanikani.js summary`. The CLI
+  auto-loads a `.env` file from the repo root on startup if one exists (and
+  doesn't override a `WANIKANI_API_TOKEN` already exported in the shell), so
+  this works either way with no flags needed.
+- If that still fails with "No API token found", there's no `.env` and
+  nothing exported. Tell the user to run `cp .env.example .env` and paste
+  their token into it (wanikani.com → Settings → API Tokens), then retry.
+  Do not ask them to paste the token into the chat, and do not type it into
+  a command yourself.
 
 The token needs the `reviews:create` permission checked for `submit`/`review`
 to work, and `assignments:start` for `lessons --start`. If a write call fails
@@ -51,16 +50,20 @@ match would reject, which is a better experience than the raw CLI.
    `queue --limit 10` again — items just submitted have moved out of the
    due queue, so this naturally returns the next batch, not repeats.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
-3. Prompt each item so it's clear both parts can be answered together in one
-   line. For items with `needsReading: true`: "毛 — meaning (and reading, if
-   you want both at once)?" For meaning-only items (radicals,
-   kana_vocabulary): just "meaning?". A reply like "fur, ke" or "fur / ke" or
-   even just "fur ke" on one line should grade both parts from that single
-   message — don't make the user split it into two turns unless they want to.
-   Parse whichever part looks like a reading (kana, or romaji per `readings`)
-   as the reading and the rest as the meaning; order doesn't matter ("ke fur"
-   works the same as "fur, ke"). If they only gave the meaning, grade that and
-   ask "Reading?" as a quick follow-up.
+3. State the combined-answer convention once, at the start of the first
+   batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
+   I'll grade both"). After that, prompt each item with just the item
+   itself — "毛?" or "次: 表す" — don't repeat the "meaning (and reading)?"
+   framing on every single item; it's redundant once the user knows the
+   convention. A reply like "fur, ke" or "fur / ke" or even just "fur ke" on
+   one line should grade both parts from that single message — don't make
+   the user split it into two turns unless they want to. Parse whichever
+   part looks like a reading (kana, or romaji per `readings`) as the reading
+   and the rest as the meaning; order doesn't matter ("ke fur" works the same
+   as "fur, ke"). If they only gave the meaning, grade that and ask
+   "Reading?" as a quick follow-up. For meaning-only items (radicals,
+   kana_vocabulary), the prompt is just the item itself too — no need to
+   spell out "meaning?" each time either.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
@@ -72,14 +75,15 @@ match would reject, which is a better experience than the raw CLI.
    e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).
    Skip this for radicals with a null `characters` — link `documentUrl`
    instead, since radicals aren't real words Jisho would know.
-6. **Auto-advance by default**: whether an item was right or wrong, say so
-   briefly and move straight into the next item's prompt in the same
+6. **Auto-advance within a batch**: whether an item was right or wrong, say
+   so briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between
    items. Only pause the advance if the user explicitly asks to slow down,
    review an answer, or stop (e.g. "wait", "hold on", "explain that one") —
    treat that as a standing preference for the rest of the session once
-   they've said it, not a one-off.
-6. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
+   they've said it, not a one-off. This only applies *within* a batch —
+   between batches, see step 8.
+7. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
    you go — don't shell out per item. Once the whole local batch (all ~10)
    has been quizzed, submit it in **one** bash call via `submit-batch`,
    piping a JSON array on stdin:
@@ -98,15 +102,20 @@ match would reject, which is a better experience than the raw CLI.
    the `submit-batch` call runs), nothing has been sent to WaniKani yet for
    that batch — the user just re-answers those items next time, nothing is
    corrupted or double-counted.
-7. Fetch the next `queue --limit 10` batch and repeat until the queue comes
-   back empty, then summarize: how many reviewed, how many perfect (zero
-   wrong attempts on both parts).
+8. After submitting, give a one-line batch result (e.g. "10 done, 2 slipped")
+   and ask a brief yes/no before fetching more — e.g. "Continue?" — rather
+   than auto-chaining into the next batch. Unlike within-batch advancing,
+   don't treat a stop-word as a standing preference here; ask every time. On
+   yes, run `queue --limit 10` again and keep going; on no (or the queue
+   comes back empty), stop and give the final summary: how many reviewed,
+   how many perfect (zero wrong attempts on both parts).
 
 Keep the pace conversational — one item's result + the next item's prompt
-per message, not a wall of text for the whole batch at once. The goal is
-fewer *tool calls* and less *waiting on the user for "next"*, not fewer or
-shorter chat turns — auto-advancing means more turns happen back-to-back,
-which is the point.
+per message, not a wall of text for the whole batch at once, and keep every
+prompt (item prompts, the convention note, the between-batch check) as
+short as possible. The goal is fewer *tool calls* and less *waiting on the
+user for "next"*, not fewer or shorter chat turns — auto-advancing means
+more turns happen back-to-back, which is the point.
 
 ## Lessons
 

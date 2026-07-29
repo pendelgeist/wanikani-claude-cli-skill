@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { WaniKaniClient, resolveToken } from "../lib/client.js";
 import { summaryCommand } from "../lib/commands/summary.js";
 import { lessonsCommand } from "../lib/commands/lessons.js";
@@ -7,6 +9,16 @@ import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
+
+// Auto-load the repo's .env (if present) so WANIKANI_API_TOKEN doesn't
+// require --env-file or a pre-exported shell var. Doesn't override a
+// value already set in the environment.
+try {
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  process.loadEnvFile(path.join(repoRoot, ".env"));
+} catch (err) {
+  if (err.code !== "ENOENT") throw err;
+}
 
 const HELP = `wanikani <command> [options]
 
