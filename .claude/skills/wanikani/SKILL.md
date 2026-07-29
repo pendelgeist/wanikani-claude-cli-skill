@@ -60,8 +60,13 @@ match would reject, which is a better experience than the raw CLI.
    the user split it into two turns unless they want to. Parse whichever
    part looks like a reading (kana, or romaji per `readings`) as the reading
    and the rest as the meaning; order doesn't matter ("ke fur" works the same
-   as "fur, ke"). If they only gave the meaning, grade that and ask
-   "Reading?" as a quick follow-up. For meaning-only items (radicals,
+   as "fur, ke"). If they only gave the meaning and got it right, grade that
+   and ask "Reading?" as a quick follow-up — it's worth the extra turn since
+   they clearly know the item. If the meaning was wrong, don't chase a
+   reading separately: count it wrong too, reveal both in the correction,
+   and move on — a missed meaning means asking for the reading in a follow-up
+   turn is very unlikely to change the outcome, so it's not worth the
+   round-trip. For meaning-only items (radicals,
    kana_vocabulary), the prompt is just the item itself too — no need to
    spell out "meaning?" each time either.
 4. Judge both parts against the item's own data, not exact string matching:
