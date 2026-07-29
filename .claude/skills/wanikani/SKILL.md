@@ -104,7 +104,13 @@ match would reject, which is a better experience than the raw CLI.
    alone — no numbering ("1.", "2."), no type label, no batch-position
    preamble. Write "毛?" — or, for a `characters: null` radical, just the
    rendered `characterImageUrl` image with no caption — not "1. Radical —
-   Beggar. Meaning?" or "Batch 1 of ~52, item 1: 毛".
+   Beggar. Meaning?" or "Batch 1 of ~52, item 1: 毛". This rule about type
+   labels isn't just about tidiness: **never put the item's own meaning
+   name anywhere in the prompt**, in any form — not "ユ (Hook radical)?",
+   not "ユ — Hook?", nothing. For a radical the meaning name *is* the
+   answer, so a "helpful" label that names it defeats the quiz as badly as
+   answering it yourself. The prompt is the character (or image) alone,
+   full stop, whether or not `characters` is null.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
