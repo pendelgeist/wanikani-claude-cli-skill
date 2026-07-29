@@ -51,18 +51,16 @@ match would reject, which is a better experience than the raw CLI.
    due queue, so this naturally returns the next batch, not repeats.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
-   batch only ("meaning and reading together in one line, e.g. 'fur, け' —
+   batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
    I'll grade both"). After that, prompt each item with just the item
    itself — "毛?" or "次: 表す" — don't repeat the "meaning (and reading)?"
    framing on every single item; it's redundant once the user knows the
-   convention. A reply like "fur, け" or "fur / け" or even just "fur け" on
+   convention. A reply like "fur, ke" or "fur / ke" or even just "fur ke" on
    one line should grade both parts from that single message — don't make
-   the user split it into two turns unless they want to. This user always
-   answers readings in kana, never romaji — don't prompt for or expect
-   romaji. Parse whichever part looks like a reading (kana; romaji only if
-   they happen to type it anyway) as the reading and the rest as the
-   meaning; order doesn't matter ("け fur" works the same as "fur, け"). If
-   they only gave the meaning and got it right, grade that
+   the user split it into two turns unless they want to. Parse whichever
+   part looks like a reading (kana, or romaji per `readings`) as the reading
+   and the rest as the meaning; order doesn't matter ("ke fur" works the same
+   as "fur, ke"). If they only gave the meaning and got it right, grade that
    and ask "Reading?" as a quick follow-up — it's worth the extra turn since
    they clearly know the item. If the meaning was wrong, don't chase a
    reading separately: count it wrong too, reveal both in the correction,
