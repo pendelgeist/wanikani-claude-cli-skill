@@ -66,7 +66,7 @@ match would reject, which is a better experience than the raw CLI.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
    I'll grade both"). After that, prompt each item with just the item
-   itself — "毛?" or "次: 表す" — don't repeat the "meaning (and reading)?"
+   itself — "毛?" or "次: 表す" — don't repeat the "meaning and reading?"
    framing on every single item; it's redundant once the user knows the
    convention. A reply like "fur, ke" or "fur / ke" or even just "fur ke" on
    one line should grade both parts from that single message — don't make
