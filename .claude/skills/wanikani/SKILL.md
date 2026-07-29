@@ -60,8 +60,13 @@ match would reject, which is a better experience than the raw CLI.
    the user split it into two turns unless they want to. Parse whichever
    part looks like a reading (kana, or romaji per `readings`) as the reading
    and the rest as the meaning; order doesn't matter ("ke fur" works the same
-   as "fur, ke"). If they only gave the meaning, grade that and ask
-   "Reading?" as a quick follow-up. For meaning-only items (radicals,
+   as "fur, ke"). If they only gave the meaning and got it right, grade that
+   and ask "Reading?" as a quick follow-up — it's worth the extra turn since
+   they clearly know the item. If the meaning was wrong, don't chase a
+   reading separately: count it wrong too, reveal both in the correction,
+   and move on — a missed meaning means asking for the reading in a follow-up
+   turn is very unlikely to change the outcome, so it's not worth the
+   round-trip. For meaning-only items (radicals,
    kana_vocabulary), the prompt is just the item itself too — no need to
    spell out "meaning?" each time either.
 4. Judge both parts against the item's own data, not exact string matching:
@@ -69,8 +74,13 @@ match would reject, which is a better experience than the raw CLI.
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. When an item is wrong (either part), drop a Jisho link for it alongside
-   the correction so the user can dig in right away:
+5. When correcting a wrong reading, give the kana only — don't tack on a
+   romaji gloss in parentheses (e.g. "it's あたり, not 回り", not "it's あたり
+   (atari), not mawari (that's 回り, different word)"). Same anywhere else a
+   reading gets mentioned, like onyomi/kunyomi call-outs.
+
+   When an item is wrong (either part), also drop a Jisho link for it
+   alongside the correction so the user can dig in right away:
    `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
    e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).
    Skip this for radicals with a null `characters` — link `documentUrl`
