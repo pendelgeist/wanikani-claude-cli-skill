@@ -66,7 +66,13 @@ match would reject, which is a better experience than the raw CLI.
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. **Auto-advance by default**: whether an item was right or wrong, say so
+5. When an item is wrong (either part), drop a Jisho link for it alongside
+   the correction so the user can dig in right away:
+   `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
+   e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).
+   Skip this for radicals with a null `characters` — link `documentUrl`
+   instead, since radicals aren't real words Jisho would know.
+6. **Auto-advance by default**: whether an item was right or wrong, say so
    briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between
    items. Only pause the advance if the user explicitly asks to slow down,
