@@ -5,6 +5,19 @@ description: Run a WaniKani lesson or review session from Claude Code, using the
 
 # WaniKani study session
 
+If plan mode is active when this skill is invoked, exit it immediately
+instead of asking for confirmation — this is a direct-action skill (fetch
+queue, quiz, submit reviews via the API), not a planning task, and there's
+no code change here for plan mode to gate.
+
+Grading a review item is a simple lookup against data the `queue` call
+already returned (step 4 below) — it needs no deep deliberation. If the
+current model/thinking setting is a slow, high-effort one, mention once at
+the start of the first batch that a faster model or lower reasoning effort
+(e.g. `/model`, `/fast`) will make the session noticeably snappier, since
+grading doesn't benefit from extra thinking time. One line, then move on —
+don't block the session on it or re-raise it later.
+
 This repo is a small CLI (`bin/wanikani.js`) that talks to the WaniKani API
 (https://api.wanikani.com/v2). It needs `WANIKANI_API_TOKEN` available to the
 process.
@@ -74,10 +87,12 @@ match would reject, which is a better experience than the raw CLI.
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. When correcting a wrong reading, give the kana only — don't tack on a
-   romaji gloss in parentheses (e.g. "it's あたり, not 回り", not "it's あたり
-   (atari), not mawari (that's 回り, different word)"). Same anywhere else a
-   reading gets mentioned, like onyomi/kunyomi call-outs.
+5. When correcting a wrong reading, give the kana only — never add a romaji
+   gloss in parentheses after it, in any form. Write "correct is かい, not
+   さん" — not "correct is かい (kai), not さん (san)" and not "it's あたり
+   (atari), not mawari (that's 回り, different word)". This applies to every
+   reading mention: corrections, onyomi/kunyomi call-outs, anywhere. If you
+   notice romaji creeping into a correction, drop it before sending.
 
    When an item is wrong (either part), also drop a Jisho link for it
    alongside the correction so the user can dig in right away:
