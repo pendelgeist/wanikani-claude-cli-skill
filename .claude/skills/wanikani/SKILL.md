@@ -51,16 +51,20 @@ match would reject, which is a better experience than the raw CLI.
    `queue --limit 10` again — items just submitted have moved out of the
    due queue, so this naturally returns the next batch, not repeats.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
-3. Prompt each item so it's clear both parts can be answered together in one
-   line. For items with `needsReading: true`: "毛 — meaning (and reading, if
-   you want both at once)?" For meaning-only items (radicals,
-   kana_vocabulary): just "meaning?". A reply like "fur, ke" or "fur / ke" or
-   even just "fur ke" on one line should grade both parts from that single
-   message — don't make the user split it into two turns unless they want to.
-   Parse whichever part looks like a reading (kana, or romaji per `readings`)
-   as the reading and the rest as the meaning; order doesn't matter ("ke fur"
-   works the same as "fur, ke"). If they only gave the meaning, grade that and
-   ask "Reading?" as a quick follow-up.
+3. State the combined-answer convention once, at the start of the first
+   batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
+   I'll grade both"). After that, prompt each item with just the item
+   itself — "毛?" or "次: 表す" — don't repeat the "meaning (and reading)?"
+   framing on every single item; it's redundant once the user knows the
+   convention. A reply like "fur, ke" or "fur / ke" or even just "fur ke" on
+   one line should grade both parts from that single message — don't make
+   the user split it into two turns unless they want to. Parse whichever
+   part looks like a reading (kana, or romaji per `readings`) as the reading
+   and the rest as the meaning; order doesn't matter ("ke fur" works the same
+   as "fur, ke"). If they only gave the meaning, grade that and ask
+   "Reading?" as a quick follow-up. For meaning-only items (radicals,
+   kana_vocabulary), the prompt is just the item itself too — no need to
+   spell out "meaning?" each time either.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
