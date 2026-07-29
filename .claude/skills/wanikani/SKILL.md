@@ -5,6 +5,12 @@ description: Run a WaniKani lesson or review session from Claude Code, using the
 
 # WaniKani study session
 
+When invoked directly with nothing more specific ("/wanikani", "do my
+wanikani reviews", etc.), go straight into the Reviews flow below — run
+`summary`, then start fetching and quizzing. Don't stop to present a menu
+of CLI subcommands and ask "which?"; only branch to Lessons or the plain
+Status check if the user's own wording asked for one of those instead.
+
 If plan mode is active when this skill is invoked, exit it immediately
 instead of asking for confirmation — this is a direct-action skill (fetch
 queue, quiz, submit reviews via the API), not a planning task, and there's
@@ -51,17 +57,30 @@ Drive the quiz yourself in chat, rather than shelling out to the interactive
 `review` command — you can use judgment on typos/phrasing that a rigid string
 match would reject, which is a better experience than the raw CLI.
 
-1. Run `node bin/wanikani.js queue --limit 10` and parse the JSON — fetch in
+1. Run `node bin/wanikani.js queue --limit 10` and parse the JSON — `queue`
+   always prints JSON, with no flag needed; it has no `--json` option (that
+   flag only exists on `summary`), so don't pass one or it'll error out.
+   Fetch in
    batches of ~10 rather than one at a time (there can be hundreds due; one
    `queue` call per item wastes a round-trip per review for no benefit, since
    you already have the next 9 answer keys in hand). Each item has
-   `assignmentId`, `characters` (or null for some radicals — use
-   `documentUrl` to describe it instead), `needsReading`, `meanings`,
+   `assignmentId`, `characters` (null for some radicals that have no
+   Unicode glyph — see below), `needsReading`, `meanings`,
    `auxiliaryMeanings` (type `whitelist` = also acceptable, `blacklist` =
    looks plausible but is wrong), and `readings` (only the ones with
    `accepted_answer: true` are correct). When the batch is exhausted, run
    `queue --limit 10` again — items just submitted have moved out of the
    due queue, so this naturally returns the next batch, not repeats.
+
+   For a `characters: null` item, render `characterImageUrl` as an inline
+   image instead — `![radical](url)` — that's the actual glyph, the same
+   thing WaniKani's own review screen shows. **Never** say the item's name
+   or `meanings` value as the prompt itself (e.g. "Beggar?") and never show
+   `documentUrl` in place of the image — both bake the answer into the
+   prompt (the name is literally what's being tested, and the WaniKani page
+   URL slug is the name, e.g. `.../radicals/beggar`). If `characterImageUrl`
+   is ever null too (no image available), say so and skip grading that
+   item's meaning rather than guessing at a prompt that might give it away.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
@@ -81,7 +100,11 @@ match would reject, which is a better experience than the raw CLI.
    turn is very unlikely to change the outcome, so it's not worth the
    round-trip. For meaning-only items (radicals,
    kana_vocabulary), the prompt is just the item itself too — no need to
-   spell out "meaning?" each time either.
+   spell out "meaning?" each time either. Keep each prompt to the item
+   alone — no numbering ("1.", "2."), no type label, no batch-position
+   preamble. Write "毛?" — or, for a `characters: null` radical, just the
+   rendered `characterImageUrl` image with no caption — not "1. Radical —
+   Beggar. Meaning?" or "Batch 1 of ~52, item 1: 毛".
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
