@@ -61,13 +61,12 @@ match would reject, which is a better experience than the raw CLI.
 reply against these before sending it, not just the first one:**
 - No romaji in a correction, ever. Kana only: "correct is かい, not さん" —
   never "かい (kai)" or "(that's san)".
-- No numbering. Never "1. 校 — meaning and reading?" — just "校?".
 - Never state the item's own meaning/name in the prompt. Never "ユ (Hook
   radical)?" — the name is the answer.
 
-These three keep resurfacing in practice (they're each explained in more
-detail below) — they're the most common way a review response goes wrong,
-so treat them as a checklist, not just background reading.
+These keep resurfacing in practice (they're each explained in more detail
+below) — they're the most common way a review response goes wrong, so
+treat them as a checklist, not just background reading.
 
 1. Run `node bin/wanikani.js queue --limit 10` and parse the JSON — `queue`
    always prints JSON, with no flag needed; it has no `--json` option (that
@@ -112,17 +111,20 @@ so treat them as a checklist, not just background reading.
    turn is very unlikely to change the outcome, so it's not worth the
    round-trip. For meaning-only items (radicals,
    kana_vocabulary), the prompt is just the item itself too — no need to
-   spell out "meaning?" each time either. Keep each prompt to the item
-   alone — no numbering ("1.", "2."), no type label, no batch-position
-   preamble. Write "毛?" — or, for a `characters: null` radical, just the
-   rendered `characterImageUrl` image with no caption — not "1. Radical —
-   Beggar. Meaning?" or "Batch 1 of ~52, item 1: 毛". This rule about type
-   labels isn't just about tidiness: **never put the item's own meaning
-   name anywhere in the prompt**, in any form — not "ユ (Hook radical)?",
-   not "ユ — Hook?", nothing. For a radical the meaning name *is* the
-   answer, so a "helpful" label that names it defeats the quiz as badly as
-   answering it yourself. The prompt is the character (or image) alone,
-   full stop, whether or not `characters` is null.
+   spell out "meaning?" each time either. A running item number is a nice
+   touch — "1. 毛?", "2. 表す?" — it's a quick progress marker within the
+   batch, so feel free to keep it. What the prompt must *not* have is a
+   type label or a batch-position preamble: write "1. 毛?" — or, for a
+   `characters: null` radical, just the numbered, rendered
+   `characterImageUrl` image with no caption — not "1. Radical — Beggar.
+   Meaning?" (the type label plus the meaning name) or "Batch 1 of ~52,
+   item 1: 毛" (the position preamble). The type-label ban isn't about
+   tidiness: **never put the item's own meaning name anywhere in the
+   prompt**, in any form — not "ユ (Hook radical)?", not "ユ — Hook?",
+   nothing. For a radical the meaning name *is* the answer, so a "helpful"
+   label that names it defeats the quiz as badly as answering it yourself.
+   The prompt is the character (or image) alone, optionally numbered, full
+   stop, whether or not `characters` is null.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
