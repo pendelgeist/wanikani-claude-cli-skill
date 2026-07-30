@@ -57,6 +57,18 @@ Drive the quiz yourself in chat, rather than shelling out to the interactive
 `review` command — you can use judgment on typos/phrasing that a rigid string
 match would reject, which is a better experience than the raw CLI.
 
+**Rules that apply to literally every item, no exceptions — re-check each
+reply against these before sending it, not just the first one:**
+- No romaji in a correction, ever. Kana only: "correct is かい, not さん" —
+  never "かい (kai)" or "(that's san)".
+- No numbering. Never "1. 校 — meaning and reading?" — just "校?".
+- Never state the item's own meaning/name in the prompt. Never "ユ (Hook
+  radical)?" — the name is the answer.
+
+These three keep resurfacing in practice (they're each explained in more
+detail below) — they're the most common way a review response goes wrong,
+so treat them as a checklist, not just background reading.
+
 1. Run `node bin/wanikani.js queue --limit 10` and parse the JSON — `queue`
    always prints JSON, with no flag needed; it has no `--json` option (that
    flag only exists on `summary`), so don't pass one or it'll error out.
