@@ -85,13 +85,11 @@ treat them as a checklist, not just background reading.
 
    For a `characters: null` item, render `characterImageUrl` as an inline
    image instead — `![radical](url)` — that's the actual glyph, the same
-   thing WaniKani's own review screen shows. **Never** say the item's name
-   or `meanings` value as the prompt itself (e.g. "Beggar?") and never show
-   `documentUrl` in place of the image — both bake the answer into the
-   prompt (the name is literally what's being tested, and the WaniKani page
-   URL slug is the name, e.g. `.../radicals/beggar`). If `characterImageUrl`
-   is ever null too (no image available), say so and skip grading that
-   item's meaning rather than guessing at a prompt that might give it away.
+   thing WaniKani's own review screen shows. Don't substitute the name or
+   `documentUrl` for it (see the prompt-wording rules in step 3 for why). If
+   `characterImageUrl` is ever null too (no image available), say so and
+   skip grading that item's meaning rather than guessing at a prompt that
+   might give it away.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
@@ -114,28 +112,24 @@ treat them as a checklist, not just background reading.
    spell out "meaning?" each time either. A running item number is a nice
    touch — "1. 毛?", "2. 表す?" — it's a quick progress marker within the
    batch, so feel free to keep it. What the prompt must *not* have is a
-   type label or a batch-position preamble: write "1. 毛?" — or, for a
+   type label, a batch-position preamble, or (per the checklist above) the
+   item's own meaning name in any form: write "1. 毛?" — or, for a
    `characters: null` radical, just the numbered, rendered
    `characterImageUrl` image with no caption — not "1. Radical — Beggar.
-   Meaning?" (the type label plus the meaning name) or "Batch 1 of ~52,
-   item 1: 毛" (the position preamble). The type-label ban isn't about
-   tidiness: **never put the item's own meaning name anywhere in the
-   prompt**, in any form — not "ユ (Hook radical)?", not "ユ — Hook?",
-   nothing. For a radical the meaning name *is* the answer, so a "helpful"
-   label that names it defeats the quiz as badly as answering it yourself.
-   The prompt is the character (or image) alone, optionally numbered, full
-   stop, whether or not `characters` is null.
+   Meaning?" (type label + meaning name) or "Batch 1 of ~52, item 1: 毛"
+   (position preamble). The prompt is the character (or image) alone,
+   optionally numbered, full stop, whether or not `characters` is null.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. When correcting a wrong reading, give the kana only — never add a romaji
-   gloss in parentheses after it, in any form. Write "correct is かい, not
-   さん" — not "correct is かい (kai), not さん (san)" and not "it's あたり
-   (atari), not mawari (that's 回り, different word)". This applies to every
-   reading mention: corrections, onyomi/kunyomi call-outs, anywhere. If you
-   notice romaji creeping into a correction, drop it before sending.
+5. When correcting a wrong reading, give the kana only (per the checklist
+   above) — this applies to every reading mention: corrections,
+   onyomi/kunyomi call-outs, anywhere, not just the initial "wrong" verdict.
+   A subtler way romaji creeps in: "it's あたり, not 回り" is fine, but "it's
+   あたり, not mawari (that's 回り, a different word)" still leaks it via the
+   second word. Drop it before sending either way.
 
    When an item is wrong (either part), also drop a Jisho link for it
    alongside the correction so the user can dig in right away:
@@ -192,11 +186,10 @@ meanings, mnemonics) but doesn't mark anything started on its own unless
 `--start` is passed, which prompts per-item — that flag needs a real
 terminal (TTY) so don't run it through a non-interactive shell. If the user
 wants to review lesson content conversationally instead (no TTY needed),
-run it without `--start`, read the mnemonics back in your own words, and
-when they say they've got one, mark it started yourself by calling the
-WaniKani API directly is not available as a subcommand yet — the CLI would
-need the `--start` prompt flow for that; tell the user to run
-`node bin/wanikani.js lessons --start` themselves in a terminal for now.
+run it without `--start` and read the mnemonics back in your own words.
+There's no subcommand yet for marking a single lesson started directly (only
+`--start`'s own prompt flow does it), so once they say they've got one, tell
+them to run `node bin/wanikani.js lessons --start` themselves in a terminal.
 
 ## Status check
 
