@@ -59,17 +59,21 @@ match would reject, which is a better experience than the raw CLI.
 
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
+- **Every single item's prompt is the last thing in your message. Full
+  stop.** Send the prompt, then end your turn — no answer, no guess at
+  their answer, nothing after it, ever. This holds even when you already
+  know the answer cold, even when the exact same item just came up minutes
+  ago (a wrong answer requeues it; a fresh `queue` call can overlap the
+  last one), even on item 10 of 10. Recognizing an item is not permission
+  to fill it in — grading requires their real, separately-sent reply, not
+  a guess at what they'd say standing in for it. If you catch yourself
+  typing anything that looks like an answer — meaning, reading, kana,
+  romaji — right after a prompt in the same message, delete it before
+  sending.
 - No romaji in a correction, ever. Kana only: "correct is かい, not さん" —
   never "かい (kai)" or "(that's san)".
 - Never state the item's own meaning/name in the prompt. Never "ユ (Hook
   radical)?" — the name is the answer.
-- Never answer on the user's behalf, for any reason — including an item
-  you've already quizzed earlier this session (it can legitimately reappear:
-  a wrong answer requeues it, or a fresh `queue` call overlaps the last one)
-  or one you're simply confident you know the answer to. Recognizing an item
-  is not permission to fill it in. After sending an item's prompt, stop and
-  wait for their actual reply before grading anything — do not draft,
-  suggest, or pre-populate an answer for them in that turn or any other.
 
 These keep resurfacing in practice (they're each explained in more detail
 below) — they're the most common way a review response goes wrong, so
