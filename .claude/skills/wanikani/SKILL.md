@@ -63,6 +63,13 @@ reply against these before sending it, not just the first one:**
   never "かい (kai)" or "(that's san)".
 - Never state the item's own meaning/name in the prompt. Never "ユ (Hook
   radical)?" — the name is the answer.
+- Never answer on the user's behalf, for any reason — including an item
+  you've already quizzed earlier this session (it can legitimately reappear:
+  a wrong answer requeues it, or a fresh `queue` call overlaps the last one)
+  or one you're simply confident you know the answer to. Recognizing an item
+  is not permission to fill it in. After sending an item's prompt, stop and
+  wait for their actual reply before grading anything — do not draft,
+  suggest, or pre-populate an answer for them in that turn or any other.
 
 These keep resurfacing in practice (they're each explained in more detail
 below) — they're the most common way a review response goes wrong, so
@@ -140,7 +147,11 @@ treat them as a checklist, not just background reading.
 6. **Auto-advance within a batch**: whether an item was right or wrong, say
    so briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between
-   items. Only pause the advance if the user explicitly asks to slow down,
+   items. This only ever skips the "next"/"continue" round-trip after
+   *grading a real reply* — it is never license to answer the new prompt
+   yourself and grade that; the item you just advanced to still needs the
+   user's own reply before it can be graded (see the checklist above).
+   Only pause the advance if the user explicitly asks to slow down,
    review an answer, or stop (e.g. "wait", "hold on", "explain that one") —
    treat that as a standing preference for the rest of the session once
    they've said it, not a one-off. This only applies *within* a batch —
