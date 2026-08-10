@@ -59,19 +59,28 @@ match would reject, which is a better experience than the raw CLI.
 
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
-- **Every single item's prompt is the last thing in your message. Full
-  stop.** Send the prompt, then end your turn — no answer, no guess at
-  their answer, nothing after it, ever. This holds even when you already
-  know the answer cold, even when the exact same item just came up minutes
-  ago (a wrong answer requeues it; a fresh `queue` call can overlap the
-  last one), even on item 10 of 10. Recognizing an item is not permission
-  to fill it in — grading requires their real, separately-sent reply, not
-  a guess at what they'd say standing in for it. If you catch yourself
-  typing anything that looks like an answer — meaning, reading, kana,
-  romaji — right after a prompt in the same message, delete it before
-  sending.
-- No romaji in a correction, ever. Kana only: "correct is かい, not さん" —
-  never "かい (kai)" or "(that's san)".
+- **Every message you send mid-batch has the same two-line shape: a short
+  verdict for the item they just answered, then the next item's prompt —
+  `3. 心強い` — and the prompt is the last thing in the message, full
+  stop.** Nothing follows those characters: no answer, no guess at their
+  answer, no hint, no "meaning (reading)?" label. Send it, end your turn,
+  wait. This holds even when you know the answer cold, even when the same
+  item came up minutes ago (a wrong answer requeues it; a fresh `queue`
+  call can overlap the last one), even on item 10 of 10. Recognizing an
+  item is not permission to fill it in — grading needs their real,
+  separately-sent reply, not your guess at it standing in for one. If you
+  find yourself writing anything in the shape the user has been typing —
+  a meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
+  before sending.
+- **Kana only, in every message, everywhere — not just corrections.** The
+  only romaji in the session is what the *user* types; you never mirror it
+  back. "Reading = kokorozuyoi" is exactly the mistake — write "reading is
+  こころづよい". Same for verdict lines, onyomi/kunyomi asides, recaps, and
+  end-of-batch summaries. When you name a reading, copy the kana verbatim
+  out of that item's `readings` field in the `queue` JSON — never
+  transliterate the user's romaji yourself, and never romanize the kana for
+  them. The subtle leak: "it's あたり, not 回り" is fine, but "it's あたり, not
+  mawari (that's 回り)" still leaks romaji via the second word — drop it.
 - Never state the item's own meaning/name in the prompt. Never "ユ (Hook
   radical)?" — the name is the answer.
 
@@ -104,45 +113,43 @@ treat them as a checklist, not just background reading.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
-   I'll grade both"). After that, prompt each item with just the item
-   itself — "毛?" or "次: 表す" — don't repeat the "meaning and reading?"
-   framing on every single item; it's redundant once the user knows the
-   convention. A reply like "fur, ke" or "fur / ke" or even just "fur ke" on
-   one line should grade both parts from that single message — don't make
-   the user split it into two turns unless they want to. Parse whichever
-   part looks like a reading (kana, or romaji per `readings`) as the reading
-   and the rest as the meaning; order doesn't matter ("ke fur" works the same
-   as "fur, ke"). If they only gave the meaning and got it right, grade that
+   I'll grade both"). After that every prompt is just the item, numbered:
+   "1. 毛", "2. 表す". The number is a handy progress marker within the batch;
+   keep it. Meaning-only items (radicals, kana_vocabulary) are prompted the
+   same way, and a `characters: null` radical is the numbered, rendered
+   `characterImageUrl` image with no caption. What a prompt must *not* carry
+   is a type label, a batch-position preamble, the "meaning (reading)?"
+   framing repeated per item, or (per the checklist above) the item's own
+   meaning name in any form — not "1. Radical — Beggar. Meaning?", not
+   "Batch 1 of ~52, item 1: 毛". The character (or image) alone, optionally
+   numbered, full stop.
+
+   A reply like "fur, ke" or "fur / ke" or even just "fur ke" on one line
+   should grade both parts from that single message — don't make the user
+   split it into two turns unless they want to. Parse whichever part looks
+   like a reading (kana, or romaji per `readings`) as the reading and the
+   rest as the meaning; order doesn't matter ("ke fur" works the same as
+   "fur, ke"). If they only gave the meaning and got it right, grade that
    and ask "Reading?" as a quick follow-up — it's worth the extra turn since
    they clearly know the item. If the meaning was wrong, don't chase a
    reading separately: count it wrong too, reveal both in the correction,
    and move on — a missed meaning means asking for the reading in a follow-up
    turn is very unlikely to change the outcome, so it's not worth the
-   round-trip. For meaning-only items (radicals,
-   kana_vocabulary), the prompt is just the item itself too — no need to
-   spell out "meaning?" each time either. A running item number is a nice
-   touch — "1. 毛?", "2. 表す?" — it's a quick progress marker within the
-   batch, so feel free to keep it. What the prompt must *not* have is a
-   type label, a batch-position preamble, or (per the checklist above) the
-   item's own meaning name in any form: write "1. 毛?" — or, for a
-   `characters: null` radical, just the numbered, rendered
-   `characterImageUrl` image with no caption — not "1. Radical — Beggar.
-   Meaning?" (type label + meaning name) or "Batch 1 of ~52, item 1: 毛"
-   (position preamble). The prompt is the character (or image) alone,
-   optionally numbered, full stop, whether or not `characters` is null.
+   round-trip.
 4. Judge both parts against the item's own data, not exact string matching:
    meaning against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
-5. When correcting a wrong reading, give the kana only (per the checklist
-   above) — this applies to every reading mention: corrections,
-   onyomi/kunyomi call-outs, anywhere, not just the initial "wrong" verdict.
-   A subtler way romaji creeps in: "it's あたり, not 回り" is fine, but "it's
-   あたり, not mawari (that's 回り, a different word)" still leaks it via the
-   second word. Drop it before sending either way.
 
-   When an item is wrong (either part), also drop a Jisho link for it
+   A romaji reading is a *transcription*, not the answer itself: convert it
+   to kana and judge that against `readings`, rather than comparing romaji
+   spellings to each other. Accept any IME spelling that lands on the same
+   kana — du/dzu → づ, di/dzi/dji → ぢ, ji/zi → じ, hu/fu → ふ, n/nn → ん.
+   Differences that do change the kana are still misses (ず and づ really are
+   different, so "kokorozuyoi" misses こころづよい), but "kokorodzuyoi" is that
+   same づ spelled another way and marking it wrong is a mis-grade.
+5. When an item is wrong (either part), drop a Jisho link for it
    alongside the correction so the user can dig in right away:
    `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
    e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).

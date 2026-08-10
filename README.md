@@ -86,7 +86,8 @@ it never ends up typed into a command (and therefore into a transcript).
   auxiliary meanings (things that look right but aren't) are always rejected.
 - **Reading**: romaji input is converted to kana (via
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
-  the subject's accepted readings.
+  the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
+  folded onto `du`/`di` first, since wanakana only understands the latter.
 
 See `lib/grading.js` (unit tested in `test/grading.test.js`).
 
