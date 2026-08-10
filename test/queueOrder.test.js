@@ -167,3 +167,23 @@ test("queue items arrive with a prompt and correction lines already composed", a
     }
   });
 });
+
+test("the how-to-answer note rides on the first item, once per sitting", async () => {
+  await withTempCacheDir(async () => {
+    const { queueCommand } = await import("../lib/commands/queue.js");
+    const { captureStdout } = await import("./helpers.js");
+    const { addSessionTotals } = await import("../lib/queueOrder.js");
+    const client = fakeClient(6);
+
+    const first = JSON.parse(await captureStdout(() => queueCommand(client, { limit: 3 })));
+    assert.match(first[0].convention, /one line/, "the start of a sitting explains how to answer");
+    assert.equal(first[1].convention, undefined, "and only once");
+
+    // Once a batch has been submitted we're mid-sitting; the note would be noise.
+    await markSubmitted(first.map((item) => item.assignmentId));
+    await addSessionTotals({ submitted: 3, perfect: 3 });
+
+    const second = JSON.parse(await captureStdout(() => queueCommand(client, { limit: 3 })));
+    assert.equal(second[0].convention, undefined);
+  });
+});

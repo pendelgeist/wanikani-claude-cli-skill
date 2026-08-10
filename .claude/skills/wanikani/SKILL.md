@@ -60,28 +60,31 @@ match would reject, which is a better experience than the raw CLI.
 **The whole loop:**
 
 1. `queue --limit 10`
-2. Print `item.prompt`. Stop. Wait for their reply.
-3. Grade it. Wrong? Print that item's `corrections`. Then step 2 for the
-   next item, in the same message.
-4. After the last item: `submit-batch`.
-5. Print `summaryLine`. Ask whether to continue.
+2. If the first item has a `convention` field, print it — that's the
+   how-to-answer note, and it appears only at the start of a sitting.
+3. Print `item.prompt`. Stop. Wait for their reply.
+4. Grade it. Wrong? Print that item's `corrections`, link included. Then
+   step 3 for the next item, in the same message.
+5. After the last item: `submit-batch`.
+6. Print `summaryLine`. Ask whether to continue.
 
-Three of those are strings the CLI hands you finished — `prompt`,
-`corrections`, `summaryLine`. **Print them as they are.** Don't compose your
-own, don't append to them, don't paraphrase them into your own words. They
-exist because every one of them has been got wrong in a real session by
-being written out by hand.
+Four of those are strings the CLI hands you finished — `convention`,
+`prompt`, `corrections`, `summaryLine`. **Print them as they are.** Don't
+compose your own, don't append to them, don't paraphrase them into your own
+words. Every one of them has been got wrong in a real session by being
+written out by hand instead.
 
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
-- **`item.prompt` is the entire question. Nothing goes after it.** Not a
-  gloss, not a type label, and above all not a `— meaning and reading?`
-  tail — the convention is stated once at the start of the batch, so
-  repeating it on each item is noise, and it is what drags a gloss along
-  behind it. `取 (take)` hands over the answer; so do `心持ち (mindset)` and
-  `ユ (Hook radical)`, and it makes no difference that the gloss is short,
-  obvious, or "just for clarity", because the meaning *is* what you're about
-  to grade.
+- **`item.prompt` is the entire question. Nothing before it, nothing after
+  it.** No gloss, no type label, and no `— meaning & reading?` tail: the
+  `convention` field already said that once, so repeating it per item is
+  noise, and it's what drags a gloss along behind it. `取 (take)` hands over
+  the answer; so do `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no
+  difference that the gloss is short, obvious, or "just for clarity",
+  because the meaning *is* what you're about to grade. Nothing goes in front
+  of it either — `Batch 1/10. Starting:` is a position preamble, and the
+  number in the prompt is already the progress marker.
 - **A glyph-less radical's `prompt` is an image URL. Print the URL.** Never
   swap it for a description — `7. Rib Cage image` names the radical, which
   is exactly the answer being asked for, and it's worse than the gloss
@@ -107,6 +110,15 @@ reply against these before sending it, not just the first one:**
   "sasaeru"` and `should be "shin", not "mi"` are both from a real session,
   and so is `つぎつぎ is "tsugitsugu"` — which is romaji *and* misspelt,
   because it was transliterated from memory instead of read from the data.
+  **And don't annotate the string once you've printed it.** `Reading is
+  はなし (hanashi)` and `Reading is じょう (jou)` are from a later session where
+  the field *was* used and then decorated with a romaji gloss — the answer
+  key was right there and correct, and a parenthesis undid it. The user
+  typing romaji is not a reason to mirror it back; they can read the kana,
+  which is the entire point of the exercise. Include `corrections.link` too:
+  it's a Jisho lookup for words and the WaniKani page for radicals, and it's
+  the one thing that makes a miss useful.
+
   The kana-only rule still governs anything you add in your own words —
   verdict lines, onyomi/kunyomi asides, recaps. The only romaji in a session
   is what the *user* types. The subtle leak: "it's あたり, not 回り" is fine,
@@ -137,12 +149,12 @@ treat them as a checklist, not just background reading.
    no image either — say so and skip the item rather than describing it,
    since any description gives the answer away.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
-3. State the combined-answer convention once, at the start of the first
-   batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
-   I'll grade both"). After that it's `prompt` and nothing else, for every
-   item including the meaning-only ones (radicals, kana_vocabulary). Saying
-   it once is what keeps "meaning & reading?" off each item, and that tail is
-   what tends to drag a gloss along with it.
+3. The first item of the first batch carries `convention` — print it, and
+   that's the only time the how-to-answer note appears. The CLI decides when
+   to include it (once nothing has been submitted this sitting), so there's
+   nothing to remember or suppress. After that it's `prompt` and nothing
+   else, for every item including the meaning-only ones (radicals,
+   kana_vocabulary).
 
    A reply like "fur, ke" or "fur / ke" or even just "fur ke" on one line
    should grade both parts from that single message — don't make the user
@@ -237,11 +249,19 @@ treat them as a checklist, not just background reading.
    10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 done this session, 25 perfect · 127 left
    ```
 
-   Paste that line; don't rewrite it. Turning
-   `10 done, 5 perfect · 4 moved up, 1 slipped back · 102 left` into
-   "Batch submitted. 10 done, 5 perfect. 4 promoted, 1 demoted. 102 left."
-   is re-typing the same facts in a worse format — the separators, the
-   wording and the dropped-empty-segment rules are all already decided.
+   Paste that line; don't rewrite it. Summarising the summary loses the
+   parts that make it worth having, every time it's been tried:
+
+   ```
+   line:  10 done, 5 perfect · 工業 → Guru · 20 done this session, 10 perfect · 92 left
+   typed: Batch 1 done. 5 perfect. 92 left.
+   ```
+
+   That rewrite dropped the item that reached Guru and the whole session
+   total — the two things the line exists for. An earlier one turned
+   `4 moved up, 1 slipped back` into "4 promoted, 1 demoted", which is the
+   same facts in a worse format. The separators, the wording and the
+   drop-empty-segments rules are all already decided.
 
    Add a sentence of your own only when there's something the line can't
    know — an item that failed to submit and why, or a pattern worth naming
