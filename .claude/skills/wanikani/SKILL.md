@@ -57,17 +57,37 @@ Drive the quiz yourself in chat, rather than shelling out to the interactive
 `review` command — you can use judgment on typos/phrasing that a rigid string
 match would reject, which is a better experience than the raw CLI.
 
+**The whole loop:**
+
+1. `queue --limit 10`
+2. Print `item.prompt`. Stop. Wait for their reply.
+3. Grade it. Wrong? Print that item's `corrections`. Then step 2 for the
+   next item, in the same message.
+4. After the last item: `submit-batch`.
+5. Print `summaryLine`. Ask whether to continue.
+
+Three of those are strings the CLI hands you finished — `prompt`,
+`corrections`, `summaryLine`. **Print them as they are.** Don't compose your
+own, don't append to them, don't paraphrase them into your own words. They
+exist because every one of them has been got wrong in a real session by
+being written out by hand.
+
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
-- **Print the item's `prompt` field verbatim. Don't compose one.** The
-  `queue` JSON already carries the finished line — `3. 心強い`, or the
-  rendered image for a glyph-less radical — so copy the string across and
-  add nothing to it. Not a gloss, not a type label, not a
-  `— meaning & reading?` tail. `取 (take)` hands over the answer, and so do
-  `心持ち (mindset)` and `ユ (Hook radical)`; it makes no difference that the
-  gloss is short, obvious, or "just for clarity", because the meaning *is*
-  what you're about to grade. If a `prompt` is null there's no glyph and no
-  image, so say so and skip that item rather than describing it.
+- **`item.prompt` is the entire question. Nothing goes after it.** Not a
+  gloss, not a type label, and above all not a `— meaning and reading?`
+  tail — the convention is stated once at the start of the batch, so
+  repeating it on each item is noise, and it is what drags a gloss along
+  behind it. `取 (take)` hands over the answer; so do `心持ち (mindset)` and
+  `ユ (Hook radical)`, and it makes no difference that the gloss is short,
+  obvious, or "just for clarity", because the meaning *is* what you're about
+  to grade.
+- **A glyph-less radical's `prompt` is an image URL. Print the URL.** Never
+  swap it for a description — `7. Rib Cage image` names the radical, which
+  is exactly the answer being asked for, and it's worse than the gloss
+  because it reads like a caption rather than a giveaway. If `prompt` is
+  null there was no image either: say so and skip the item rather than
+  describing it.
 - **Every message you send mid-batch has the same two-line shape: a short
   verdict for the item they just answered, then that prompt line — and the
   prompt is the last thing in the message, full stop.** Nothing follows it:
@@ -80,16 +100,17 @@ reply against these before sending it, not just the first one:**
   find yourself writing anything in the shape the user has been typing —
   a meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
   before sending.
-- **Kana only, in every message, everywhere — and use the item's
-  `corrections` strings rather than writing your own.** Each item ships
-  `corrections.meaning`, `corrections.reading` (already kana, straight from
-  the API) and `corrections.link`; print those. "Reading = kokorozuyoi" is
-  the mistake this replaces — it came from transliterating the user's romaji
-  instead of reading the answer key. The rule still applies to anything you
-  add in your own words — verdict lines, onyomi/kunyomi asides, recaps — the
-  only romaji in the session is what the *user* types. The subtle leak: "it's
-  あたり, not 回り" is fine, but "it's あたり, not mawari (that's 回り)" leaks it
-  via the second word.
+- **A wrong item is corrected with its `corrections` strings, not your own
+  words.** `corrections.meaning`, `corrections.reading` (already kana,
+  straight from the answer key) and `corrections.link` — print them. Writing
+  the correction by hand is where romaji gets in: `should be "kaeru", not
+  "sasaeru"` and `should be "shin", not "mi"` are both from a real session,
+  and so is `つぎつぎ is "tsugitsugu"` — which is romaji *and* misspelt,
+  because it was transliterated from memory instead of read from the data.
+  The kana-only rule still governs anything you add in your own words —
+  verdict lines, onyomi/kunyomi asides, recaps. The only romaji in a session
+  is what the *user* types. The subtle leak: "it's あたり, not 回り" is fine,
+  but "it's あたり, not mawari (that's 回り)" leaks it via the second word.
 These keep resurfacing in practice (they're each explained in more detail
 below) — they're the most common way a review response goes wrong, so
 treat them as a checklist, not just background reading.
@@ -216,10 +237,15 @@ treat them as a checklist, not just background reading.
    10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 done this session, 25 perfect · 127 left
    ```
 
+   Paste that line; don't rewrite it. Turning
+   `10 done, 5 perfect · 4 moved up, 1 slipped back · 102 left` into
+   "Batch submitted. 10 done, 5 perfect. 4 promoted, 1 demoted. 102 left."
+   is re-typing the same facts in a worse format — the separators, the
+   wording and the dropped-empty-segment rules are all already decided.
+
    Add a sentence of your own only when there's something the line can't
    know — an item that failed to submit and why, or a pattern worth naming
-   ("the ん readings are the ones catching you"). Don't restate the line in
-   prose.
+   ("the ん readings are the ones catching you").
 
 Keep the pace conversational — one item's result + the next item's prompt
 per message, not a wall of text for the whole batch at once, and keep every
