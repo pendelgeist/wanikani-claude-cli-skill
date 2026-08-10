@@ -20,13 +20,13 @@ Code skill that drives the quiz conversationally.
 
    | Permission | Needed for |
    | --- | --- |
-   | `assignments:start` | `lessons --start` |
+   | `assignments:start` | `start`, `lessons --start` |
    | `reviews:create` | `review`, `submit`, `submit-batch` |
 
    Leave `study_materials:*` and `user:update` unchecked — nothing here uses
-   them. If you'll only ever run `summary`/`queue`/`lessons` (no `--start`,
-   `review`, or `submit`), skip checking anything and generate a read-only
-   token.
+   them. If you'll only ever run `summary`/`queue`/`lessons` (no `start`,
+   `--start`, `review`, or `submit`), skip checking anything and generate a
+   read-only token.
 
 3. Make the token available to the CLI — either:
 
@@ -49,6 +49,7 @@ Code skill that drives the quiz conversationally.
 node bin/wanikani.js summary          # level, lessons/reviews due now, next review time
 node bin/wanikani.js lessons          # show available lessons + mnemonics
 node bin/wanikani.js lessons --start  # ...and prompt to mark each one started
+node bin/wanikani.js start 123 456    # mark specific lessons started, no prompting
 node bin/wanikani.js review           # interactive review session
 node bin/wanikani.js review --limit 10
 ```
@@ -75,6 +76,12 @@ hundreds. You can answer meaning and reading together in one line (e.g.
 "next", and it links out to [Jisho](https://jisho.org/) on anything you get
 wrong so you can dig into it right away.
 
+For lessons it works the other way round — it reads `wanikani lessons --json`,
+teaches each item conversationally (characters, meaning, reading, mnemonic in
+its own words), and marks the ones you've learned started with a single
+`wanikani start` call, so the whole lesson runs in chat instead of handing you
+back to a terminal.
+
 Never paste your API token into the chat — the skill is instructed to read
 it from your shell environment or a local `.env` file instead, precisely so
 it never ends up typed into a command (and therefore into a transcript).
@@ -96,7 +103,8 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | Command | Purpose |
 | --- | --- |
 | `summary [--json]` | Level, lessons/reviews available, next review time |
-| `lessons [--start] [--limit N]` | List available lessons; `--start` prompts to mark each started (needs a TTY) |
+| `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
+| `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |

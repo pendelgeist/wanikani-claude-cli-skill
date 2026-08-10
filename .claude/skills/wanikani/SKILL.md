@@ -232,15 +232,46 @@ more turns happen back-to-back, which is the point.
 
 ## Lessons
 
-`node bin/wanikani.js lessons` prints available lessons (characters,
-meanings, mnemonics) but doesn't mark anything started on its own unless
-`--start` is passed, which prompts per-item — that flag needs a real
-terminal (TTY) so don't run it through a non-interactive shell. If the user
-wants to review lesson content conversationally instead (no TTY needed),
-run it without `--start` and read the mnemonics back in your own words.
-There's no subcommand yet for marking a single lesson started directly (only
-`--start`'s own prompt flow does it), so once they say they've got one, tell
-them to run `node bin/wanikani.js lessons --start` themselves in a terminal.
+Teaching, not quizzing — so unlike reviews, everything is meant to be said
+out loud. Show the characters, the meaning, the reading, the mnemonic.
+
+1. Run `node bin/wanikani.js lessons --json --limit 5` and parse the JSON.
+   Batches of ~5: lessons are much heavier going than reviews. Each item has
+   `assignmentId`, `characters` (null for glyph-less radicals — render
+   `characterImageUrl` inline, same as in reviews), `subjectType`, `level`,
+   `meanings`, `readings`, `meaningMnemonic`/`meaningHint`, and
+   `readingMnemonic`/`readingHint` (markup already stripped). They come back
+   in WaniKani's own teaching order, so take them in the order given —
+   radicals before the kanji built from them. If the array is empty, say
+   there's nothing to learn right now and stop.
+2. Teach one item per message: the characters, what it means, how it's read
+   (kana only — the no-romaji rule holds here too), and the mnemonic in your
+   own words rather than read out verbatim. Tie it back to a radical or kanji
+   they've already had where the mnemonic does. Then ask if they've got it,
+   and wait — the same "the prompt is the last thing in your message" rule
+   applies: don't answer for them and don't teach the next item in the same
+   message.
+3. When they say they've got it, don't shell out yet — keep a list. Once the
+   batch is done (or they want to stop), mark them all started in one call:
+
+   ```
+   node bin/wanikani.js start 551149968 603114625
+   ```
+
+   That's the non-interactive counterpart to `lessons --start` (which prompts
+   per item and needs a real terminal, so don't run that one). It prints
+   `{results, batch}` — per item `{assignmentId, ok, srsStageName,
+   firstReviewIn}`, or `{ok: false, error, retryable}`. Report anything that
+   failed rather than assuming it went through.
+4. Starting a lesson is what puts the item into the SRS: it enters Apprentice
+   1 and the first review lands a few hours later (`firstReviewIn` says
+   when). Mention that once at the end — "5 started, first reviews in 4h" —
+   not per item. Only items they've actually learned should be started;
+   anything they want to skip just doesn't go in the `start` call, and comes
+   back as a lesson next time.
+
+`start` needs the token's `assignments:start` permission. A 403 here means
+that box isn't checked — say so rather than retrying (see README.md).
 
 ## Status check
 

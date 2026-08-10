@@ -10,6 +10,7 @@ import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
+import { startCommand } from "../lib/commands/start.js";
 
 // Auto-load the repo's .env (if present) so WANIKANI_API_TOKEN doesn't
 // require --env-file or a pre-exported shell var. Doesn't override a
@@ -28,8 +29,12 @@ const HELP = `wanikani <command> [options]
 
 Commands:
   summary [--json]      Lessons/reviews available, next review time, and level
-  lessons [--start] [--limit N]
-                        List available lessons; --start prompts to mark each started
+  lessons [--json] [--limit N] [--start]
+                        Available lessons (--json includes mnemonics and assignment ids
+                        for a Claude-driven session; --start prompts to mark each started,
+                        which needs a real terminal)
+  start <id> [<id>...]  Mark lesson assignments as started — the non-interactive
+                        counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
   queue [--limit N]     Due reviews as JSON, with answer keys — for Claude to drive the quiz itself
   submit <id> [--wrong-meaning N] [--wrong-reading N]
@@ -72,7 +77,7 @@ async function main() {
     case "lessons": {
       const { values } = parseArgs({
         args: rest,
-        options: { start: { type: "boolean" }, limit: { type: "string" } },
+        options: { start: { type: "boolean" }, limit: { type: "string" }, json: { type: "boolean" } },
       });
       await lessonsCommand(client, { ...values, limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
       break;
@@ -90,6 +95,15 @@ async function main() {
         options: { limit: { type: "string" }, json: { type: "boolean" } },
       });
       await queueCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      break;
+    }
+    case "start": {
+      const { positionals } = parseArgs({ args: rest, allowPositionals: true, options: {} });
+      const assignmentIds = positionals.map((id) => parseCount(id, { flag: "<assignmentId>", min: 1 }));
+      if (assignmentIds.length === 0) {
+        throw new Error("Usage: wanikani start <assignmentId> [<assignmentId>...]");
+      }
+      await startCommand(client, { assignmentIds });
       break;
     }
     case "submit": {
