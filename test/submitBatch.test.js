@@ -79,6 +79,53 @@ test("submitBatchCommand reports the SRS movement worth calling out", async () =
   });
 });
 
+test("submitBatchCommand prints a ready-to-use summary line", async () => {
+  await withTempCacheDir(async () => {
+    await saveQueueOrder([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+      { assignmentId: 3, subjectId: 13 },
+    ]);
+    // The characters come from the subject cache, so seed it the way a
+    // preceding `queue` call would have.
+    const { saveSubjectCache } = await import("../lib/subjectCache.js");
+    await saveSubjectCache({
+      subjects: new Map([
+        ["11", { id: 11, data: { characters: "心強い" } }],
+        ["12", { id: 12, data: { characters: "集中" } }],
+      ]),
+      refreshedAt: new Date().toISOString(),
+    });
+
+    const output = await captureStdout(() =>
+      submitBatchCommand(fakeClient({ stages: { starting: 8, ending: 9 } }), [
+        { assignmentId: 1 },
+        { assignmentId: 2 },
+      ]),
+    );
+
+    const { summaryLine } = JSON.parse(output);
+    assert.match(summaryLine, /^2 done, 2 perfect/);
+    assert.match(summaryLine, /心強い → Burned, 集中 → Burned/, "named from cache, no API call");
+    assert.match(summaryLine, /1 left/);
+  });
+});
+
+test("the summary line carries a session total once past the first batch", async () => {
+  await withTempCacheDir(async () => {
+    await saveQueueOrder([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+    ]);
+
+    const first = await captureStdout(() => submitBatchCommand(fakeClient(), [{ assignmentId: 1 }]));
+    assert.doesNotMatch(JSON.parse(first).summaryLine, /this session/);
+
+    const second = await captureStdout(() => submitBatchCommand(fakeClient(), [{ assignmentId: 2 }]));
+    assert.match(JSON.parse(second).summaryLine, /2 done this session, 2 perfect/);
+  });
+});
+
 test("submitBatchCommand reports how many reviews are left", async () => {
   await withTempCacheDir(async () => {
     await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }]);

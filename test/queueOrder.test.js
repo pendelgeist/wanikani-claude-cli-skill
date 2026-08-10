@@ -146,3 +146,24 @@ test("countRemainingReviews uses the cached order, then asks the API once it is 
     assert.equal(client.assignmentCalls, 2);
   });
 });
+
+test("queue items arrive with a prompt and correction lines already composed", async () => {
+  await withTempCacheDir(async () => {
+    const { queueCommand } = await import("../lib/commands/queue.js");
+    const { captureStdout } = await import("./helpers.js");
+
+    const output = await captureStdout(() => queueCommand(fakeClient(3), { limit: 3 }));
+    const items = JSON.parse(output);
+
+    assert.deepEqual(
+      items.map((item) => item.prompt),
+      items.map((item, index) => `${index + 1}. ${item.characters}`),
+      "numbered in the order they'll be asked, characters only",
+    );
+    for (const item of items) {
+      assert.doesNotMatch(item.prompt, /[A-Za-z(]/, "no gloss, no label");
+      assert.match(item.corrections.reading, /^reading is [^A-Za-z]+$/);
+      assert.match(item.corrections.link, /^https:\/\/jisho\.org\/word\//);
+    }
+  });
+});

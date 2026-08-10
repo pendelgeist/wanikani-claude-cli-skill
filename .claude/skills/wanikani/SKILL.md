@@ -59,16 +59,15 @@ match would reject, which is a better experience than the raw CLI.
 
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
-- **The prompt line is exactly `<n>. <characters>` and nothing else** —
-  `3. 心強い`. Read that line back before sending: apart from the number and
-  its dot, it should contain nothing but Japanese characters. A Latin
-  letter or a parenthesis in it means you have just handed over the answer.
-  `取 (take)` gives away the meaning outright; so do `心持ち (mindset)`,
-  `ユ (Hook radical)`, and any `— meaning & reading?` tail. This applies to
-  kanji and vocabulary exactly as much as to radicals, and it does not
-  matter that the gloss is short, obvious, or "just for clarity" — the
-  meaning *is* the answer you are about to grade. (For a `characters: null`
-  radical the line is the rendered image, alone, with no caption.)
+- **Print the item's `prompt` field verbatim. Don't compose one.** The
+  `queue` JSON already carries the finished line — `3. 心強い`, or the
+  rendered image for a glyph-less radical — so copy the string across and
+  add nothing to it. Not a gloss, not a type label, not a
+  `— meaning & reading?` tail. `取 (take)` hands over the answer, and so do
+  `心持ち (mindset)` and `ユ (Hook radical)`; it makes no difference that the
+  gloss is short, obvious, or "just for clarity", because the meaning *is*
+  what you're about to grade. If a `prompt` is null there's no glyph and no
+  image, so say so and skip that item rather than describing it.
 - **Every message you send mid-batch has the same two-line shape: a short
   verdict for the item they just answered, then that prompt line — and the
   prompt is the last thing in the message, full stop.** Nothing follows it:
@@ -81,15 +80,16 @@ reply against these before sending it, not just the first one:**
   find yourself writing anything in the shape the user has been typing —
   a meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
   before sending.
-- **Kana only, in every message, everywhere — not just corrections.** The
-  only romaji in the session is what the *user* types; you never mirror it
-  back. "Reading = kokorozuyoi" is exactly the mistake — write "reading is
-  こころづよい". Same for verdict lines, onyomi/kunyomi asides, recaps, and
-  end-of-batch summaries. When you name a reading, copy the kana verbatim
-  out of that item's `readings` field in the `queue` JSON — never
-  transliterate the user's romaji yourself, and never romanize the kana for
-  them. The subtle leak: "it's あたり, not 回り" is fine, but "it's あたり, not
-  mawari (that's 回り)" still leaks romaji via the second word — drop it.
+- **Kana only, in every message, everywhere — and use the item's
+  `corrections` strings rather than writing your own.** Each item ships
+  `corrections.meaning`, `corrections.reading` (already kana, straight from
+  the API) and `corrections.link`; print those. "Reading = kokorozuyoi" is
+  the mistake this replaces — it came from transliterating the user's romaji
+  instead of reading the answer key. The rule still applies to anything you
+  add in your own words — verdict lines, onyomi/kunyomi asides, recaps — the
+  only romaji in the session is what the *user* types. The subtle leak: "it's
+  あたり, not 回り" is fine, but "it's あたり, not mawari (that's 回り)" leaks it
+  via the second word.
 These keep resurfacing in practice (they're each explained in more detail
 below) — they're the most common way a review response goes wrong, so
 treat them as a checklist, not just background reading.
@@ -99,31 +99,29 @@ treat them as a checklist, not just background reading.
    batches of ~10 rather than one at a time (there can be hundreds due; one
    `queue` call per item wastes a round-trip per review for no benefit, since
    you already have the next 9 answer keys in hand). Each item has
-   `assignmentId`, `characters` (null for some radicals that have no
-   Unicode glyph — see below), `needsReading`, `meanings`,
-   `auxiliaryMeanings` (type `whitelist` = also acceptable, `blacklist` =
-   looks plausible but is wrong), and `readings` (only the ones with
-   `accepted_answer: true` are correct). When the batch is exhausted, run
+   `assignmentId`, `prompt` (the finished question line — print it as-is),
+   `corrections` (`meaning`/`reading`/`link`, ready to print when they get it
+   wrong), `needsReading`, `meanings`, `auxiliaryMeanings` (type `whitelist`
+   = also acceptable, `blacklist` = looks plausible but is wrong), and
+   `readings` (only the ones with `accepted_answer: true` are correct). The
+   raw fields are there for grading; the composed ones are what you print.
+   When the batch is exhausted, run
    `queue --limit 10` again — submitting prunes those items from the
    session's queue, so this returns the next batch, not repeats. (Calling it
    *before* submitting hands back the same batch again, by design: an
    unsubmitted item hasn't been recorded anywhere yet.)
 
-   For a `characters: null` item, render `characterImageUrl` as an inline
-   image instead — `![radical](url)` — that's the actual glyph, the same
-   thing WaniKani's own review screen shows. Don't substitute the name or
-   `documentUrl` for it (see the prompt-wording rules in step 3 for why). If
-   `characterImageUrl` is ever null too (no image available), say so and
-   skip grading that item's meaning rather than guessing at a prompt that
-   might give it away.
+   Glyph-less radicals are already handled: their `prompt` is the inline
+   image WaniKani's own review screen shows. A null `prompt` means there was
+   no image either — say so and skip the item rather than describing it,
+   since any description gives the answer away.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
-   I'll grade both"). Every prompt after that is the bare line from the
-   checklist above — "1. 毛", "2. 表す" — including for meaning-only items
-   (radicals, kana_vocabulary), which are prompted exactly the same way.
-   The convention is stated once because repeating "meaning & reading?" per
-   item is what drags a gloss or a type label along with it.
+   I'll grade both"). After that it's `prompt` and nothing else, for every
+   item including the meaning-only ones (radicals, kana_vocabulary). Saying
+   it once is what keeps "meaning & reading?" off each item, and that tail is
+   what tends to drag a gloss along with it.
 
    A reply like "fur, ke" or "fur / ke" or even just "fur ke" on one line
    should grade both parts from that single message — don't make the user
@@ -157,12 +155,10 @@ treat them as a checklist, not just background reading.
    せmぱい and ぐっま and marks them wrong, and grading them right here would
    put this tool's record out of step with the website. Correct them like
    any other miss (in kana, per the checklist).
-5. When an item is wrong (either part), drop a Jisho link for it
-   alongside the correction so the user can dig in right away:
-   `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
-   e.g. `https://jisho.org/word/味` — browsers percent-encode it as needed).
-   Skip this for radicals with a null `characters` — link `documentUrl`
-   instead, since radicals aren't real words Jisho would know.
+5. When an item is wrong, print that item's `corrections` — the part they
+   missed (or both, if the meaning was wrong) plus `corrections.link`, which
+   is already a Jisho lookup for words and the WaniKani page for radicals.
+   They're pre-composed so the kana is copied, not retyped.
 6. **Auto-advance within a batch**: whether an item was right or wrong, say
    so briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between
@@ -185,15 +181,12 @@ treat them as a checklist, not just background reading.
     {"assignmentId": 603114625, "wrongMeaning": 0, "wrongReading": 0}]
    EOF
    ```
-   This collapses ~10 round-trips into 1. It prints everything the batch
-   summary in step 8 needs:
+   This collapses ~10 round-trips into 1. It prints:
+   - `summaryLine` — the finished end-of-batch line, names and running
+     totals included. Print it as-is; step 8 is about when, not how.
    - `results[]` — per item, `{assignmentId, ok, perfect, startingSrsStage,
      endingSrsStage, srsStageName, srsTier, tierChange}`, or
-     `{ok: false, error, retryable}` if that item didn't submit. `tierChange` is
-     `"promoted"` / `"burned"` / `"demoted"` when the item crossed a tier
-     boundary and `null` otherwise, so it's already filtered down to what's
-     worth mentioning. Match `assignmentId` back to the item's characters —
-     the CLI doesn't know them.
+     `{ok: false, error, retryable}` if that item didn't submit.
    - `batch` — `{submitted, failed, perfect, burned, promoted, demoted}`.
    - `remaining` — reviews still due after this batch.
 
@@ -215,21 +208,18 @@ treat them as a checklist, not just background reading.
    keep going; on no (or the queue comes back empty), give the final summary
    and stop.
 
-   The summary is one line, built from the `submit-batch` output plus your own
-   running session total, in this order — batch result, status changes,
-   session progress, what's left:
+   The summary is `submitBatch`'s `summaryLine`, printed as-is — it already
+   names what changed status, carries the running session total, and drops
+   the segments that would say nothing:
 
    ```
-   10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 this session · 127 left
+   10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 done this session, 25 perfect · 127 left
    ```
 
-   Name the items behind each `tierChange` (characters, no romaji, per the
-   checklist) — "which ones got there" is the interesting part. Skip any
-   segment that's empty: no tier changes means no middle segment, and drop
-   the "left" segment when `remaining` is 0. Keep the whole thing to one
-   line; if more than ~4 items changed tier, give the counts instead
-   ("4 → Guru, 2 → Burned"). The final summary is that same line with session
-   totals in place of the batch ones.
+   Add a sentence of your own only when there's something the line can't
+   know — an item that failed to submit and why, or a pattern worth naming
+   ("the ん readings are the ones catching you"). Don't restate the line in
+   prose.
 
 Keep the pace conversational — one item's result + the next item's prompt
 per message, not a wall of text for the whole batch at once, and keep every
