@@ -118,10 +118,22 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 
-`submit` and `submit-batch` report each item's SRS movement
-(`startingSrsStage`/`endingSrsStage`, plus `tierChange` for the ones that
-crossed into Guru/Master/Burned or slipped back) and how many reviews are
-still due, which is what the skill's end-of-batch summary is built from.
+`queue` and `submit-batch` hand back finished strings alongside the raw
+data, so the skill prints rather than composes:
+
+- `queue` gives each item a `prompt` (`"1. 心強い"`, or the inline image for a
+  radical with no glyph) and `corrections` (`meaning`, `reading` already in
+  kana, and a `link` to Jisho or WaniKani).
+- `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
+  127 left` — naming what crossed an SRS tier, carrying a running session
+  total, and dropping segments that would say nothing.
+
+The raw fields are still there for grading (`meanings`, `readings`,
+`auxiliaryMeanings`) and for anything that wants to say more than the line
+does (`results`, `batch`, `remaining`). Composing these in code rather than
+describing them in the skill is deliberate: a prompt that grew a gloss and a
+correction that came back in romaji were both formatting bugs, and formatting
+is what code is reliable at.
 
 ## Caching
 
