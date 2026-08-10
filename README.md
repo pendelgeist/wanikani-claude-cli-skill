@@ -46,7 +46,7 @@ Code skill that drives the quiz conversationally.
 ## Usage (plain CLI)
 
 ```
-node bin/wanikani.js summary          # level, lessons/reviews due, next review time
+node bin/wanikani.js summary          # level, lessons/reviews due now, next review time
 node bin/wanikani.js lessons          # show available lessons + mnemonics
 node bin/wanikani.js lessons --start  # ...and prompt to mark each one started
 node bin/wanikani.js review           # interactive review session
@@ -96,28 +96,45 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | Command | Purpose |
 | --- | --- |
 | `summary [--json]` | Level, lessons/reviews available, next review time |
-| `lessons [--start]` | List available lessons; `--start` prompts to mark each started (needs a TTY) |
+| `lessons [--start] [--limit N]` | List available lessons; `--start` prompts to mark each started (needs a TTY) |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 
+`submit` and `submit-batch` report each item's SRS movement
+(`startingSrsStage`/`endingSrsStage`, plus `tierChange` for the ones that
+crossed into Guru/Master/Burned or slipped back) and how many reviews are
+still due, which is what the skill's end-of-batch summary is built from.
+
 ## Caching
 
-Subject content (characters, meanings, readings, mnemonics) is cached
-locally at `~/.cache/wanikani-cli/subjects.json` the first time each subject
-is fetched — WaniKani's own docs recommend caching subjects aggressively
-since they rarely change. There's no TTL/expiry; if a subject's content
-ever changes upstream and you want fresh data, delete that file (or point
-`WANIKANI_CACHE_DIR` at an empty directory). Nothing else is cached —
-assignments, reviews, and summary data are always fetched live since they
-change constantly.
+Two files live in `~/.cache/wanikani-cli` (override the location with
+`WANIKANI_CACHE_DIR`; deleting either one is always safe):
+
+- `subjects.json` — subject content (characters, meanings, readings,
+  mnemonics), written the first time each subject is fetched. WaniKani's own
+  docs recommend caching subjects aggressively since they rarely change, so
+  entries have no TTL. They aren't frozen, though — accepted meanings get
+  added and readings get corrected — so once a day the CLI asks the API
+  what's changed since the last check and patches the entries it holds. That
+  refresh is best-effort: if it fails, the session carries on with what's
+  cached and tries again next time.
+- `queue-order.json` — the shuffled order of the reviews due in the current
+  session, so a second `queue --limit 10` slices the next ten rather than
+  re-fetching every due assignment. Submitting removes items from it;
+  anything answered but not submitted stays put and comes back around. The
+  order expires after 30 minutes, and is re-fetched whenever it runs dry.
+
+Assignment, review, and summary data are otherwise always fetched live.
 
 ## Notes
 
 - Talks directly to `https://api.wanikani.com/v2`; see WaniKani's
   [API docs](https://docs.api.wanikani.com/) for the underlying resources.
-- Respects the 60-requests/minute rate limit with a single retry-after-reset
-  backoff on HTTP 429.
+- Respects the 60-requests/minute rate limit by waiting for the reset the
+  API reports on an HTTP 429. Failed GETs are retried with backoff; writes
+  (`POST /reviews`) are never replayed, since a request that timed out may
+  still have landed.
 - `review`/`lessons --start` do real writes to your WaniKani account (SRS
   progress, lesson start times) — there's no dry-run mode.
