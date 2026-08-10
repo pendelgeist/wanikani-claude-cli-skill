@@ -144,10 +144,18 @@ Assignment, review, and summary data are otherwise always fetched live.
 npm test
 ```
 
-Node's built-in runner, no test framework. Everything is stubbed — the suite
+Node's built-in runner, no test framework — there's no linter or formatter
+in the project, so `npm test` is the whole check. Everything is stubbed — the suite
 never touches the WaniKani API, and cache-writing tests are pointed at a temp
 directory — so it runs offline in well under a minute. CI runs it on Node
 20.12 (the floor `engines` declares), 22, and 24.
+
+## Claude Code on the web
+
+`.claude/hooks/session-start.sh` runs `npm install` when a session starts in
+a remote environment, which begins from a fresh clone with no `node_modules`
+— without it the CLI can't run and `npm test` fails at import. It's a no-op
+locally (gated on `CLAUDE_CODE_REMOTE`) and safe to re-run.
 
 ## Notes
 
