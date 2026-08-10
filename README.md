@@ -98,6 +98,12 @@ it never ends up typed into a command (and therefore into a transcript).
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
   folded onto `du`/`di` first, since wanakana only understands the latter.
 
+Romanization otherwise follows WaniKani's own conversion exactly, on purpose:
+traditional Hepburn's *m* before b/p/m is **not** accepted, so `shimbun` is
+wrong for しんぶん just as it is on the website (it converts to しmぶん). That's
+a deliberate choice to keep this tool's grading and your WaniKani record in
+agreement — accepting it here would quietly build a habit the site punishes.
+
 See `lib/grading.js` (unit tested in `test/grading.test.js`).
 
 ## Commands reference
