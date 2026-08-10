@@ -4,6 +4,7 @@ import {
   requiresReading,
   isMeaningCorrect,
   isReadingCorrect,
+  normalizeReadingInput,
   primaryMeaning,
   primaryReading,
   stripMnemonicMarkup,
@@ -59,6 +60,29 @@ test("isReadingCorrect matches accepted kana readings", () => {
 
 test("isReadingCorrect converts romaji input to kana before matching", () => {
   assert.equal(isReadingCorrect("ichi", kanjiOne), true);
+});
+
+test("normalizeReadingInput accepts the dzu/dji IME spellings of づ/ぢ", () => {
+  // wanakana only understands "du"/"di" here — "dzu" alone comes back as "dず".
+  assert.equal(normalizeReadingInput("kokorodzuyoi"), "こころづよい");
+  assert.equal(normalizeReadingInput("kokoroduyoi"), "こころづよい");
+  assert.equal(normalizeReadingInput("hanadji"), "はなぢ");
+});
+
+test("normalizeReadingInput leaves plain zu/ji alone", () => {
+  assert.equal(normalizeReadingInput("kokorozuyoi"), "こころずよい");
+  assert.equal(normalizeReadingInput("kaji"), "かじ");
+});
+
+test("isReadingCorrect accepts either IME spelling of づ", () => {
+  const kokorozuyoi = {
+    characters: "心強い",
+    meanings: [{ meaning: "Reassuring", primary: true, accepted_answer: true }],
+    readings: [{ primary: true, accepted_answer: true, reading: "こころづよい" }],
+  };
+  assert.equal(isReadingCorrect("こころづよい", kokorozuyoi), true);
+  assert.equal(isReadingCorrect("kokoroduyoi", kokorozuyoi), true);
+  assert.equal(isReadingCorrect("kokorodzuyoi", kokorozuyoi), true);
 });
 
 test("isReadingCorrect rejects non-accepted (but real) readings", () => {
