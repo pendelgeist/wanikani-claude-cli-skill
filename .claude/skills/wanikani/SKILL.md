@@ -65,8 +65,8 @@ reply against these before sending it, not just the first one:**
   stop.** Nothing follows those characters: no answer, no guess at their
   answer, no hint, no "meaning (reading)?" label. Send it, end your turn,
   wait. This holds even when you know the answer cold, even when the same
-  item came up minutes ago (a wrong answer requeues it; a fresh `queue`
-  call can overlap the last one), even on item 10 of 10. Recognizing an
+  item came up minutes ago (a `queue` call before the last batch was
+  submitted hands back the same items), even on item 10 of 10. Recognizing an
   item is not permission to fill it in — grading needs their real,
   separately-sent reply, not your guess at it standing in for one. If you
   find yourself writing anything in the shape the user has been typing —
@@ -89,9 +89,7 @@ below) — they're the most common way a review response goes wrong, so
 treat them as a checklist, not just background reading.
 
 1. Run `node bin/wanikani.js queue --limit 10` and parse the JSON — `queue`
-   always prints JSON, with no flag needed; it has no `--json` option (that
-   flag only exists on `summary`), so don't pass one or it'll error out.
-   Fetch in
+   always prints JSON, with no flag needed. Fetch in
    batches of ~10 rather than one at a time (there can be hundreds due; one
    `queue` call per item wastes a round-trip per review for no benefit, since
    you already have the next 9 answer keys in hand). Each item has
@@ -100,8 +98,10 @@ treat them as a checklist, not just background reading.
    `auxiliaryMeanings` (type `whitelist` = also acceptable, `blacklist` =
    looks plausible but is wrong), and `readings` (only the ones with
    `accepted_answer: true` are correct). When the batch is exhausted, run
-   `queue --limit 10` again — items just submitted have moved out of the
-   due queue, so this naturally returns the next batch, not repeats.
+   `queue --limit 10` again — submitting prunes those items from the
+   session's queue, so this returns the next batch, not repeats. (Calling it
+   *before* submitting hands back the same batch again, by design: an
+   unsubmitted item hasn't been recorded anywhere yet.)
 
    For a `characters: null` item, render `characterImageUrl` as an inline
    image instead — `![radical](url)` — that's the actual glyph, the same
@@ -177,22 +177,51 @@ treat them as a checklist, not just background reading.
     {"assignmentId": 603114625, "wrongMeaning": 0, "wrongReading": 0}]
    EOF
    ```
-   This collapses ~10 round-trips into 1. It returns per-item
-   `{assignmentId, ok, endingSrsStage}` (or `{ok: false, error}`) — check for
-   any `ok: false` entries and tell the user if something failed to submit;
-   don't assume success silently.
+   This collapses ~10 round-trips into 1. It prints everything the batch
+   summary in step 8 needs:
+   - `results[]` — per item, `{assignmentId, ok, perfect, startingSrsStage,
+     endingSrsStage, srsStageName, srsTier, tierChange}`, or
+     `{ok: false, error, retryable}` if that item didn't submit. `tierChange` is
+     `"promoted"` / `"burned"` / `"demoted"` when the item crossed a tier
+     boundary and `null` otherwise, so it's already filtered down to what's
+     worth mentioning. Match `assignmentId` back to the item's characters —
+     the CLI doesn't know them.
+   - `batch` — `{submitted, failed, perfect, burned, promoted, demoted}`.
+   - `remaining` — reviews still due after this batch.
+
+   Check for any `ok: false` entries and tell the user if something failed to
+   submit; don't assume success silently. A `retryable` failure stays in the
+   queue and comes back in a later batch, so it isn't lost; a non-retryable
+   one (WaniKani rejected it outright — usually because that assignment was
+   already reviewed elsewhere) is dropped, and that item's result simply
+   didn't count.
 
    Tradeoff to be aware of: if the session is interrupted mid-batch (before
    the `submit-batch` call runs), nothing has been sent to WaniKani yet for
    that batch — the user just re-answers those items next time, nothing is
    corrupted or double-counted.
-8. After submitting, give a one-line batch result (e.g. "10 done, 2 slipped")
-   and ask a brief yes/no before fetching more — e.g. "Continue?" — rather
-   than auto-chaining into the next batch. Unlike within-batch advancing,
-   don't treat a stop-word as a standing preference here; ask every time. On
-   yes, run `queue --limit 10` again and keep going; on no (or the queue
-   comes back empty), stop and give the final summary: how many reviewed,
-   how many perfect (zero wrong attempts on both parts).
+8. After submitting, give the batch summary, then ask a brief yes/no before
+   fetching more — e.g. "Continue?" — rather than auto-chaining into the next
+   batch. Unlike within-batch advancing, don't treat a stop-word as a standing
+   preference here; ask every time. On yes, run `queue --limit 10` again and
+   keep going; on no (or the queue comes back empty), give the final summary
+   and stop.
+
+   The summary is one line, built from the `submit-batch` output plus your own
+   running session total, in this order — batch result, status changes,
+   session progress, what's left:
+
+   ```
+   10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 this session · 127 left
+   ```
+
+   Name the items behind each `tierChange` (characters, no romaji, per the
+   checklist) — "which ones got there" is the interesting part. Skip any
+   segment that's empty: no tier changes means no middle segment, and drop
+   the "left" segment when `remaining` is 0. Keep the whole thing to one
+   line; if more than ~4 items changed tier, give the counts instead
+   ("4 → Guru, 2 → Burned"). The final summary is that same line with session
+   totals in place of the batch ones.
 
 Keep the pace conversational — one item's result + the next item's prompt
 per message, not a wall of text for the whole batch at once, and keep every
