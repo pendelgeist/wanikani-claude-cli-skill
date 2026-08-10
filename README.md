@@ -1,5 +1,7 @@
 # wanikani-cli
 
+[![test](https://github.com/pendelgeist/wanikani-claude-cli-skill/actions/workflows/test.yml/badge.svg)](https://github.com/pendelgeist/wanikani-claude-cli-skill/actions/workflows/test.yml)
+
 Do your [WaniKani](https://www.wanikani.com/) lessons and reviews from the
 terminal instead of the web app — either as a plain Node CLI, or as a Claude
 Code skill that drives the quiz conversationally.
@@ -135,6 +137,17 @@ Two files live in `~/.cache/wanikani-cli` (override the location with
   order expires after 30 minutes, and is re-fetched whenever it runs dry.
 
 Assignment, review, and summary data are otherwise always fetched live.
+
+## Tests
+
+```
+npm test
+```
+
+Node's built-in runner, no test framework. Everything is stubbed — the suite
+never touches the WaniKani API, and cache-writing tests are pointed at a temp
+directory — so it runs offline in well under a minute. CI runs it on Node
+20.12 (the floor `engines` declares), 22, and 24.
 
 ## Notes
 
