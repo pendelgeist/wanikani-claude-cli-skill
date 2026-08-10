@@ -18,7 +18,8 @@ const VOCAB = {
 
 const RADICAL = {
   characters: null,
-  characterImageUrl: "https://img/hook.png",
+  // Real character-image URLs are opaque file hashes — no slug, nothing to leak.
+  characterImageUrl: "https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png",
   documentUrl: "https://www.wanikani.com/radicals/hook",
   meanings: [{ meaning: "Hook", primary: true, accepted_answer: true }],
 };
@@ -33,9 +34,12 @@ test("promptFor never carries the meaning that is being asked for", () => {
   assert.doesNotMatch(prompt, /[A-Za-z(]/, "a Latin letter or bracket here would be the answer");
 });
 
-test("promptFor renders a glyph-less radical as its image, uncaptioned", () => {
-  assert.equal(promptFor(RADICAL, 2), "2. ![radical](https://img/hook.png)");
-  assert.doesNotMatch(promptFor(RADICAL, 2), /Hook/);
+test("promptFor shows a glyph-less radical as a bare image URL, never a description", () => {
+  // Markdown image syntax doesn't render in a terminal, and an un-rendered
+  // one invites naming the radical instead — "Rib Cage image" is the answer.
+  assert.equal(promptFor(RADICAL, 2), "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png");
+  assert.doesNotMatch(promptFor(RADICAL, 2), /Hook/i);
+  assert.doesNotMatch(promptFor(RADICAL, 2), /wanikani\.com\/radicals/, "the document URL slug is the name");
 });
 
 test("promptFor gives up rather than inventing a prompt with no glyph or image", () => {
