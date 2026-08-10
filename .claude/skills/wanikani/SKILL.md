@@ -149,6 +149,13 @@ treat them as a checklist, not just background reading.
    Differences that do change the kana are still misses (ず and づ really are
    different, so "kokorozuyoi" misses こころづよい), but "kokorodzuyoi" is that
    same づ spelled another way and marking it wrong is a mis-grade.
+
+   One deliberate exception to that leniency: traditional Hepburn's *m*
+   before b/p/m is **not** accepted. "shimbun" is wrong for しんぶん, as are
+   "sempai" and "gumma" — WaniKani's own input converts those to しmぶん,
+   せmぱい and ぐっま and marks them wrong, and grading them right here would
+   put this tool's record out of step with the website. Correct them like
+   any other miss (in kana, per the checklist).
 5. When an item is wrong (either part), drop a Jisho link for it
    alongside the correction so the user can dig in right away:
    `https://jisho.org/word/<characters>` (raw characters in the URL is fine —
