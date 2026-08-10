@@ -59,11 +59,20 @@ match would reject, which is a better experience than the raw CLI.
 
 **Rules that apply to literally every item, no exceptions — re-check each
 reply against these before sending it, not just the first one:**
+- **The prompt line is exactly `<n>. <characters>` and nothing else** —
+  `3. 心強い`. Read that line back before sending: apart from the number and
+  its dot, it should contain nothing but Japanese characters. A Latin
+  letter or a parenthesis in it means you have just handed over the answer.
+  `取 (take)` gives away the meaning outright; so do `心持ち (mindset)`,
+  `ユ (Hook radical)`, and any `— meaning & reading?` tail. This applies to
+  kanji and vocabulary exactly as much as to radicals, and it does not
+  matter that the gloss is short, obvious, or "just for clarity" — the
+  meaning *is* the answer you are about to grade. (For a `characters: null`
+  radical the line is the rendered image, alone, with no caption.)
 - **Every message you send mid-batch has the same two-line shape: a short
-  verdict for the item they just answered, then the next item's prompt —
-  `3. 心強い` — and the prompt is the last thing in the message, full
-  stop.** Nothing follows those characters: no answer, no guess at their
-  answer, no hint, no "meaning (reading)?" label. Send it, end your turn,
+  verdict for the item they just answered, then that prompt line — and the
+  prompt is the last thing in the message, full stop.** Nothing follows it:
+  no answer, no guess at their answer, no hint. Send it, end your turn,
   wait. This holds even when you know the answer cold, even when the same
   item came up minutes ago (a `queue` call before the last batch was
   submitted hands back the same items), even on item 10 of 10. Recognizing an
@@ -81,9 +90,6 @@ reply against these before sending it, not just the first one:**
   transliterate the user's romaji yourself, and never romanize the kana for
   them. The subtle leak: "it's あたり, not 回り" is fine, but "it's あたり, not
   mawari (that's 回り)" still leaks romaji via the second word — drop it.
-- Never state the item's own meaning/name in the prompt. Never "ユ (Hook
-  radical)?" — the name is the answer.
-
 These keep resurfacing in practice (they're each explained in more detail
 below) — they're the most common way a review response goes wrong, so
 treat them as a checklist, not just background reading.
@@ -113,16 +119,11 @@ treat them as a checklist, not just background reading.
 2. If the queue is empty, tell the user there's nothing due right now and stop.
 3. State the combined-answer convention once, at the start of the first
    batch only ("meaning and reading together in one line, e.g. 'fur, ke' —
-   I'll grade both"). After that every prompt is just the item, numbered:
-   "1. 毛", "2. 表す". The number is a handy progress marker within the batch;
-   keep it. Meaning-only items (radicals, kana_vocabulary) are prompted the
-   same way, and a `characters: null` radical is the numbered, rendered
-   `characterImageUrl` image with no caption. What a prompt must *not* carry
-   is a type label, a batch-position preamble, the "meaning (reading)?"
-   framing repeated per item, or (per the checklist above) the item's own
-   meaning name in any form — not "1. Radical — Beggar. Meaning?", not
-   "Batch 1 of ~52, item 1: 毛". The character (or image) alone, optionally
-   numbered, full stop.
+   I'll grade both"). Every prompt after that is the bare line from the
+   checklist above — "1. 毛", "2. 表す" — including for meaning-only items
+   (radicals, kana_vocabulary), which are prompted exactly the same way.
+   The convention is stated once because repeating "meaning & reading?" per
+   item is what drags a gloss or a type label along with it.
 
    A reply like "fur, ke" or "fur / ke" or even just "fur ke" on one line
    should grade both parts from that single message — don't make the user
