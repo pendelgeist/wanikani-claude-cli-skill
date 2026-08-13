@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { promptFor, correctionsFor, batchSummaryLine } from "../lib/present.js";
+import { promptFor, correctionsFor, readingNudgeFor, batchSummaryLine } from "../lib/present.js";
+
+const KANJI = {
+  characters: "親",
+  documentUrl: "https://www.wanikani.com/kanji/親",
+  meanings: [{ meaning: "Parent", primary: true, accepted_answer: true }],
+  readings: [
+    { type: "onyomi", primary: true, accepted_answer: true, reading: "しん" },
+    { type: "kunyomi", primary: false, accepted_answer: false, reading: "おや" },
+  ],
+};
 
 const VOCAB = {
   characters: "心強い",
@@ -68,6 +78,27 @@ test("correctionsFor links Jisho for words and WaniKani for radicals", () => {
 
 test("correctionsFor has no reading line for a meaning-only item", () => {
   assert.equal(correctionsFor(RADICAL).reading, null);
+});
+
+test("correctionsFor names the reading type for a kanji, so the reveal answers 'which one?'", () => {
+  assert.equal(correctionsFor(KANJI).reading, "reading is しん (on'yomi)");
+  assert.doesNotMatch(correctionsFor(KANJI).reading, /おや/, "only accepted readings are revealed");
+});
+
+test("correctionsFor leaves a typeless (vocabulary) reading unannotated", () => {
+  assert.equal(correctionsFor(VOCAB).reading, "reading is こころづよい");
+});
+
+test("readingNudgeFor names the type wanted and reveals no kana", () => {
+  const nudge = readingNudgeFor("onyomi");
+  assert.match(nudge, /on'yomi/);
+  assert.doesNotMatch(nudge, /[ぁ-ゟ゠-ヿ]/, "a re-prompt that shows the reading isn't a re-prompt");
+});
+
+test("readingNudgeFor still says something useful with no type to name", () => {
+  const nudge = readingNudgeFor(null);
+  assert.match(nudge, /try again/);
+  assert.doesNotMatch(nudge, /undefined|null/);
 });
 
 test("batchSummaryLine names what changed status", () => {

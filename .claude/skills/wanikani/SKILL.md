@@ -63,8 +63,10 @@ match would reject, which is a better experience than the raw CLI.
 2. If the first item has a `convention` field, print it — that's the
    how-to-answer note, and it appears only at the start of a sitting.
 3. Print `item.prompt`. Stop. Wait for their reply.
-4. Grade it. Wrong? Print that item's `corrections`, link included. Then
-   step 3 for the next item, in the same message.
+4. Grade it. Wrong? Print that item's `corrections`, link included. Gave one
+   of the item's `otherReadings`? Print `readingNudge` instead and stay on the
+   same item — that's a retry, not a miss. Then step 3 for the next item, in
+   the same message.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
@@ -93,7 +95,10 @@ reply against these before sending it, not just the first one:**
   describing it.
 - **Every message you send mid-batch has the same two-line shape: a short
   verdict for the item they just answered, then that prompt line — and the
-  prompt is the last thing in the message, full stop.** Nothing follows it:
+  prompt is the last thing in the message, full stop.** (The one exception is
+  the reading re-prompt in step 4 — an item answered with another of its real
+  readings hasn't been answered yet, so that message is the `readingNudge`
+  alone and the same item stays open.) Nothing follows it:
   no answer, no guess at their answer, no hint. Send it, end your turn,
   wait. This holds even when you know the answer cold, even when the same
   item came up minutes ago (a `queue` call before the last batch was
@@ -119,6 +124,13 @@ reply against these before sending it, not just the first one:**
   it's a Jisho lookup for words and the WaniKani page for radicals, and it's
   the one thing that makes a miss useful.
 
+  For a kanji, `corrections.reading` names the reading type as well as the
+  kana — `reading is しん (on'yomi)`. Print that parenthesis; it's the answer
+  to "which of its readings did it want?", which is the thing a missed kanji
+  reading actually leaves unanswered. It's also the only bracket that belongs
+  there: it arrived in the string, it isn't romaji, and it's no precedent for
+  adding one of your own.
+
   The kana-only rule still governs anything you add in your own words —
   verdict lines, onyomi/kunyomi asides, recaps. The only romaji in a session
   is what the *user* types. The subtle leak: "it's あたり, not 回り" is fine,
@@ -136,7 +148,10 @@ treat them as a checklist, not just background reading.
    `corrections` (`meaning`/`reading`/`link`, ready to print when they get it
    wrong), `needsReading`, `meanings`, `auxiliaryMeanings` (type `whitelist`
    = also acceptable, `blacklist` = looks plausible but is wrong), and
-   `readings` (only the ones with `accepted_answer: true` are correct). The
+   `readings` (only the ones with `accepted_answer: true` are correct). An
+   item that has other real readings also carries `otherReadings` (kana that
+   should be re-prompted rather than marked wrong) and `readingNudge` (the
+   finished re-prompt) — see step 4. The
    raw fields are there for grading; the composed ones are what you print.
    When the batch is exhausted, run
    `queue --limit 10` again — submitting prunes those items from the
@@ -173,6 +188,29 @@ treat them as a checklist, not just background reading.
    and minor typos; reject anything matching a `blacklist` entry even if it
    seems plausible), reading against `readings` (accept kana or romaji). Keep
    a running count of wrong attempts per item, per part.
+
+   **Another of the item's real readings is not a wrong answer.** A kanji
+   usually has two or three genuine readings and the prompt says nothing about
+   which one is wanted, so answering 親 with おや is an honest near-miss, not a
+   miss — and WaniKani doesn't count it as one: the input shakes, names the
+   reading type it's after, and lets you try again. Do the same. If their
+   reading matches one of the item's `otherReadings`, print that item's
+   `readingNudge` (it already names the type) and wait for another attempt.
+   Don't add to `wrongReading`, don't reveal the kana, don't advance to the
+   next item — this is the one case where a reply that isn't the accepted
+   answer still ends with the same prompt open. Marking it wrong instead costs
+   them SRS progress the website would not have taken: in a real session 親
+   answered "parent, oya" was graded wrong and slipped to Apprentice 4, which
+   is the bug these two fields exist to prevent.
+
+   If they sent meaning and reading together, the meaning still grades
+   normally — a right meaning plus an other-reading is `wrongMeaning: 0` and,
+   once they land the reading, `wrongReading: 0`.
+
+   Only items with other readings to confuse them with carry `otherReadings`
+   and `readingNudge`. A vocabulary word's rejected readings are misspellings
+   (こころずよい for こころづよい), not alternatives, so the fields are absent
+   there and those answers stay plain misses.
 
    A romaji reading is a *transcription*, not the answer itself: convert it
    to kana and judge that against `readings`, rather than comparing romaji

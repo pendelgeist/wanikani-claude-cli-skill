@@ -97,6 +97,13 @@ it never ends up typed into a command (and therefore into a transcript).
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
   folded onto `du`/`di` first, since wanakana only understands the latter.
+- **Another of the kanji's readings**: 親 wants しん, but おや and した are real
+  readings of it too, and nothing on the prompt says which one is being asked
+  for. That's not graded wrong — as on the website, it re-prompts and names
+  the type it's after ("WaniKani wants the on'yomi here"), and the item's
+  score is untouched. A vocabulary word's rejected readings are near-miss
+  spellings rather than alternatives, so they get no such reprieve: こころずよい
+  for こころづよい stays wrong.
 
 Romanization otherwise follows WaniKani's own conversion exactly, on purpose:
 traditional Hepburn's *m* before b/p/m is **not** accepted, so `shimbun` is
@@ -123,7 +130,11 @@ data, so the skill prints rather than composes:
 
 - `queue` gives each item a `prompt` (`"1. 心強い"`, or the inline image for a
   radical with no glyph) and `corrections` (`meaning`, `reading` already in
-  kana, and a `link` to Jisho or WaniKani).
+  kana and labelled with its type for a kanji — `reading is しん (on'yomi)` —
+  and a `link` to Jisho or WaniKani).
+- An item with other real readings also gets `otherReadings` (the kana that
+  should be re-prompted rather than marked wrong) and `readingNudge`, the
+  finished re-prompt naming the type wanted.
 - `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
   127 left` — naming what crossed an SRS tier, carrying a running session
   total, and dropping segments that would say nothing.

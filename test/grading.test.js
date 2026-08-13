@@ -4,6 +4,9 @@ import {
   requiresReading,
   isMeaningCorrect,
   isReadingCorrect,
+  readingVerdict,
+  wantedReadingType,
+  unacceptedReadings,
   normalizeReadingInput,
   primaryMeaning,
   primaryReading,
@@ -86,7 +89,80 @@ test("isReadingCorrect accepts either IME spelling of づ", () => {
 });
 
 test("isReadingCorrect rejects non-accepted (but real) readings", () => {
+  // Not the accepted answer — though it isn't scored as a miss either; that
+  // distinction belongs to readingVerdict, below.
   assert.equal(isReadingCorrect("ひと", kanjiOne), false); // kunyomi, accepted_answer: false
+});
+
+// 親: WaniKani wants the on'yomi, but おや and した are both real readings of it
+// and typing either one is the mistake this whole verdict exists for.
+const kanjiParent = {
+  characters: "親",
+  meanings: [{ meaning: "Parent", primary: true, accepted_answer: true }],
+  auxiliary_meanings: [],
+  readings: [
+    { type: "onyomi", primary: true, accepted_answer: true, reading: "しん" },
+    { type: "kunyomi", primary: false, accepted_answer: false, reading: "おや" },
+    { type: "kunyomi", primary: false, accepted_answer: false, reading: "した" },
+  ],
+};
+
+const vocabKokorozuyoi = {
+  characters: "心強い",
+  meanings: [{ meaning: "Reassuring", primary: true, accepted_answer: true }],
+  readings: [
+    { primary: true, accepted_answer: true, reading: "こころづよい" },
+    { primary: false, accepted_answer: false, reading: "こころずよい" },
+  ],
+};
+
+test("wantedReadingType names the type a kanji is asking for", () => {
+  assert.equal(wantedReadingType(kanjiParent), "onyomi");
+  assert.equal(wantedReadingType(kanjiOne), "onyomi");
+});
+
+test("wantedReadingType has nothing to name for vocabulary or a radical", () => {
+  assert.equal(wantedReadingType(vocabKokorozuyoi), null);
+  assert.equal(wantedReadingType(groundRadical), null);
+});
+
+test("wantedReadingType stays quiet when accepted readings span two types", () => {
+  const both = {
+    readings: [
+      { type: "onyomi", accepted_answer: true, reading: "こう" },
+      { type: "kunyomi", accepted_answer: true, reading: "い" },
+    ],
+  };
+  assert.equal(wantedReadingType(both), null);
+});
+
+test("readingVerdict grades an accepted reading correct, in kana or romaji", () => {
+  assert.equal(readingVerdict("しん", kanjiParent).status, "correct");
+  assert.equal(readingVerdict("shin", kanjiParent).status, "correct");
+});
+
+test("readingVerdict treats another real reading of the kanji as a re-prompt, not a miss", () => {
+  // The website shakes and asks again here; marking it wrong would cost SRS
+  // progress WaniKani itself wouldn't have taken.
+  for (const answer of ["おや", "oya", "した", "shita"]) {
+    const verdict = readingVerdict(answer, kanjiParent);
+    assert.equal(verdict.status, "other-reading", `${answer} is a real reading of 親`);
+    assert.equal(verdict.wantedType, "onyomi");
+    assert.equal(verdict.gaveType, "kunyomi");
+  }
+});
+
+test("readingVerdict keeps a reading the kanji simply doesn't have as a miss", () => {
+  assert.equal(readingVerdict("ねこ", kanjiParent).status, "incorrect");
+  assert.equal(readingVerdict("", kanjiParent).status, "incorrect");
+});
+
+test("readingVerdict gives a vocabulary near-miss no such reprieve", () => {
+  // こころずよい is a misspelling WaniKani lists and rejects — not another way
+  // to read the word — so ず for づ stays wrong, as it is on the website.
+  assert.equal(readingVerdict("こころずよい", vocabKokorozuyoi).status, "incorrect");
+  assert.equal(readingVerdict("kokorozuyoi", vocabKokorozuyoi).status, "incorrect");
+  assert.deepEqual(unacceptedReadings(vocabKokorozuyoi), []);
 });
 
 test("primaryMeaning and primaryReading pick the primary entry", () => {
