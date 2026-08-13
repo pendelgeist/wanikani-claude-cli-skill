@@ -30,6 +30,22 @@ const RADICAL = {
   },
 };
 
+const KANJI = {
+  id: 12,
+  object: "kanji",
+  data: {
+    level: 2,
+    characters: "親",
+    document_url: "https://www.wanikani.com/kanji/親",
+    meanings: [{ meaning: "Parent", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [
+      { type: "onyomi", primary: true, accepted_answer: true, reading: "しん" },
+      { type: "kunyomi", primary: false, accepted_answer: false, reading: "おや" },
+    ],
+  },
+};
+
 function fakeClient(subject, { stages = { starting: 4, ending: 5 } } = {}) {
   const client = {
     submitted: [],
@@ -82,6 +98,30 @@ test("wrong attempts are counted and reported to the API", async () => {
   assert.deepEqual(client.submitted, [
     { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 1 },
   ]);
+});
+
+test("another of the kanji's readings asks again, naming the type, without counting", async () => {
+  // Exactly the 親 case: おや is a real reading, WaniKani wants しん. The
+  // website shakes and re-prompts; so does this, and the item stays perfect.
+  const client = fakeClient(KANJI);
+
+  const out = await runReview(client, ["parent", "oya", "shin"]);
+
+  assert.match(out, /WaniKani wants the on'yomi/);
+  assert.doesNotMatch(out, /✗ not quite/, "a real reading is not a wrong answer");
+  assert.deepEqual(client.submitted, [
+    { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+  ]);
+  assert.match(out, /1 reviewed, 1 perfect/);
+});
+
+test("a reading the kanji doesn't have is still counted wrong", async () => {
+  const client = fakeClient(KANJI);
+
+  const out = await runReview(client, ["parent", "neko", "しん"]);
+
+  assert.match(out, /✗ not quite/);
+  assert.equal(client.submitted[0].incorrectReadingAnswers, 1);
 });
 
 test("crossing a tier is called out in the item line and the summary", async () => {
