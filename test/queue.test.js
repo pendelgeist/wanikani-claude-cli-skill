@@ -47,15 +47,33 @@ function fakeClient(subjects) {
   };
 }
 
-async function runQueue(subjects) {
+async function runQueue(subjects, options = {}) {
   return withTempCacheDir(async () => {
-    const output = await captureStdout(() => queueCommand(fakeClient(subjects)));
+    const output = await captureStdout(() => queueCommand(fakeClient(subjects), options));
     return JSON.parse(output);
   });
 }
 
-test("a kanji carries its other readings and the re-prompt that names the type wanted", async () => {
+test("the queue hands over a question and no way to answer it", async () => {
+  // Everything the answer key enabled — hand-written corrections, romaji,
+  // invented mnemonics, a self-answered item — came from it being here.
   const [item] = await runQueue([KANJI]);
+
+  assert.deepEqual(Object.keys(item).sort(), [
+    "assignmentId",
+    "convention",
+    "level",
+    "needsReading",
+    "prompt",
+    "subjectId",
+    "subjectType",
+  ]);
+  assert.equal(item.prompt, "1. 親");
+  assert.doesNotMatch(JSON.stringify(item), /Parent|しん|おや/, "no answer, in any field");
+});
+
+test("--answers puts the key back, for debugging the CLI itself", async () => {
+  const [item] = await runQueue([KANJI], { answers: true });
 
   assert.deepEqual(item.otherReadings, ["おや", "した"]);
   assert.match(item.readingNudge, /on'yomi/);
@@ -64,7 +82,7 @@ test("a kanji carries its other readings and the re-prompt that names the type w
 });
 
 test("the correction says which reading type WaniKani was after", async () => {
-  const [item] = await runQueue([KANJI]);
+  const [item] = await runQueue([KANJI], { answers: true });
 
   assert.equal(
     item.corrections.reading,
@@ -75,7 +93,7 @@ test("the correction says which reading type WaniKani was after", async () => {
 test("a vocabulary near-miss spelling is not offered as another reading", async () => {
   // こころずよい is listed and rejected by WaniKani, not a second way to read
   // the word — treating it as one would hand out a free retry for ず vs づ.
-  const [item] = await runQueue([VOCAB]);
+  const [item] = await runQueue([VOCAB], { answers: true });
 
   assert.equal(item.otherReadings, undefined);
   assert.equal(item.readingNudge, undefined);

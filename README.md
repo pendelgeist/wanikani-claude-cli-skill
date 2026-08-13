@@ -121,8 +121,8 @@ $ wanikani grade 3 "parent, oya"
   "open": true }
 ```
 
-Each verdict goes straight onto the sitting's record, so `submit-batch
---graded` submits what was actually graded rather than a tally kept by hand;
+Each verdict goes straight onto the sitting's record, so `submit-batch`
+submits what was actually graded rather than a tally kept by hand;
 `grade <id> --forgive meaning` takes a miss back when the answer key was
 overruled. That record lives with the queue order and ages out with it after
 30 minutes, so a batch left overnight submits nothing and says so — the items
@@ -166,21 +166,22 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
-| `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
+| `queue [--limit N] [--answers]` | Due reviews as JSON: questions and ids, no answers. `--answers` restores the key for debugging |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
-| `submit-batch [--graded]` | Submit several graded reviews in one call — `--graded` submits what `grade` recorded, otherwise reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
+| `submit-batch` | Submit everything `grade` recorded this batch, in one call |
 
-`queue` and `submit-batch` hand back finished strings alongside the raw
-data, so the skill prints rather than composes:
-
-- `queue` gives each item a `prompt` (`"1. 心強い"`, or the inline image for a
-  radical with no glyph) and `corrections` — `meaning`, `reading` and `both`,
-  one finished line each, kana copied straight from the answer key, the
-  reading labelled with its type for a kanji, and a lookup link welded onto
-  the end:
+The CLI hands back finished strings rather than raw data to assemble, and —
+since a session that *can* grade by hand eventually will — it no longer hands
+over the answers at all. `queue` gives each item a `prompt` (`"1. 心強い"`, or
+the inline image for a radical with no glyph) and the ids to act on it;
+`grade` holds the key and returns the line to print. With `--answers`, for
+debugging, the old shape comes back: `corrections` — `meaning`, `reading` and
+`both`, one finished line each, kana copied straight from the answer key, the
+reading labelled with its type for a kanji, and a lookup link welded onto the
+end:
 
   ```
   meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
