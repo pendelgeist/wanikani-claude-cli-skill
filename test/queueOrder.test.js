@@ -162,8 +162,8 @@ test("queue items arrive with a prompt and correction lines already composed", a
     );
     for (const item of items) {
       assert.doesNotMatch(item.prompt, /[A-Za-z(]/, "no gloss, no label");
-      assert.match(item.corrections.reading, /^reading is [^A-Za-z]+$/);
-      assert.match(item.corrections.link, /^https:\/\/jisho\.org\/word\//);
+      assert.match(item.corrections.reading, /^reading is [^A-Za-z]+ · https:/);
+      assert.match(item.corrections.reading, /https:\/\/jisho\.org\/\S+$/, "the link rides on the line");
     }
   });
 });

@@ -63,7 +63,8 @@ match would reject, which is a better experience than the raw CLI.
 2. If the first item has a `convention` field, print it — that's the
    how-to-answer note, and it appears only at the start of a sitting.
 3. Print `item.prompt`. Stop. Wait for their reply.
-4. Grade it. Wrong? Print that item's `corrections`, link included. Gave one
+4. Grade it. Wrong? Print the matching `corrections` line — `meaning`,
+   `reading` or `both` — whole, link and all. Gave one
    of the item's `otherReadings`? Print `readingNudge` instead and stay on the
    same item — that's a retry, not a miss. Then step 3 for the next item, in
    the same message.
@@ -108,9 +109,13 @@ reply against these before sending it, not just the first one:**
   find yourself writing anything in the shape the user has been typing —
   a meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
   before sending.
-- **A wrong item is corrected with its `corrections` strings, not your own
-  words.** `corrections.meaning`, `corrections.reading` (already kana,
-  straight from the answer key) and `corrections.link` — print them. Writing
+- **A wrong item is corrected with one of its `corrections` strings, not your
+  own words.** Three keys, one whole line each: `corrections.meaning`,
+  `corrections.reading`, `corrections.both`. Pick the one matching what they
+  missed and print it entire — the lookup link is already the end of the line,
+  so there's nothing to remember and nothing to append. (It used to be a
+  separate `corrections.link` field, and in weeks of sessions it never once
+  got printed. That's why it's welded on now; don't unpick it.) Writing
   the correction by hand is where romaji gets in: `should be "kaeru", not
   "sasaeru"` and `should be "shin", not "mi"` are both from a real session,
   and so is `つぎつぎ is "tsugitsugu"` — which is romaji *and* misspelt,
@@ -120,9 +125,10 @@ reply against these before sending it, not just the first one:**
   the field *was* used and then decorated with a romaji gloss — the answer
   key was right there and correct, and a parenthesis undid it. The user
   typing romaji is not a reason to mirror it back; they can read the kana,
-  which is the entire point of the exercise. Include `corrections.link` too:
-  it's a Jisho lookup for words and the WaniKani page for radicals, and it's
-  the one thing that makes a miss useful.
+  which is the entire point of the exercise. The link on the end is a Jisho
+  lookup — the kanji page for a kanji, the word page for vocabulary — or
+  WaniKani's own page for a radical, and it's the one thing that makes a miss
+  useful. Don't trim it off for brevity.
 
   For a kanji, `corrections.reading` names the reading type as well as the
   kana — `reading is しん (on'yomi)`. Print that parenthesis; it's the answer
@@ -145,8 +151,8 @@ treat them as a checklist, not just background reading.
    `queue` call per item wastes a round-trip per review for no benefit, since
    you already have the next 9 answer keys in hand). Each item has
    `assignmentId`, `prompt` (the finished question line — print it as-is),
-   `corrections` (`meaning`/`reading`/`link`, ready to print when they get it
-   wrong), `needsReading`, `meanings`, `auxiliaryMeanings` (type `whitelist`
+   `corrections` (`meaning`/`reading`/`both` — one finished line each, link
+   included, ready to print when they get it wrong), `needsReading`, `meanings`, `auxiliaryMeanings` (type `whitelist`
    = also acceptable, `blacklist` = looks plausible but is wrong), and
    `readings` (only the ones with `accepted_answer: true` are correct). An
    item that has other real readings also carries `otherReadings` (kana that
@@ -226,10 +232,19 @@ treat them as a checklist, not just background reading.
    せmぱい and ぐっま and marks them wrong, and grading them right here would
    put this tool's record out of step with the website. Correct them like
    any other miss (in kana, per the checklist).
-5. When an item is wrong, print that item's `corrections` — the part they
-   missed (or both, if the meaning was wrong) plus `corrections.link`, which
-   is already a Jisho lookup for words and the WaniKani page for radicals.
-   They're pre-composed so the kana is copied, not retyped.
+5. When an item is wrong, print the one `corrections` line that fits:
+   `corrections.reading` if only the reading missed, `corrections.meaning` if
+   only the meaning did, `corrections.both` if the meaning went (a missed
+   meaning takes the reading with it, per step 3). Each one is already a whole
+   line ending in a lookup link — Jisho's kanji page for a kanji, its word
+   page for vocabulary, WaniKani's own page for a radical. Print one, print it
+   all, and don't stitch two of them together.
+
+   Example, for a kanji whose meaning and reading both went:
+
+   ```
+   meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+   ```
 6. **Auto-advance within a batch**: whether an item was right or wrong, say
    so briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between

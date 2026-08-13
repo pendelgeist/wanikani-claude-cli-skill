@@ -66,7 +66,10 @@ test("a kanji carries its other readings and the re-prompt that names the type w
 test("the correction says which reading type WaniKani was after", async () => {
   const [item] = await runQueue([KANJI]);
 
-  assert.equal(item.corrections.reading, "reading is しん (on'yomi)");
+  assert.equal(
+    item.corrections.reading,
+    "reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji",
+  );
 });
 
 test("a vocabulary near-miss spelling is not offered as another reading", async () => {
@@ -76,5 +79,8 @@ test("a vocabulary near-miss spelling is not offered as another reading", async 
 
   assert.equal(item.otherReadings, undefined);
   assert.equal(item.readingNudge, undefined);
-  assert.equal(item.corrections.reading, "reading is こころづよい");
+  assert.equal(
+    item.corrections.reading,
+    "reading is こころづよい · https://jisho.org/word/心強い",
+  );
 });
