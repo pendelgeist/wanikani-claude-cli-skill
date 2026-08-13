@@ -186,3 +186,40 @@ test("an item rejected outright is dropped instead of being re-quizzed forever",
     assert.deepEqual((await loadQueueOrder()).items, []);
   });
 });
+
+test("with no list, submit-batch submits exactly what grade recorded", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, recordGrade, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+      { assignmentId: 3, subjectId: 13 },
+    ]);
+    await recordGrade(1, { wrongMeaning: 0, wrongReading: 1 });
+    await recordGrade(2, { wrongMeaning: 0, wrongReading: 0 });
+
+    const client = fakeClient();
+    const output = await captureStdout(() => submitBatchCommand(client));
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 1 },
+      { assignmentId: 2, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+    ]);
+    assert.equal(JSON.parse(output).batch.submitted, 2, "the ungraded third item stays for later");
+    assert.deepEqual(await loadGrades(), {}, "submitted counts are spent, not left to double up");
+  });
+});
+
+test("an explicit count overrides the recorded one", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, recordGrade } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 1, subjectId: 11 }]);
+    await recordGrade(1, { wrongMeaning: 1, wrongReading: 0 });
+
+    const client = fakeClient();
+    await submitBatchCommand(client, [{ assignmentId: 1, wrongMeaning: 0 }]).then(() => {});
+
+    assert.equal(client.submitted[0].incorrectMeaningAnswers, 0);
+    assert.equal(client.submitted[0].incorrectReadingAnswers, 0, "recorded fills what wasn't overridden");
+  });
+});

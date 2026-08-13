@@ -12,7 +12,7 @@ own wording asked for one. If plan mode is active, exit it immediately
 rather than asking: this is fetch-quiz-submit, not a code change for plan
 mode to gate.
 
-Grading is a lookup against data `queue` already returned — it needs no
+Most of a review turn is a CLI call and a printed string — it needs no
 deliberation. If the current model or reasoning effort is a slow one,
 mention once at the start of the first batch that `/model` or `/fast` makes
 the session noticeably snappier, then drop it.
@@ -26,14 +26,12 @@ CLI auto-loads `.env` from the repo root, so nothing needs passing in. Run
 
 **Never put the token value in a Bash command** (`export
 WANIKANI_API_TOKEN=<value> && node …`). It gets echoed verbatim into the
-visible tool call and from there into transcripts — that's a leak. On "No
-API token found", tell them to run `cp .env.example .env` and paste their
-token into it (wanikani.com → Settings → API Tokens). Don't ask for the
-token in chat, and don't type it yourself.
-
-A 403 on a write is a missing permission checkbox on the token, not a
-transient error: `reviews:create` for `submit`/`review`, `assignments:start`
-for `start`. Name the box; don't retry.
+visible tool call and from there into transcripts — that's a leak. Don't ask
+for the token in chat either, and don't type it yourself: the errors carry
+their own remedy, so pass them on rather than improvising one. "No API token
+found" already says to copy `.env.example`, and a 403 already names the one
+permission checkbox that call needed — which is a settings change, not a
+retry.
 
 ## Reviews (the main flow)
 
@@ -46,15 +44,15 @@ match rejects.
 1. `queue --limit 10`
 2. Print the first item's `convention` if it has one.
 3. Print `item.prompt`. Stop. Wait.
-4. Grade. Wrong → the matching `corrections` line. One of the item's
-   `otherReadings` → `readingNudge`, same item stays open. Asked for "more"
-   → `explain`, but only because they asked. Then step 3 for the next item,
-   same message.
+4. `grade <subjectId> "<their whole reply>"`. Print its `say`. `open: true`
+   → the same item is still waiting; otherwise record the counts and go to
+   step 3 for the next item, same message. Asked for "more" → `explain`, but
+   only because they asked.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
-`convention`, `prompt`, `corrections`, `readingNudge`, `summaryLine`, and
-the blocks from `explain` and `tips` are all finished strings. **Print them
+`convention`, `prompt`, `grade`'s `say`, `summaryLine`, and the blocks from
+`explain` and `tips` are all finished strings. **Print them
 as they are** — don't compose your own, don't append, don't paraphrase.
 Every one of them has been got wrong in a real session by being written out
 by hand instead.
@@ -83,10 +81,11 @@ these before sending, not just the first one:**
   Recognising an item is not permission to fill it in. If you find yourself
   writing anything in the shape the user has been typing — a meaning, kana,
   romaji, "meaning, reading" — after a prompt, delete it before sending.
-  (The one exception: a `readingNudge` message ends with the nudge, because
-  the item hasn't been answered yet and its prompt is still open.)
-- **A wrong item is corrected with one of its `corrections` strings, not your
-  own words.** Writing the correction by hand is where romaji gets in:
+  (The one exception: when `grade` comes back `open: true` the message ends
+  with its `say`, because the item hasn't been answered yet and its prompt is
+  still standing.)
+- **What you say about a wrong answer is `grade`'s `say`, not your own
+  words.** Writing the correction by hand is where romaji gets in:
   `should be "kaeru", not "sasaeru"` and `should be "shin", not "mi"` are
   both from real sessions, and so is `つぎつぎ is "tsugitsugu"` — romaji *and*
   misspelt, because it was transliterated from memory instead of read from
@@ -111,76 +110,83 @@ background reading.
    a `queue` call per item wastes a round-trip when you already hold the next
    nine answer keys. Per item:
 
-   - `prompt`, `corrections` (`meaning`/`reading`/`both`), and — when the
-     item has other real readings — `otherReadings` and `readingNudge`. The
-     finished strings; print, don't rebuild.
-   - `assignmentId` for `submit-batch`, `subjectId` for `explain`.
-   - `meanings`, `auxiliaryMeanings` (`whitelist` = also acceptable,
-     `blacklist` = looks plausible but is wrong), `readings` (only
-     `accepted_answer: true` is correct), `needsReading`. The raw answer key,
-     for grading.
+   - `prompt` — the question, printed as-is.
+   - `subjectId` for `grade` and `explain`, `assignmentId` for `submit-batch`.
+     Two different ids; the first names the *item*, the second names *your
+     assignment of it*.
+   - `corrections`, `otherReadings`, `readingNudge`, `meanings`,
+     `auxiliaryMeanings`, `readings`, `needsReading` — the answer key. `grade`
+     works from the same data, so these are for reading over its shoulder and
+     for the rare case where it can't run.
 
    Re-run `queue --limit 10` when the batch is exhausted: submitting prunes
    those items, so it returns the next batch. Calling it *before* submitting
    hands back the same items, by design — nothing unsubmitted has been
    recorded anywhere.
 2. **Empty queue**: say there's nothing due right now and stop.
-3. **Ask.** The first item of a sitting carries `convention`; the CLI decides
-   when, so there's nothing to remember or suppress. After that it's `prompt`
-   and nothing else, including for the meaning-only items (radicals,
-   kana_vocabulary).
-
-   Grade both parts out of one message — "fur, ke", "fur / ke", even "fur ke"
-   — rather than making them answer twice. Whichever part looks like a
-   reading (kana, or romaji per `readings`) is the reading; order doesn't
-   matter. Meaning only, and right? Grade it and ask "Reading?" — worth the
-   turn, they clearly know the item. Meaning wrong? Don't chase the reading:
-   count both wrong, reveal both, move on. A follow-up there almost never
-   changes the outcome.
-4. **Grade** against the item's own data, not string equality: meaning
-   against `meanings`/`auxiliaryMeanings` (accept reasonable synonyms and
-   minor typos; reject any `blacklist` entry however plausible), reading
-   against `readings`. Keep a running count of wrong attempts per item, per
-   part.
-
-   **Another of the item's real readings is not a wrong answer.** A kanji has
-   two or three genuine readings and the prompt says nothing about which is
-   wanted, so answering 親 with おや is an honest near-miss — and WaniKani
-   doesn't count it: the input shakes, names the reading type it's after, and
-   lets you try again. Do the same. Their reading in `otherReadings` → print
-   `readingNudge`, don't add to `wrongReading`, don't reveal the kana, don't
-   advance. In a real session 親 answered "parent, oya" was marked wrong and
-   slipped to Apprentice 4; these two fields exist to stop that. A right
-   meaning alongside an other-reading still grades as `wrongMeaning: 0`.
-
-   Only items with other readings to be confused with carry those fields — a
-   vocabulary word's rejected readings are misspellings (こころずよい for
-   こころづよい), not alternatives, so those stay plain misses.
-
-   A romaji reading is a *transcription*: convert it to kana and judge that,
-   rather than comparing romaji spellings to each other. Any IME spelling
-   landing on the same kana counts — du/dzu → づ, di/dzi/dji → ぢ, ji/zi → じ,
-   hu/fu → ふ, n/nn → ん. Spellings that change the kana are still misses
-   ("kokorozuyoi" misses こころづよい), but "kokorodzuyoi" is that same づ and
-   marking it wrong is a mis-grade.
-
-   One deliberate exception: traditional Hepburn's *m* before b/p/m is **not**
-   accepted. "shimbun", "sempai" and "gumma" are wrong — WaniKani's own input
-   turns them into しmぶん, せmぱい and ぐっま and marks them wrong, and being
-   more generous here would put this tool out of step with their record.
-5. **Correct** with the one line that fits: `corrections.reading` if only the
-   reading missed, `corrections.meaning` if only the meaning did,
-   `corrections.both` when the meaning went (which takes the reading with it,
-   per step 3). Each is already whole — kana from the answer key, the reading
-   type named for a kanji, a lookup link on the end:
+3. **Ask, then let the CLI grade.** The first item of a sitting carries
+   `convention`; the CLI decides when, so there's nothing to remember or
+   suppress. After that it's `prompt` and nothing else, including for the
+   meaning-only items (radicals, kana_vocabulary). When they answer:
 
    ```
-   meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+   node bin/wanikani.js grade <subjectId> "parent, oya"
    ```
 
-   Print one, print all of it, don't stitch two together, don't trim the link
-   for brevity. That link used to be a separate field and went unprinted for
-   weeks, which is why it's welded on now.
+   Their reply goes in verbatim — the whole line, both halves, however they
+   separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
+   whichever order they typed it. Back comes:
+
+   - `say` — the whole response: the correction line, the reading re-prompt,
+     or `Reading?` when they gave a meaning and no reading. Print it as-is.
+     Null means they got it and there's nothing to add beyond your own
+     "Right."
+   - `open` — true means the item is still waiting on them. Print `say`, end
+     your turn, and grade their next reply against the same item. False means
+     it's finished.
+   - `wrongMeaning` / `wrongReading` — this attempt's misses, and `recorded`
+     is the item's running total. Both are for reading, not bookkeeping: the
+     counts go onto the sitting's record as they happen, and `submit-batch`
+     reads them back. Nothing to carry in your head across ten items.
+   - `parsed`, `meaning`, `reading` — which half it read as what, and how
+     each graded. Worth a glance when a reply was oddly shaped.
+
+   When a follow-up answers only one half, name it: `grade 3 --reading
+   "shin"`. That's the usual shape after a `Reading?` or a re-prompt.
+
+   It's a local call — cached subject, no API — so it costs a round-trip and
+   no network.
+4. **Override only where judgment beats the table.** `grade` holds the answer
+   key, the IME spellings ("dzu" and "du" are both づ), WaniKani's refusal of
+   Hepburn's *m* ("shimbun" is wrong for しんぶん), the blacklisted meanings
+   that look plausible and aren't, and the rule that another real reading of a
+   kanji is a re-prompt rather than a miss — the website shakes and names the
+   type it wants, and so does this. Don't re-derive any of it from memory:
+   it's the same code the interactive `review` command grades with, and it's
+   why 親 answered "parent, oya" can't be marked wrong and slipped to
+   Apprentice 4 again.
+
+   What it can't know is whether "labratory" was a typo for the right answer
+   or whether a synonym of theirs is fair. That judgment is yours, and it's
+   the reason this skill drives the quiz instead of shelling out to `review`.
+   When you overrule a miss, take it back off the record in the same breath:
+
+   ```
+   node bin/wanikani.js grade <subjectId> --forgive meaning
+   ```
+
+   (or `--forgive reading`). Say so in a short clause — "counting that as a
+   typo" — and carry on. Skipping the `--forgive` is how a typo you forgave
+   out loud still costs them a level at `submit-batch`.
+
+   If `grade` errors, the item's own `corrections`, `readingNudge` and
+   `readings` are still on the queue payload — the same strings it would have
+   printed.
+5. **A missed meaning ends the item.** `grade` already does this: it reveals
+   both halves and closes the item rather than chasing a reading that almost
+   never changes the outcome. Worth knowing so the behaviour doesn't look
+   like a bug.
+
 6. **"more" pulls up the item info — only when asked.** "more", "details",
    "why", "mnemonic", "tell me about that one", a bare "?" → run
    `node bin/wanikani.js explain <subjectId>`, print the block as-is, then
@@ -201,17 +207,17 @@ background reading.
    licence to answer the new prompt yourself. Pause only if they ask to slow
    down ("wait", "hold on", "explain that one"), and treat that as standing
    for the rest of the sitting. Between batches is different — see step 9.
-8. **Submit the whole batch in one call.** Track `wrongMeaning`/`wrongReading`
-   as you go rather than shelling out per item, then:
+8. **Submit the whole batch in one call.**
 
    ```
-   node bin/wanikani.js submit-batch <<'EOF'
-   [{"assignmentId": 551149968, "wrongMeaning": 0, "wrongReading": 1},
-    {"assignmentId": 603114625, "wrongMeaning": 0, "wrongReading": 0}]
-   EOF
+   node bin/wanikani.js submit-batch --graded
    ```
 
-   Ten round-trips become one. It prints `summaryLine` (step 9), `results[]`
+   That submits exactly what `grade` recorded this batch — no list to
+   assemble, no counts to remember. Ten round-trips become one. (The old form
+   still works if you ever need to state counts by hand: pipe a JSON array of
+   `{assignmentId, wrongMeaning, wrongReading}` on stdin, and anything you
+   leave out falls back to the record.) It prints `summaryLine` (step 9), `results[]`
    per item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.

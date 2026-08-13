@@ -9,6 +9,7 @@ import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { explainCommand } from "../lib/commands/explain.js";
+import { gradeCommand } from "../lib/commands/grade.js";
 import { tipsCommand } from "../lib/commands/tips.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
@@ -43,14 +44,36 @@ Commands:
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
   tips                  Everything you can say during a session, all at once
+  grade <subjectId> "<their answer>" [--meaning M] [--reading R] [--forgive meaning|reading]
+                        Grade one answer: the verdict, the line to print, and the miss
+                        recorded for submit-batch. --forgive takes one back off the
+                        record when you overrule it
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
-  submit-batch          Submit several graded reviews in one call — reads a JSON array of
+  submit-batch [--graded]
+                        Submit several graded reviews in one call. --graded submits
+                        everything the grade command recorded this batch; otherwise
+                        reads a JSON array of
                         {assignmentId, wrongMeaning, wrongReading} from stdin
 
 Auth:
   Set WANIKANI_API_TOKEN in your environment (Settings → API Tokens on wanikani.com).
 `;
+
+// The dispatch gate, so an unknown name is answered before anything asks for
+// a token. Kept next to HELP, which has to list the same set.
+const COMMANDS = new Set([
+  "summary",
+  "lessons",
+  "start",
+  "review",
+  "queue",
+  "explain",
+  "tips",
+  "grade",
+  "submit",
+  "submit-batch",
+]);
 
 async function readStdin() {
   if (process.stdin.isTTY) {
@@ -72,8 +95,16 @@ async function main() {
     return;
   }
 
-  // Before the client: the tip sheet is about the tool, not the account, so
-  // it shouldn't be gated behind a token someone hasn't set up yet.
+  // Both of these come before the client, because neither is about the
+  // account: a typo'd command name and the tip sheet should answer for
+  // themselves rather than demanding a token first.
+  if (!COMMANDS.has(command)) {
+    console.error(`Unknown command: ${command}\n`);
+    console.log(HELP);
+    process.exitCode = 1;
+    return;
+  }
+
   if (command === "tips") {
     await tipsCommand();
     return;
@@ -121,6 +152,32 @@ async function main() {
       await explainCommand(client, { target, json: values.json });
       break;
     }
+    case "grade": {
+      const { positionals, values } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: {
+          meaning: { type: "string" },
+          reading: { type: "string" },
+          forgive: { type: "string" },
+        },
+      });
+      const subjectId = parseCount(positionals[0], { flag: "<subjectId>", min: 1 });
+      if (!subjectId) {
+        throw new Error('Usage: wanikani grade <subjectId> "<their answer>" [--meaning M] [--reading R]');
+      }
+      if (values.forgive && !["meaning", "reading"].includes(values.forgive)) {
+        throw new Error("--forgive takes 'meaning' or 'reading'");
+      }
+      await gradeCommand(client, {
+        subjectId,
+        answer: positionals.slice(1).join(" "),
+        meaning: values.meaning,
+        reading: values.reading,
+        forgive: values.forgive,
+      });
+      break;
+    }
     case "start": {
       const { positionals } = parseArgs({ args: rest, allowPositionals: true, options: {} });
       const assignmentIds = positionals.map((id) => parseCount(id, { flag: "<assignmentId>", min: 1 }));
@@ -151,6 +208,12 @@ async function main() {
       break;
     }
     case "submit-batch": {
+      const { values } = parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
+      if (values.graded) {
+        await submitBatchCommand(client);
+        break;
+      }
+
       const raw = await readStdin();
       let items;
       try {
@@ -165,9 +228,9 @@ async function main() {
       break;
     }
     default:
-      console.error(`Unknown command: ${command}\n`);
-      console.log(HELP);
-      process.exitCode = 1;
+      // Unreachable: COMMANDS gates the dispatch above. Here so that adding a
+      // name to that set without a case fails loudly instead of silently.
+      throw new Error(`No handler for command: ${command}`);
   }
 }
 
