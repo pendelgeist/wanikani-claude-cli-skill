@@ -78,6 +78,12 @@ hundreds. You can answer meaning and reading together in one line (e.g.
 "next", and it links out to [Jisho](https://jisho.org/) on anything you get
 wrong so you can dig into it right away.
 
+You don't have to know any of that up front. Ask **"what can I say?"** at any
+point — or run `wanikani tips` — for the whole list of what a session
+understands, from "more" to how to slow the auto-advance down. The
+start-of-sitting note points at it, and that's the only time the tool brings
+it up unasked; nothing is drip-fed between items.
+
 Say **"more"** on an item and it pulls up the full entry — mnemonics, hints,
 what the kanji is built from, the other readings, example sentences. That's
 `wanikani explain` under the hood, and it only ever runs because you asked:
@@ -131,6 +137,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
+| `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 

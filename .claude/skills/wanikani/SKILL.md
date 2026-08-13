@@ -356,6 +356,29 @@ short as possible. The goal is fewer *tool calls* and less *waiting on the
 user for "next"*, not fewer or shorter chat turns — auto-advancing means
 more turns happen back-to-back, which is the point.
 
+## Telling them what it can do
+
+A feature nobody knows about may as well not exist, and this one has form:
+"more" sat unused because it lived in this file, and the lookup link went
+unprinted for weeks. So the tool advertises itself, and the rules for that
+are the same as everywhere else here — the strings are composed in code, and
+your job is to print them and then get out of the way.
+
+- **`tips`** — `node bin/wanikani.js tips` prints the whole list of what the
+  user can say. Run it whenever they ask anything in that shape: "what can I
+  say?", "what else can you do?", "help", "tips", "is there a way to…". Print
+  the output as-is; it's already formatted. It needs no token and no network,
+  so it answers even when nothing else will.
+- **The convention note names it** — the once-a-sitting line ends with `or
+  "what can I say?" for the rest`, which is the entire unsolicited
+  advertisement the feature list gets. Print the note and leave it there.
+- **Don't hand-roll your own tips, and don't volunteer them.** If you find
+  yourself writing "by the way, you can also…", stop: either it's in `tips`
+  already and they can ask, or it isn't and it belongs in `lib/tips.js` —
+  a code change, not something to improvise mid-session. Advice nobody asked
+  for between two review items is exactly the noise this is arranged to
+  avoid.
+
 ## Lessons
 
 Teaching, not quizzing — so unlike reviews, everything is meant to be said
