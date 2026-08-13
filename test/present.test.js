@@ -194,5 +194,26 @@ test("batchSummaryLine adds the session total only once it exceeds the batch", (
 });
 
 test("batchSummaryLine surfaces submit failures", () => {
-  assert.match(batchSummaryLine({ submitted: 9, perfect: 9, failed: 1 }), /1 failed to submit/);
+  assert.match(
+    batchSummaryLine({ submitted: 9, perfect: 9, failures: { retryable: 1 } }),
+    /1 failed to submit/,
+  );
+});
+
+test("the summary line says what becomes of anything that failed to submit", () => {
+  const line = batchSummaryLine({
+    submitted: 8,
+    perfect: 8,
+    failures: { retryable: 1, dropped: 1 },
+    remaining: 12,
+  });
+
+  const [stats, fate] = line.split("\n");
+  assert.match(stats, /2 failed to submit/);
+  assert.match(fate, /^1 stays in the queue for a later batch; 1 was rejected outright/);
+  assert.match(fate, /already reviewed somewhere else\.$/);
+});
+
+test("a clean batch gets no second line at all", () => {
+  assert.doesNotMatch(batchSummaryLine({ submitted: 10, perfect: 10 }), /\n/);
 });
