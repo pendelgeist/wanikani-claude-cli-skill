@@ -66,8 +66,9 @@ match would reject, which is a better experience than the raw CLI.
 4. Grade it. Wrong? Print the matching `corrections` line — `meaning`,
    `reading` or `both` — whole, link and all. Gave one
    of the item's `otherReadings`? Print `readingNudge` instead and stay on the
-   same item — that's a retry, not a miss. Then step 3 for the next item, in
-   the same message.
+   same item — that's a retry, not a miss. Asked for "more"? `explain` it,
+   but only because they asked. Then step 3 for the next item, in the same
+   message.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
@@ -150,7 +151,8 @@ treat them as a checklist, not just background reading.
    batches of ~10 rather than one at a time (there can be hundreds due; one
    `queue` call per item wastes a round-trip per review for no benefit, since
    you already have the next 9 answer keys in hand). Each item has
-   `assignmentId`, `prompt` (the finished question line — print it as-is),
+   `assignmentId`, `subjectId` (what `explain` takes, per step 6),
+   `prompt` (the finished question line — print it as-is),
    `corrections` (`meaning`/`reading`/`both` — one finished line each, link
    included, ready to print when they get it wrong), `needsReading`, `meanings`, `auxiliaryMeanings` (type `whitelist`
    = also acceptable, `blacklist` = looks plausible but is wrong), and
@@ -245,7 +247,34 @@ treat them as a checklist, not just background reading.
    ```
    meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
    ```
-6. **Auto-advance within a batch**: whether an item was right or wrong, say
+6. **"more" pulls up the item info — only when they ask for it.** Any of
+   "more", "more info", "details", "why", "mnemonic", "tell me about that
+   one", or a bare "?" after an item means: run
+
+   ```
+   node bin/wanikani.js explain <subjectId>
+   ```
+
+   with the `subjectId` from the queue item, and print the block it returns
+   as-is (it's already formatted; same rule as `prompt` and `corrections`).
+   Then re-print the open prompt so the batch picks up where it was.
+
+   - **Never run it unasked.** Most misses are a fat finger or a blank, and a
+     mnemonic they didn't want is a wall of text between them and the next
+     item. The convention note tells them it exists; that's the whole
+     advertisement it gets.
+   - **"more" means the item just graded**, not the prompt now open — asking
+     about the open one would hand them the answer. If they clearly do mean
+     the open item, say that it gives the answer away and let them decide;
+     if they say yes anyway, run it. It's their session.
+   - **It changes nothing about the score.** The item was already graded when
+     they asked; `wrongMeaning`/`wrongReading` stay exactly as they were.
+   - It works between batches and after a session too, and it takes characters
+     as well as a subject id (`explain 親`) — handy when they ask about
+     something from earlier that isn't in the current batch. Characters can
+     match two subjects (親 is a kanji and a word); the command explains both,
+     so print both.
+7. **Auto-advance within a batch**: whether an item was right or wrong, say
    so briefly and move straight into the next item's prompt in the same
    message — don't wait for the user to say "next" or "continue" between
    items. This only ever skips the "next"/"continue" round-trip after
@@ -256,8 +285,8 @@ treat them as a checklist, not just background reading.
    review an answer, or stop (e.g. "wait", "hold on", "explain that one") —
    treat that as a standing preference for the rest of the session once
    they've said it, not a one-off. This only applies *within* a batch —
-   between batches, see step 8.
-7. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
+   between batches, see step 9.
+8. Track each item's `wrongMeaning`/`wrongReading` counts in your own head as
    you go — don't shell out per item. Once the whole local batch (all ~10)
    has been quizzed, submit it in **one** bash call via `submit-batch`,
    piping a JSON array on stdin:
@@ -269,7 +298,7 @@ treat them as a checklist, not just background reading.
    ```
    This collapses ~10 round-trips into 1. It prints:
    - `summaryLine` — the finished end-of-batch line, names and running
-     totals included. Print it as-is; step 8 is about when, not how.
+     totals included. Print it as-is; step 9 is about when, not how.
    - `results[]` — per item, `{assignmentId, ok, perfect, startingSrsStage,
      endingSrsStage, srsStageName, srsTier, tierChange}`, or
      `{ok: false, error, retryable}` if that item didn't submit.
@@ -287,7 +316,7 @@ treat them as a checklist, not just background reading.
    the `submit-batch` call runs), nothing has been sent to WaniKani yet for
    that batch — the user just re-answers those items next time, nothing is
    corrupted or double-counted.
-8. After submitting, give the batch summary, then ask a brief yes/no before
+9. After submitting, give the batch summary, then ask a brief yes/no before
    fetching more — e.g. "Continue?" — rather than auto-chaining into the next
    batch. Unlike within-batch advancing, don't treat a stop-word as a standing
    preference here; ask every time. On yes, run `queue --limit 10` again and

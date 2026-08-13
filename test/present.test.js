@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { promptFor, correctionsFor, readingNudgeFor, batchSummaryLine } from "../lib/present.js";
+import { promptFor, correctionsFor, readingNudgeFor, explainBlock, batchSummaryLine } from "../lib/present.js";
 
 const KANJI = {
   characters: "親",
@@ -113,6 +113,14 @@ test("correctionsFor names the reading type for a kanji, so the reveal answers '
 
 test("correctionsFor leaves a typeless (vocabulary) reading unannotated", () => {
   assert.match(correctionsFor(VOCAB).reading, /^reading is こころづよい ·/);
+});
+
+test("explainBlock doesn't pass a rejected vocabulary spelling off as another reading", () => {
+  // こころずよい is a misspelling WaniKani lists to reject; "also read" it isn't.
+  const block = explainBlock({ ...VOCAB, level: 3 });
+
+  assert.match(block, /^Reading: こころづよい$/m);
+  assert.doesNotMatch(block, /こころずよい/);
 });
 
 test("readingNudgeFor names the type wanted and reveals no kana", () => {

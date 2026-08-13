@@ -8,6 +8,7 @@ import { summaryCommand } from "../lib/commands/summary.js";
 import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
+import { explainCommand } from "../lib/commands/explain.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { startCommand } from "../lib/commands/start.js";
@@ -37,6 +38,9 @@ Commands:
                         counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
   queue [--limit N]     Due reviews as JSON, with answer keys — for Claude to drive the quiz itself
+  explain <id|characters> [--json]
+                        Everything WaniKani teaches about one item — mnemonics, hints,
+                        what it's built from. The item-info screen, on request
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
   submit-batch          Submit several graded reviews in one call — reads a JSON array of
@@ -95,6 +99,17 @@ async function main() {
         options: { limit: { type: "string" }, json: { type: "boolean" } },
       });
       await queueCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      break;
+    }
+    case "explain": {
+      const { positionals, values } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { json: { type: "boolean" } },
+      });
+      const target = positionals[0];
+      if (!target) throw new Error("Usage: wanikani explain <subjectId|characters> [--json]");
+      await explainCommand(client, { target, json: values.json });
       break;
     }
     case "start": {

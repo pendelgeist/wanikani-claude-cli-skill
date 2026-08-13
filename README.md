@@ -78,6 +78,14 @@ hundreds. You can answer meaning and reading together in one line (e.g.
 "next", and it links out to [Jisho](https://jisho.org/) on anything you get
 wrong so you can dig into it right away.
 
+Say **"more"** on an item and it pulls up the full entry — mnemonics, hints,
+what the kanji is built from, the other readings, example sentences. That's
+`wanikani explain` under the hood, and it only ever runs because you asked:
+most misses are a typo you don't want a lecture about, and the ones that
+aren't are the reason the word exists. It refers to the item just graded, not
+the one currently on screen, so asking never hands you an answer you were
+about to give.
+
 For lessons it works the other way round — it reads `wanikani lessons --json`,
 teaches each item conversationally (characters, meaning, reading, mnemonic in
 its own words), and marks the ones you've learned started with a single
@@ -122,6 +130,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
+| `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 
@@ -146,6 +155,23 @@ data, so the skill prints rather than composes:
 - An item with other real readings also gets `otherReadings` (the kana that
   should be re-prompted rather than marked wrong) and `readingNudge`, the
   finished re-prompt naming the type wanted.
+- `explain` gives a whole formatted block, the item-info screen the website
+  shows *after* you answer:
+
+  ```
+  親 — kanji, level 2
+  Meaning: Parent
+  Reading: しん (on'yomi) — also read おや / した (kun'yomi), though not here
+  Parts: 立 (Stand) + 木 (Tree) + 見 (See)
+  Meaning mnemonic: …
+    Hint: …
+  Reading mnemonic: …
+  More: https://www.wanikani.com/kanji/親 · https://jisho.org/search/親%20%23kanji
+  ```
+
+  It takes the `subjectId` from a queue item or the characters themselves
+  (`explain 親` explains both the kanji and the word, since it can't know
+  which you meant). `--json` gives the fields instead of the block.
 - `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
   127 left` — naming what crossed an SRS tier, carrying a running session
   total, and dropping segments that would say nothing.
