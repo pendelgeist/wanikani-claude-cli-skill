@@ -39,7 +39,9 @@ Commands:
   start <id> [<id>...]  Mark lesson assignments as started — the non-interactive
                         counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
-  queue [--limit N]     Due reviews as JSON, with answer keys — for Claude to drive the quiz itself
+  queue [--limit N] [--answers]
+                        Due reviews as JSON: the questions and their ids, no answers.
+                        --answers adds the key back, for debugging this CLI
   explain <id|characters> [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
@@ -50,11 +52,8 @@ Commands:
                         record when you overrule it
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
-  submit-batch [--graded]
-                        Submit several graded reviews in one call. --graded submits
-                        everything the grade command recorded this batch; otherwise
-                        reads a JSON array of
-                        {assignmentId, wrongMeaning, wrongReading} from stdin
+  submit-batch          Submit everything the grade command recorded this batch,
+                        in one call
 
 Auth:
   Set WANIKANI_API_TOKEN in your environment (Settings → API Tokens on wanikani.com).
@@ -74,18 +73,6 @@ const COMMANDS = new Set([
   "submit",
   "submit-batch",
 ]);
-
-async function readStdin() {
-  if (process.stdin.isTTY) {
-    throw new Error(
-      "submit-batch reads a JSON array on stdin — pipe one in, e.g.:\n" +
-        `  echo '[{"assignmentId": 1, "wrongMeaning": 0, "wrongReading": 0}]' | wanikani submit-batch`,
-    );
-  }
-  const chunks = [];
-  for await (const chunk of process.stdin) chunks.push(chunk);
-  return Buffer.concat(chunks).toString("utf8");
-}
 
 async function main() {
   const [, , command, ...rest] = process.argv;
@@ -136,9 +123,16 @@ async function main() {
       // reflex of passing it isn't a hard error mid-session.
       const { values } = parseArgs({
         args: rest,
-        options: { limit: { type: "string" }, json: { type: "boolean" } },
+        options: {
+          limit: { type: "string" },
+          json: { type: "boolean" },
+          answers: { type: "boolean" },
+        },
       });
-      await queueCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      await queueCommand(client, {
+        limit: parseCount(values.limit, { flag: "--limit", min: 1 }),
+        answers: values.answers,
+      });
       break;
     }
     case "explain": {
@@ -208,23 +202,11 @@ async function main() {
       break;
     }
     case "submit-batch": {
-      const { values } = parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
-      if (values.graded) {
-        await submitBatchCommand(client);
-        break;
-      }
-
-      const raw = await readStdin();
-      let items;
-      try {
-        items = JSON.parse(raw);
-      } catch {
-        throw new Error("submit-batch expects a JSON array on stdin: [{assignmentId, wrongMeaning, wrongReading}, ...]");
-      }
-      if (!Array.isArray(items)) {
-        throw new Error("submit-batch expects a JSON array on stdin, got: " + typeof items);
-      }
-      await submitBatchCommand(client, items);
+      // --graded is the only mode there is now; accepted so the habit of
+      // typing it isn't an error, and so is a piped-in list, which is ignored
+      // rather than obeyed — the record is the source of the counts.
+      parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
+      await submitBatchCommand(client);
       break;
     }
     default:

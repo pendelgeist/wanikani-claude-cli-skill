@@ -39,6 +39,17 @@ Drive the quiz in chat rather than shelling out to the interactive `review`
 command — you can use judgment on typos and phrasing that a rigid string
 match rejects.
 
+**You can't grade these yourself: `queue` returns the questions and no
+answers.** Every reply goes through `grade`, which holds the key, records the
+miss and hands back the line to print. A session that skipped it graded
+twenty items from memory, and the bill was: romaji in every correction, not
+one lookup link, a batch tally that contradicted its own submission, a
+mnemonic declared not to exist without looking, an item answered on the
+user's behalf, and the next item's meaning printed above its own prompt. The
+answer key isn't in the payload any more, so most of that is now unreachable
+— what's left is inventing answers from memory, and that's what this rule is
+for.
+
 **The loop:**
 
 1. `queue --limit 10`
@@ -61,8 +72,10 @@ by hand instead.
 these before sending, not just the first one:**
 
 - **`item.prompt` is the entire question. Nothing before it, nothing after
-  it.** No gloss, no type label, no `— meaning & reading?` tail: `convention`
-  said that once already. `取 (take)` hands over the answer; so do
+  it.** No gloss, no type label, no `— meaning & reading?` tail — nor
+  `— meaning + reading?`, which is that same tail with a different join and
+  went on all twenty prompts of one session. `convention` said it once
+  already. `取 (take)` hands over the answer; so do
   `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference that
   the gloss is short, obvious or "just for clarity", because the meaning *is*
   what you're about to grade. Nothing goes in front either — `Batch 1/10.
@@ -78,9 +91,14 @@ these before sending, not just the first one:**
   hint. Send it, end your turn, wait. This holds when you know the answer
   cold, when the same item came up minutes ago (a `queue` call before the
   last batch was submitted hands back the same items), and on item 10 of 10.
-  Recognising an item is not permission to fill it in. If you find yourself
-  writing anything in the shape the user has been typing — a meaning, kana,
-  romaji, "meaning, reading" — after a prompt, delete it before sending.
+  Recognising an item is not permission to fill it in: in one session item 4
+  was printed, answered and graded inside a single message, so 当たり went in
+  as a perfect score for a question nobody was ever asked. If you find
+  yourself writing anything in the shape the user has been typing — a
+  meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
+  before sending. That includes glossing the item you're about to ask about:
+  `2. 転 — revolve, twist, turn over. Meaning + reading?` is the answer, the
+  prompt, and the forbidden tail in one line.
   (The one exception: when `grade` comes back `open: true` the message ends
   with its `say`, because the item hasn't been answered yet and its prompt is
   still standing.)
@@ -114,10 +132,11 @@ background reading.
    - `subjectId` for `grade` and `explain`, `assignmentId` for `submit-batch`.
      Two different ids; the first names the *item*, the second names *your
      assignment of it*.
-   - `corrections`, `otherReadings`, `readingNudge`, `meanings`,
-     `auxiliaryMeanings`, `readings`, `needsReading` — the answer key. `grade`
-     works from the same data, so these are for reading over its shoulder and
-     for the rare case where it can't run.
+   - `subjectType`, `level`, `needsReading` — context, not answers.
+
+   That's the whole payload: no meanings, no readings, no correction lines.
+   (`--answers` puts them back for debugging this CLI. It is not a grading
+   shortcut, and a session has no reason to pass it.)
 
    Re-run `queue --limit 10` when the batch is exhausted: submitting prunes
    those items, so it returns the next batch. Calling it *before* submitting
@@ -179,9 +198,9 @@ background reading.
    typo" — and carry on. Skipping the `--forgive` is how a typo you forgave
    out loud still costs them a level at `submit-batch`.
 
-   If `grade` errors, the item's own `corrections`, `readingNudge` and
-   `readings` are still on the queue payload — the same strings it would have
-   printed.
+   If `grade` itself errors, say so and stop the batch rather than falling
+   back on memory. There's no answer key in the payload to fall back on, and
+   memory is exactly what this replaced.
 5. **A missed meaning ends the item.** `grade` already does this: it reveals
    both halves and closes the item rather than chasing a reading that almost
    never changes the outcome. Worth knowing so the behaviour doesn't look
@@ -192,6 +211,11 @@ background reading.
    `node bin/wanikani.js explain <subjectId>`, print the block as-is, then
    re-print the open prompt so the batch picks up where it was.
 
+   - **Run it — don't answer from memory, and don't decide there's nothing to
+     show.** "Don't have mnemonic for that one", "No mnemonic on file" and a
+     recollected paragraph in place of `explain 親` are all from one session,
+     and all three were wrong: the command had the mnemonic, the parts and
+     the links every time.
    - **Never run it unasked.** Most misses are a fat finger, and a mnemonic
      they didn't want is a wall of text between them and the next item.
    - **It means the item just graded**, not the prompt now open — that one
@@ -210,15 +234,15 @@ background reading.
 8. **Submit the whole batch in one call.**
 
    ```
-   node bin/wanikani.js submit-batch --graded
+   node bin/wanikani.js submit-batch
    ```
 
-   That submits exactly what `grade` recorded this batch — no list to
-   assemble, no counts to remember. Ten round-trips become one. (The old form
-   still works if you ever need to state counts by hand: pipe a JSON array of
-   `{assignmentId, wrongMeaning, wrongReading}` on stdin, and anything you
-   leave out falls back to the record.) It prints `summaryLine` (step 9), `results[]`
-   per item, `batch` counts, and `remaining`. If anything failed to submit,
+   That submits exactly what `grade` recorded this batch — no list, no counts
+   to remember, nothing to add up. Ten round-trips become one. If it comes
+   back saying nothing was on record, that means the answers were never
+   graded: the items are still due, and the fix is to grade them, not to
+   assemble a list by hand. It prints `summaryLine` (step 9), `results[]` per
+   item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.
 
@@ -246,6 +270,12 @@ background reading.
 
    dropped the item that reached Guru and the session total. The separators,
    the wording and the drop-empty-segments rules are all already decided.
+
+   Nor does a tally of your own belong *before* the call: one session
+   announced "Batch 1 done — 8 perfect, 2 with errors" and then submitted a
+   batch the record scored differently. The counting isn't yours to do, and
+   saying it first only means saying it wrong first. Then wait: "Batch 2
+   incoming…" is not the same thing as asking.
 
    Add a sentence of your own only for something the line can't know — a
    pattern worth naming ("the ん readings are the ones catching you").

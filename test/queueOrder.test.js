@@ -152,7 +152,7 @@ test("queue items arrive with a prompt and correction lines already composed", a
     const { queueCommand } = await import("../lib/commands/queue.js");
     const { captureStdout } = await import("./helpers.js");
 
-    const output = await captureStdout(() => queueCommand(fakeClient(3), { limit: 3 }));
+    const output = await captureStdout(() => queueCommand(fakeClient(3), { limit: 3, answers: true }));
     const items = JSON.parse(output);
 
     assert.deepEqual(
