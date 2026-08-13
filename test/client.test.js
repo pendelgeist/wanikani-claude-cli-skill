@@ -95,13 +95,27 @@ test("request gives up after the attempt budget instead of looping forever", asy
   });
 });
 
-test("request explains a 403 in terms of token permissions", async () => {
+test("a 403 names the one permission the failed call needed", async () => {
   await withFetch([fakeResponse({ status: 403, body: { error: "Forbidden" } })], async () => {
     await assert.rejects(
       () => client.submitReview({ assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 }),
-      /reviews:create/,
+      /needs the token's reviews:create permission/,
     );
   });
+
+  await withFetch([fakeResponse({ status: 403, body: { error: "Forbidden" } })], async () => {
+    await assert.rejects(() => client.startAssignment(1), /needs the token's assignments:start permission/);
+  });
+
+  // A read call has no box to tick, so it points at the settings page instead
+  // of naming a permission it can't know.
+  await withFetch([fakeResponse({ status: 403, body: { error: "Forbidden" } })], async () => {
+    await assert.rejects(() => client.getUser(), /check the token's permissions/);
+  });
+});
+
+test("a missing token says how to supply one", () => {
+  assert.throws(() => new WaniKaniClient(undefined), /Copy \.env\.example to \.env/);
 });
 
 test("request returns null for 204 without parsing a body", async () => {

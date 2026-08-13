@@ -104,6 +104,27 @@ it never ends up typed into a command (and therefore into a transcript).
 
 ## How grading works
 
+Both the interactive `review` command and the Claude skill grade through the
+same code — the skill calls `wanikani grade <subjectId> "<their reply>"`,
+which splits the reply into its meaning and reading halves, judges each, and
+returns the counts to record plus the exact line to print:
+
+```
+$ wanikani grade 3 "parent, oya"
+{ "parsed": { "meaning": "parent", "reading": "oya" },
+  "meaning": "correct", "reading": "other-reading",
+  "wrongMeaning": 0, "wrongReading": 0,
+  "say": "That's a real reading, but WaniKani wants the on'yomi here — try again.",
+  "open": true }
+```
+
+That's deliberate: the rules below are a lookup table, and a lookup table
+interpreted afresh on every answer is a lookup table that eventually gets
+one wrong — which is how 親 answered "parent, oya" once cost an SRS level.
+What's left to judgment is whether "labratory" was a typo and whether a
+synonym is fair, which is the part a person (or a model) is actually better
+at than a table.
+
 - **Meaning**: case/whitespace-insensitive match against the subject's
   accepted meanings plus whitelisted auxiliary meanings; blacklisted
   auxiliary meanings (things that look right but aren't) are always rejected.
@@ -136,6 +157,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
+| `grade <subjectId> "<answer>" [--meaning M] [--reading R]` | Grade one answer: verdict, counts to record, and the line to print |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |

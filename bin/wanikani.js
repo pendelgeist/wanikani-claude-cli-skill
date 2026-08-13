@@ -9,6 +9,7 @@ import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { explainCommand } from "../lib/commands/explain.js";
+import { gradeCommand } from "../lib/commands/grade.js";
 import { tipsCommand } from "../lib/commands/tips.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
@@ -43,6 +44,9 @@ Commands:
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
   tips                  Everything you can say during a session, all at once
+  grade <subjectId> "<their answer>" [--meaning M] [--reading R]
+                        Grade one answer: the verdict, the counts to record, and the
+                        line to print — for Claude-driven sessions
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
   submit-batch          Submit several graded reviews in one call — reads a JSON array of
@@ -119,6 +123,24 @@ async function main() {
       const target = positionals[0];
       if (!target) throw new Error("Usage: wanikani explain <subjectId|characters> [--json]");
       await explainCommand(client, { target, json: values.json });
+      break;
+    }
+    case "grade": {
+      const { positionals, values } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { meaning: { type: "string" }, reading: { type: "string" } },
+      });
+      const subjectId = parseCount(positionals[0], { flag: "<subjectId>", min: 1 });
+      if (!subjectId) {
+        throw new Error('Usage: wanikani grade <subjectId> "<their answer>" [--meaning M] [--reading R]');
+      }
+      await gradeCommand(client, {
+        subjectId,
+        answer: positionals.slice(1).join(" "),
+        meaning: values.meaning,
+        reading: values.reading,
+      });
       break;
     }
     case "start": {
