@@ -133,9 +133,9 @@ background reading.
    node bin/wanikani.js grade <subjectId> "parent, oya"
    ```
 
-   Their reply goes in verbatim — the whole line, both halves, in whichever
-   order they typed it ("fur, ke", "ke fur", "to realize / kidzuku"). Back
-   comes:
+   Their reply goes in verbatim — the whole line, both halves, however they
+   separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
+   whichever order they typed it. Back comes:
 
    - `say` — the whole response: the correction line, the reading re-prompt,
      or `Reading?` when they gave a meaning and no reading. Print it as-is.

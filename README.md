@@ -106,7 +106,8 @@ it never ends up typed into a command (and therefore into a transcript).
 
 Both the interactive `review` command and the Claude skill grade through the
 same code — the skill calls `wanikani grade <subjectId> "<their reply>"`,
-which splits the reply into its meaning and reading halves, judges each, and
+which splits the reply into its meaning and reading halves — on any of
+`,` `.` `;` `/` `|` `x` `、` or a plain space, in either order — judges each, and
 returns the counts to record plus the exact line to print:
 
 ```

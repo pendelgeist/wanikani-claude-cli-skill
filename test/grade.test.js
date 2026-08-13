@@ -184,3 +184,27 @@ test("trailing punctuation doesn't cost a meaning", async () => {
   assert.equal((await grade({ subjectId: 3, answer: "parent." })).meaning, "correct");
   assert.equal((await grade({ subjectId: 5, answer: "hook!" })).meaning, "correct");
 });
+
+test("any of the separators people reach for splits the halves", async () => {
+  for (const reply of [
+    "parent, shin",
+    "parent. shin",
+    "parent / shin",
+    "parent | shin",
+    "parent x shin",
+    "parent; shin",
+    "parent、shin",
+    "parent shin",
+  ]) {
+    const verdict = await grade({ subjectId: 3, answer: reply });
+    assert.deepEqual(verdict.parsed, { meaning: "parent", reading: "shin" }, reply);
+  }
+});
+
+test("a separator that's also an ordinary character needs its whitespace", () => {
+  // "X-ray" and "3.5" are answers, not two halves.
+  assert.deepEqual(splitAnswer("x-ray. ekkususen", VOCAB.data, true), {
+    meaning: "x-ray",
+    reading: "ekkususen",
+  });
+});
