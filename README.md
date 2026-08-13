@@ -129,9 +129,20 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 data, so the skill prints rather than composes:
 
 - `queue` gives each item a `prompt` (`"1. 心強い"`, or the inline image for a
-  radical with no glyph) and `corrections` (`meaning`, `reading` already in
-  kana and labelled with its type for a kanji — `reading is しん (on'yomi)` —
-  and a `link` to Jisho or WaniKani).
+  radical with no glyph) and `corrections` — `meaning`, `reading` and `both`,
+  one finished line each, kana copied straight from the answer key, the
+  reading labelled with its type for a kanji, and a lookup link welded onto
+  the end:
+
+  ```
+  meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+  ```
+
+  The link is part of the line rather than a field beside it because a field
+  beside it doesn't get printed — it went unused in every real session until
+  it stopped being optional. Jisho's kanji page for kanji (its *word* page for
+  親 is おや, the reading you were just told was wrong), its word page for
+  vocabulary, WaniKani's own page for radicals.
 - An item with other real readings also gets `otherReadings` (the kana that
   should be re-prompted rather than marked wrong) and `readingNudge`, the
   finished re-prompt naming the type wanted.

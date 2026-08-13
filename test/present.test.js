@@ -4,6 +4,7 @@ import { promptFor, correctionsFor, readingNudgeFor, batchSummaryLine } from "..
 
 const KANJI = {
   characters: "親",
+  subjectType: "kanji",
   documentUrl: "https://www.wanikani.com/kanji/親",
   meanings: [{ meaning: "Parent", primary: true, accepted_answer: true }],
   readings: [
@@ -14,6 +15,7 @@ const KANJI = {
 
 const VOCAB = {
   characters: "心強い",
+  subjectType: "vocabulary",
   documentUrl: "https://www.wanikani.com/vocabulary/心強い",
   meanings: [
     { meaning: "Reassuring", primary: true, accepted_answer: true },
@@ -28,6 +30,7 @@ const VOCAB = {
 
 const RADICAL = {
   characters: null,
+  subjectType: "radical",
   // Real character-image URLs are opaque file hashes — no slug, nothing to leak.
   characterImageUrl: "https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png",
   documentUrl: "https://www.wanikani.com/radicals/hook",
@@ -58,35 +61,58 @@ test("promptFor gives up rather than inventing a prompt with no glyph or image",
 
 test("correctionsFor reveals kana verbatim, never romaji", () => {
   const { reading } = correctionsFor(VOCAB);
-  assert.equal(reading, "reading is こころづよい");
+  assert.equal(reading, "reading is こころづよい · https://jisho.org/word/心強い");
 
-  // The label is English; the answer must not be.
-  const answer = reading.replace(/^reading is /, "");
+  // The label and the link are English; the answer must not be.
+  const answer = reading.replace(/^reading is /, "").replace(/ · https:\/\/\S+$/, "");
   assert.doesNotMatch(answer, /[A-Za-z]/, "romaji in a correction is the bug this exists to prevent");
 });
 
 test("correctionsFor lists every accepted answer and no rejected one", () => {
   const { meaning, reading } = correctionsFor(VOCAB);
-  assert.equal(meaning, "meaning is Reassuring / Heartening");
+  assert.match(meaning, /^meaning is Reassuring \/ Heartening ·/);
   assert.doesNotMatch(reading, /こころずよい/);
 });
 
-test("correctionsFor links Jisho for words and WaniKani for radicals", () => {
-  assert.equal(correctionsFor(VOCAB).link, "https://jisho.org/word/心強い");
-  assert.equal(correctionsFor(RADICAL).link, "https://www.wanikani.com/radicals/hook");
+test("every correction line carries the lookup link, since a separate field never got printed", () => {
+  for (const line of Object.values(correctionsFor(VOCAB))) {
+    assert.match(line, / · https:\/\/jisho\.org\/word\/心強い$/);
+  }
 });
 
-test("correctionsFor has no reading line for a meaning-only item", () => {
+test("correctionsFor combines both misses into one line rather than two", () => {
+  assert.equal(
+    correctionsFor(VOCAB).both,
+    "meaning is Reassuring / Heartening · reading is こころづよい · https://jisho.org/word/心強い",
+  );
+});
+
+test("correctionsFor sends a kanji to Jisho's kanji page, not the word of the same name", () => {
+  // jisho.org/word/親 is おや — the reading the correction just ruled out.
+  assert.match(correctionsFor(KANJI).reading, /jisho\.org\/search\/親%20%23kanji$/);
+});
+
+test("correctionsFor links WaniKani for radicals, which Jisho doesn't have", () => {
+  assert.equal(correctionsFor(RADICAL).meaning, "meaning is Hook · https://www.wanikani.com/radicals/hook");
+  assert.equal(
+    correctionsFor({ ...RADICAL, subjectType: "radical", characters: "亅" }).meaning,
+    "meaning is Hook · https://www.wanikani.com/radicals/hook",
+    "a radical with a glyph is still not a word",
+  );
+});
+
+test("correctionsFor has no reading or both line for a meaning-only item", () => {
   assert.equal(correctionsFor(RADICAL).reading, null);
+  assert.equal(correctionsFor(RADICAL).both, null);
 });
 
 test("correctionsFor names the reading type for a kanji, so the reveal answers 'which one?'", () => {
-  assert.equal(correctionsFor(KANJI).reading, "reading is しん (on'yomi)");
+  assert.match(correctionsFor(KANJI).reading, /^reading is しん \(on'yomi\) ·/);
   assert.doesNotMatch(correctionsFor(KANJI).reading, /おや/, "only accepted readings are revealed");
 });
 
 test("correctionsFor leaves a typeless (vocabulary) reading unannotated", () => {
-  assert.equal(correctionsFor(VOCAB).reading, "reading is こころづよい");
+  assert.match(correctionsFor(VOCAB).reading, /^reading is こころづよい ·/);
 });
 
 test("readingNudgeFor names the type wanted and reveals no kana", () => {
