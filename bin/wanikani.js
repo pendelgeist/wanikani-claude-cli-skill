@@ -9,6 +9,7 @@ import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { explainCommand } from "../lib/commands/explain.js";
+import { tipsCommand } from "../lib/commands/tips.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { startCommand } from "../lib/commands/start.js";
@@ -41,6 +42,7 @@ Commands:
   explain <id|characters> [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
+  tips [--reset]        Everything you can say during a session, all at once
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
   submit-batch          Submit several graded reviews in one call — reads a JSON array of
@@ -67,6 +69,14 @@ async function main() {
 
   if (!command || command === "-h" || command === "--help") {
     console.log(HELP);
+    return;
+  }
+
+  // Before the client: the tip sheet is about the tool, not the account, so
+  // it shouldn't be gated behind a token someone hasn't set up yet.
+  if (command === "tips") {
+    const { values } = parseArgs({ args: rest, options: { reset: { type: "boolean" } } });
+    await tipsCommand(values);
     return;
   }
 

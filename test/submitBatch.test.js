@@ -126,6 +126,45 @@ test("the summary line carries a session total once past the first batch", async
   });
 });
 
+test("each batch summary carries one thing they haven't been told the tool can do", async () => {
+  await withTempCacheDir(async () => {
+    await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }]);
+
+    const first = JSON.parse(
+      await captureStdout(() => submitBatchCommand(fakeClient(), [{ assignmentId: 1 }])),
+    ).summaryLine;
+    const second = JSON.parse(
+      await captureStdout(() => submitBatchCommand(fakeClient(), [{ assignmentId: 2 }])),
+    ).summaryLine;
+
+    // Inside the line, not beside it — a field of its own would go unprinted,
+    // which is how the lookup link stayed invisible for weeks.
+    for (const line of [first, second]) assert.match(line, /\nTip: .+/);
+    assert.notEqual(
+      first.split("\nTip: ")[1],
+      second.split("\nTip: ")[1],
+      "the same tip twice is noise, not discovery",
+    );
+    assert.match(first.split("\n")[0], /^1 done, 1 perfect/, "the stats line is untouched");
+  });
+});
+
+test("the tips run out rather than repeating forever", async () => {
+  await withTempCacheDir(async () => {
+    const { TIPS } = await import("../lib/tips.js");
+    await saveQueueOrder(Array.from({ length: 20 }, (_, i) => ({ assignmentId: i + 1 })));
+
+    let last;
+    for (let i = 0; i < TIPS.length + 2; i++) {
+      last = JSON.parse(
+        await captureStdout(() => submitBatchCommand(fakeClient(), [{ assignmentId: i + 1 }])),
+      ).summaryLine;
+    }
+
+    assert.doesNotMatch(last, /\nTip:/, "once they've all been shown there's nothing left to say");
+  });
+});
+
 test("submitBatchCommand reports how many reviews are left", async () => {
   await withTempCacheDir(async () => {
     await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }]);

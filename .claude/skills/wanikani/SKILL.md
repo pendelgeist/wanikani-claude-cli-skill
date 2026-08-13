@@ -345,6 +345,13 @@ treat them as a checklist, not just background reading.
    same facts in a worse format. The separators, the wording and the
    drop-empty-segments rules are all already decided.
 
+   Sometimes the line has a second line on it, starting `Tip:`. That's the
+   CLI naming one thing this session can do that they haven't been told about
+   yet — see "Telling them what it can do" below. It's part of `summaryLine`,
+   not an extra field, so it goes out with the rest of the line: don't strip
+   it as meta, don't move it, don't restate it in your own words. Each one is
+   shown exactly once ever, so a dropped tip is a feature they never learn.
+
    Add a sentence of your own only when there's something the line can't
    know — an item that failed to submit and why, or a pattern worth naming
    ("the ん readings are the ones catching you").
@@ -355,6 +362,30 @@ prompt (item prompts, the convention note, the between-batch check) as
 short as possible. The goal is fewer *tool calls* and less *waiting on the
 user for "next"*, not fewer or shorter chat turns — auto-advancing means
 more turns happen back-to-back, which is the point.
+
+## Telling them what it can do
+
+A feature nobody knows about may as well not exist, and this one has form:
+"more" sat unused because it lived in this file, and the lookup link went
+unprinted for weeks. So the tool advertises itself, and the rules for that
+are the same as everywhere else here — the strings are composed in code, and
+your job is to print them and then get out of the way.
+
+- **`tips`** — `node bin/wanikani.js tips` prints the whole list of what the
+  user can say. Run it when they ask anything in that shape: "what can I
+  say?", "what else can you do?", "help", "tips", "is there a way to…".
+  Print the output as-is; it's already formatted, and the `▸` marks are
+  meaningful (those are the ones they haven't been shown). It needs no token
+  and no network, so it works even when nothing else does. `tips --reset`
+  puts them all back in the rotation, for when they ask to be re-taught.
+- **The `Tip:` line on a batch summary** — one unseen feature per batch,
+  automatically, until they've all been shown. Nothing for you to decide:
+  it's inside `summaryLine`, and printing that whole is the whole job.
+- **Don't hand-roll your own tips.** If you find yourself writing "by the
+  way, you can also…", stop: either it's in `tips` already and the rotation
+  will get there, or it isn't and it belongs in `lib/tips.js` — which is a
+  code change, not a thing to improvise mid-session. Volunteering advice
+  per-item is exactly the noise the once-each rotation exists to avoid.
 
 ## Lessons
 

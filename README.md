@@ -78,6 +78,12 @@ hundreds. You can answer meaning and reading together in one line (e.g.
 "next", and it links out to [Jisho](https://jisho.org/) on anything you get
 wrong so you can dig into it right away.
 
+You don't have to know any of that up front. Each batch summary ends with one
+`Tip:` line naming something the session can do that you haven't been shown
+yet — one per batch, each shown exactly once, so the advertising runs out
+instead of becoming wallpaper. Ask "what can I say?" at any point (or run
+`wanikani tips`) for the whole list, with the ones you've yet to see marked.
+
 Say **"more"** on an item and it pulls up the full entry — mnemonics, hints,
 what the kanji is built from, the other readings, example sentences. That's
 `wanikani explain` under the hood, and it only ever runs because you asked:
@@ -131,6 +137,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
+| `tips [--reset]` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 
@@ -174,7 +181,12 @@ data, so the skill prints rather than composes:
   which you meant). `--json` gives the fields instead of the block.
 - `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
   127 left` — naming what crossed an SRS tier, carrying a running session
-  total, and dropping segments that would say nothing.
+  total, and dropping segments that would say nothing. While there are still
+  features the user hasn't been shown, it carries a second line: `Tip: …`,
+  one per batch, each exactly once. It's inside the line rather than beside
+  it for the same reason the lookup link is — an optional field is a field
+  that doesn't get printed. `lib/tips.js` holds the list; `wanikani tips`
+  prints all of it on demand.
 
 The raw fields are still there for grading (`meanings`, `readings`,
 `auxiliaryMeanings`) and for anything that wants to say more than the line
