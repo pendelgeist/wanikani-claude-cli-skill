@@ -181,7 +181,10 @@ data, so the skill prints rather than composes:
   which you meant). `--json` gives the fields instead of the block.
 - `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
   127 left` — naming what crossed an SRS tier, carrying a running session
-  total, and dropping segments that would say nothing.
+  total, and dropping segments that would say nothing. If an item failed to
+  submit, the line gains a second line saying what becomes of it: a retryable
+  failure stays in the queue for a later batch, one WaniKani rejected
+  outright (usually already reviewed elsewhere) doesn't come back.
 
 The raw fields are still there for grading (`meanings`, `readings`,
 `auxiliaryMeanings`) and for anything that wants to say more than the line
