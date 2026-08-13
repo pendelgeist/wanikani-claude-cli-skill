@@ -183,3 +183,44 @@ test("an empty queue says so and asks for nothing", async () => {
 
   assert.match(out, /No reviews due right now/);
 });
+
+test("both halves on one line are graded from the one prompt", async () => {
+  const client = fakeClient(KANJI);
+
+  const out = await runReview(client, ["parent, shin"]);
+
+  assert.deepEqual(client.submitted, [
+    { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+  ]);
+  assert.doesNotMatch(out, /reading> /, "there was nothing left to ask for");
+  assert.match(out, /1 reviewed, 1 perfect/);
+});
+
+test("a one-line answer in the other order lands the same way round", async () => {
+  const client = fakeClient(KANJI);
+
+  await runReview(client, ["shin parent"]);
+
+  assert.deepEqual(client.submitted, [
+    { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+  ]);
+});
+
+test("half an answer still gets asked for the rest", async () => {
+  const client = fakeClient(KANJI);
+
+  const out = await runReview(client, ["parent", "shin"]);
+
+  assert.match(out, /reading> /);
+  assert.equal(client.submitted[0].incorrectMeaningAnswers, 0);
+  assert.equal(client.submitted[0].incorrectReadingAnswers, 0);
+});
+
+test("a one-line answer whose reading is another of the kanji's re-prompts", async () => {
+  const client = fakeClient(KANJI);
+
+  const out = await runReview(client, ["parent, oya", "shin"]);
+
+  assert.match(out, /WaniKani wants the on'yomi/);
+  assert.equal(client.submitted[0].incorrectReadingAnswers, 0);
+});

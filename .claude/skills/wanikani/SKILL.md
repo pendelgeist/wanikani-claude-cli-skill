@@ -144,8 +144,10 @@ background reading.
    - `open` — true means the item is still waiting on them. Print `say`, end
      your turn, and grade their next reply against the same item. False means
      it's finished.
-   - `wrongMeaning` / `wrongReading` — this attempt's contribution. Sum them
-     per item as you go; `submit-batch` wants the totals.
+   - `wrongMeaning` / `wrongReading` — this attempt's misses, and `recorded`
+     is the item's running total. Both are for reading, not bookkeeping: the
+     counts go onto the sitting's record as they happen, and `submit-batch`
+     reads them back. Nothing to carry in your head across ten items.
    - `parsed`, `meaning`, `reading` — which half it read as what, and how
      each graded. Worth a glance when a reply was oddly shaped.
 
@@ -167,8 +169,15 @@ background reading.
    What it can't know is whether "labratory" was a typo for the right answer
    or whether a synonym of theirs is fair. That judgment is yours, and it's
    the reason this skill drives the quiz instead of shelling out to `review`.
-   When you override, say so in a short clause and record the counts you
-   meant instead.
+   When you overrule a miss, take it back off the record in the same breath:
+
+   ```
+   node bin/wanikani.js grade <subjectId> --forgive meaning
+   ```
+
+   (or `--forgive reading`). Say so in a short clause — "counting that as a
+   typo" — and carry on. Skipping the `--forgive` is how a typo you forgave
+   out loud still costs them a level at `submit-batch`.
 
    If `grade` errors, the item's own `corrections`, `readingNudge` and
    `readings` are still on the queue payload — the same strings it would have
@@ -198,17 +207,17 @@ background reading.
    licence to answer the new prompt yourself. Pause only if they ask to slow
    down ("wait", "hold on", "explain that one"), and treat that as standing
    for the rest of the sitting. Between batches is different — see step 9.
-8. **Submit the whole batch in one call.** Add up what `grade` returned for
-   each item as you go, then send the lot:
+8. **Submit the whole batch in one call.**
 
    ```
-   node bin/wanikani.js submit-batch <<'EOF'
-   [{"assignmentId": 551149968, "wrongMeaning": 0, "wrongReading": 1},
-    {"assignmentId": 603114625, "wrongMeaning": 0, "wrongReading": 0}]
-   EOF
+   node bin/wanikani.js submit-batch --graded
    ```
 
-   Ten round-trips become one. It prints `summaryLine` (step 9), `results[]`
+   That submits exactly what `grade` recorded this batch — no list to
+   assemble, no counts to remember. Ten round-trips become one. (The old form
+   still works if you ever need to state counts by hand: pipe a JSON array of
+   `{assignmentId, wrongMeaning, wrongReading}` on stdin, and anything you
+   leave out falls back to the record.) It prints `summaryLine` (step 9), `results[]`
    per item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.

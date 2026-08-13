@@ -57,9 +57,11 @@ node bin/wanikani.js review --limit 10
 ```
 
 `review` quizzes meaning (and reading, for kanji/vocabulary), accepting kana
-or romaji for readings. Type `:show` to reveal an answer or `:quit` to stop
-early — items already answered are submitted immediately, so nothing already
-done is lost.
+or romaji for readings. Answer both on one line if you like — "fur, ke", in
+either order, split the same way the Claude session splits it — and it only
+asks for what's still missing. Type `:show` to reveal an answer or `:quit` to
+stop early; items already answered are submitted immediately, so nothing
+already done is lost.
 
 Optionally `npm link` to get a `wanikani` command on your `$PATH`.
 
@@ -119,6 +121,11 @@ $ wanikani grade 3 "parent, oya"
   "open": true }
 ```
 
+Each verdict goes straight onto the sitting's record, so `submit-batch
+--graded` submits what was actually graded rather than a tally kept by hand;
+`grade <id> --forgive meaning` takes a miss back when the answer key was
+overruled.
+
 That's deliberate: the rules below are a lookup table, and a lookup table
 interpreted afresh on every answer is a lookup table that eventually gets
 one wrong — which is how 親 answered "parent, oya" once cost an SRS level.
@@ -158,11 +165,11 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N]` | Due reviews as JSON, including answer keys — for the Claude skill |
-| `grade <subjectId> "<answer>" [--meaning M] [--reading R]` | Grade one answer: verdict, counts to record, and the line to print |
+| `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
-| `submit-batch` | Submit several graded reviews in one call — reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
+| `submit-batch [--graded]` | Submit several graded reviews in one call — `--graded` submits what `grade` recorded, otherwise reads a JSON array of `{assignmentId, wrongMeaning, wrongReading}` from stdin |
 
 `queue` and `submit-batch` hand back finished strings alongside the raw
 data, so the skill prints rather than composes:

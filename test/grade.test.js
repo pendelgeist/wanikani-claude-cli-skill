@@ -208,3 +208,54 @@ test("a separator that's also an ordinary character needs its whitespace", () =>
     reading: "ekkususen",
   });
 });
+
+test("grading records the miss against the assignment, so nobody has to count", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+
+    // Two attempts on one item: a wrong reading, then a right one.
+    const first = JSON.parse(
+      await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, mi" })),
+    );
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, reading: "shin" }));
+
+    assert.equal(first.assignmentId, 77, "resolved from the queue order, not asked for");
+    assert.deepEqual(first.recorded, { wrongMeaning: 0, wrongReading: 1 });
+    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 0, wrongReading: 1 } });
+  });
+});
+
+test("a re-prompt adds nothing to the record", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }));
+
+    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 0, wrongReading: 0 } });
+  });
+});
+
+test("--forgive takes an overruled miss back off the record", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parnet, shin" }));
+
+    const forgiven = JSON.parse(
+      await captureStdout(() => gradeCommand(client, { subjectId: 3, forgive: "meaning" })),
+    );
+
+    assert.deepEqual(forgiven.recorded, { wrongMeaning: 0, wrongReading: 0 });
+    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 0, wrongReading: 0 } });
+  });
+});
+
+test("grading an item that isn't in the queue still works, it just isn't recorded", async () => {
+  const verdict = await grade({ subjectId: 3, answer: "parent, shin" });
+
+  assert.equal(verdict.assignmentId, null);
+  assert.equal(verdict.recorded, null);
+  assert.equal(verdict.meaning, "correct");
+});
