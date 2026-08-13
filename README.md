@@ -124,7 +124,9 @@ $ wanikani grade 3 "parent, oya"
 Each verdict goes straight onto the sitting's record, so `submit-batch
 --graded` submits what was actually graded rather than a tally kept by hand;
 `grade <id> --forgive meaning` takes a miss back when the answer key was
-overruled.
+overruled. That record lives with the queue order and ages out with it after
+30 minutes, so a batch left overnight submits nothing and says so — the items
+are still due, unrecorded, and come back around.
 
 That's deliberate: the rules below are a lookup table, and a lookup table
 interpreted afresh on every answer is a lookup table that eventually gets
