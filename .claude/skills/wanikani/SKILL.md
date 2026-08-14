@@ -154,21 +154,29 @@ background reading.
 
    Their reply goes in verbatim — the whole line, both halves, however they
    separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
-   whichever order they typed it. Back comes:
+   whichever order they typed it. What comes back is **the line to say**, and
+   saying it is the whole job:
 
-   - `say` — the whole response: the correction line, the reading re-prompt,
-     or `Reading?` when they gave a meaning and no reading. Print it as-is.
-     Null means they got it and there's nothing to add beyond your own
-     "Right."
-   - `open` — true means the item is still waiting on them. Print `say`, end
-     your turn, and grade their next reply against the same item. False means
-     it's finished.
-   - `wrongMeaning` / `wrongReading` — this attempt's misses, and `recorded`
-     is the item's running total. Both are for reading, not bookkeeping: the
-     counts go onto the sitting's record as they happen, and `submit-batch`
-     reads them back. Nothing to carry in your head across ten items.
-   - `parsed`, `meaning`, `reading` — which half it read as what, and how
-     each graded. Worth a glance when a reply was oddly shaped.
+   ```
+   ✓
+   ✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+   That's a real reading, but WaniKani wants the on'yomi here — try again.
+   (same item — still their turn)
+   ```
+
+   Print it. Don't restate it, don't translate the kana, don't add a romaji
+   gloss in brackets: `Reading: かる (karu)`, `correct is どうろ (douro)` and
+   `correct is え (e)` are all from one session where the right line was
+   printed by the CLI and retyped by hand anyway, and one of them came out
+   misspelt. The kana is the answer; the romaji is noise.
+
+   `(same item — still their turn)` means end your turn there and grade their
+   next reply against the same item. A line starting `!` is a problem to read,
+   not a verdict — `NOT RECORDED` in particular means `submit-batch` won't see
+   this answer, and continuing past it wastes the batch.
+
+   `--json` adds the full verdict — `parsed`, `recorded`, per-part statuses —
+   when something needs inspecting. Normal answering doesn't.
 
    When a follow-up answers only one half, name it: `grade 3 --reading
    "shin"`. That's the usual shape after a `Reading?` or a re-prompt.
@@ -176,8 +184,10 @@ background reading.
    It's a local call — cached subject, no API — so it costs a round-trip and
    no network.
 4. **Override only where judgment beats the table.** `grade` holds the answer
-   key, the IME spellings ("dzu" and "du" are both づ), WaniKani's refusal of
-   Hepburn's *m* ("shimbun" is wrong for しんぶん), the blacklisted meanings
+   key, the IME spellings ("dzu" and "du" are both づ; "shinyuu" is read both
+   as しんゆう and しにゅう, since romaji can't tell them apart without an
+   apostrophe), WaniKani's refusal of Hepburn's *m* ("shimbun" is wrong for
+   しんぶん), the blacklisted meanings
    that look plausible and aren't, and the rule that another real reading of a
    kanji is a re-prompt rather than a miss — the website shakes and names the
    type it wants, and so does this. Don't re-derive any of it from memory:
@@ -198,9 +208,10 @@ background reading.
    typo" — and carry on. Skipping the `--forgive` is how a typo you forgave
    out loud still costs them a level at `submit-batch`.
 
-   If `grade` itself errors, say so and stop the batch rather than falling
-   back on memory. There's no answer key in the payload to fall back on, and
-   memory is exactly what this replaced.
+   If `grade` itself errors, or warns that an answer wasn't recorded, say so
+   and sort it out before carrying on — a batch answered on top of that
+   warning is a batch `submit-batch` can't submit. There's no answer key in
+   the payload to fall back on, and memory is exactly what this replaced.
 5. **A missed meaning ends the item.** `grade` already does this: it reveals
    both halves and closes the item rather than chasing a reading that almost
    never changes the outcome. Worth knowing so the behaviour doesn't look
@@ -216,6 +227,14 @@ background reading.
      recollected paragraph in place of `explain 親` are all from one session,
      and all three were wrong: the command had the mnemonic, the parts and
      the links every time.
+   - **Print the block, don't re-typeset it.** A later session ran `explain`
+     properly and then rewrote its output with romaji in brackets — `かる
+     (karu)`, `ぶつ (butsu)`, `けってん (kettten)`, that last one misspelt.
+     The block is finished text.
+   - **Deflecting still isn't glossing.** When a "more" is unclear or belongs
+     to an item you can't identify, ask which one — `Item 5 is フランス語
+     (French language). Give meaning and reading?` answered the question it
+     was standing in front of.
    - **Never run it unasked.** Most misses are a fat finger, and a mnemonic
      they didn't want is a wall of text between them and the next item.
    - **It means the item just graded**, not the prompt now open — that one

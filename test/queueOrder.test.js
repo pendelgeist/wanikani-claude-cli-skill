@@ -1,8 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { getReviewQueue, markSubmitted, countRemainingReviews } from "../lib/reviewQueue.js";
-import { loadQueueOrder, saveQueueOrder, dropFromQueueOrder } from "../lib/queueOrder.js";
+import { loadQueueOrder, saveQueueOrder, dropFromQueueOrder, recordGrade, loadGrades } from "../lib/queueOrder.js";
+import { writeJsonCache } from "../lib/cacheStore.js";
 import { withTempCacheDir } from "./helpers.js";
+
+/** A sitting last touched `minutes` ago — what idleness looks like on disk. */
+const idleFor = (minutes, order = {}) =>
+  writeJsonCache("queue-order.json", {
+    fetchedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    touchedAt: new Date(Date.now() - minutes * 60 * 1000).toISOString(),
+    items: [{ assignmentId: 1, subjectId: 2 }],
+    totals: { submitted: 0, perfect: 0 },
+    grades: {},
+    ...order,
+  });
 
 function fakeSubject(id) {
   return {
@@ -105,16 +117,40 @@ test("the order is re-fetched once it has been worked through", async () => {
   });
 });
 
-test("a stale order is discarded rather than served", async () => {
+test("an order left idle is discarded rather than served", async () => {
   await withTempCacheDir(async () => {
-    const staleFetchedAt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
-    await saveQueueOrder([{ assignmentId: 1, subjectId: 2 }], staleFetchedAt);
+    await idleFor(31);
 
     assert.equal(await loadQueueOrder(), null);
   });
 });
 
-test("pruning keeps the original fetch time so a long session still ages out", async () => {
+test("a sitting still being worked outlives the fetch it came from", async () => {
+  // The bug this replaces: the clock ran from the fetch, so a long sitting
+  // expired underneath itself — mid-batch, taking the grade record with it.
+  await withTempCacheDir(async () => {
+    await idleFor(5); // fetched three hours ago, touched five minutes ago
+
+    const order = await loadQueueOrder();
+    assert.ok(order, "three hours of work is still one sitting if it never stopped");
+    assert.deepEqual(order.items, [{ assignmentId: 1, subjectId: 2 }]);
+  });
+});
+
+test("grading keeps the sitting alive, and the record with it", async () => {
+  await withTempCacheDir(async () => {
+    await idleFor(29, { grades: { 1: { wrongMeaning: 0, wrongReading: 1 } } });
+
+    // One more answer, half an hour into a batch: the old clock would have
+    // been a minute from voiding everything already recorded.
+    await recordGrade(1, { wrongMeaning: 1 });
+
+    assert.deepEqual(await loadGrades(), { 1: { wrongMeaning: 1, wrongReading: 1 } });
+    assert.notEqual(await loadQueueOrder(), null);
+  });
+});
+
+test("pruning keeps the original fetch time, and counts as activity", async () => {
   await withTempCacheDir(async () => {
     const fetchedAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
     await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }], fetchedAt);
@@ -122,7 +158,9 @@ test("pruning keeps the original fetch time so a long session still ages out", a
     const remaining = await dropFromQueueOrder([1]);
 
     assert.equal(remaining, 1);
-    assert.equal((await loadQueueOrder()).fetchedAt, fetchedAt);
+    const order = await loadQueueOrder();
+    assert.equal(order.fetchedAt, fetchedAt, "provenance is when it was fetched");
+    assert.ok(new Date(order.touchedAt).getTime() > new Date(fetchedAt).getTime(), "the clock is not");
   });
 });
 

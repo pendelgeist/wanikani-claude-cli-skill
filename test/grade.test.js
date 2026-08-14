@@ -59,7 +59,7 @@ const client = {
 
 const grade = (options) =>
   withTempCacheDir(async () =>
-    JSON.parse(await captureStdout(() => gradeCommand(client, options))),
+    JSON.parse(await captureStdout(() => gradeCommand(client, { ...options, json: true }))),
   );
 
 test("splitAnswer finds the reading half by grading it, not by word order", () => {
@@ -216,7 +216,7 @@ test("grading records the miss against the assignment, so nobody has to count", 
 
     // Two attempts on one item: a wrong reading, then a right one.
     const first = JSON.parse(
-      await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, mi" })),
+      await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, mi", json: true })),
     );
     await captureStdout(() => gradeCommand(client, { subjectId: 3, reading: "shin" }));
 
@@ -244,7 +244,7 @@ test("--forgive takes an overruled miss back off the record", async () => {
     await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parnet, shin" }));
 
     const forgiven = JSON.parse(
-      await captureStdout(() => gradeCommand(client, { subjectId: 3, forgive: "meaning" })),
+      await captureStdout(() => gradeCommand(client, { subjectId: 3, forgive: "meaning", json: true })),
     );
 
     assert.deepEqual(forgiven.recorded, { wrongMeaning: 0, wrongReading: 0 });
@@ -258,4 +258,42 @@ test("grading an item that isn't in the queue still works, it just isn't recorde
   assert.equal(verdict.assignmentId, null);
   assert.equal(verdict.recorded, null);
   assert.equal(verdict.meaning, "correct");
+});
+
+test("the default output is the line to say and nothing to summarise", async () => {
+  // The JSON blob got paraphrased into romaji every time, however loudly the
+  // skill file said not to. A bare line gets copied.
+  // (These run outside a sitting, so a "not recorded" note follows the line.)
+  const said = (options) =>
+    withTempCacheDir(async () =>
+      (await captureStdout(() => gradeCommand(client, options))).split("\n")[0],
+    );
+
+  assert.equal(await said({ subjectId: 3, answer: "parent, shin" }), "✓");
+  assert.equal(
+    await said({ subjectId: 3, answer: "parent, mi" }),
+    "✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji",
+  );
+});
+
+test("an item still waiting says so under the line, not inside it", async () => {
+  const out = await withTempCacheDir(async () =>
+    (await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }))).trimEnd(),
+  );
+
+  const [line, note] = out.split("\n");
+  assert.match(line, /^That's a real reading, but WaniKani wants the on'yomi here/);
+  assert.doesNotMatch(line, /^[✓✗]/, "a re-prompt is not a verdict");
+  assert.equal(note, "(same item — still their turn)");
+});
+
+test("an answer that won't be recorded says so where it can't be missed", async () => {
+  // Five silent `assignmentId: null`s in a row is how a whole batch went
+  // ungraded before submit-batch noticed.
+  const out = await withTempCacheDir(async () =>
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, shin" })),
+  );
+
+  assert.match(out, /^! NOT RECORDED — no sitting on disk/m);
+  assert.match(out, /submit-batch/);
 });

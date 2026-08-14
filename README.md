@@ -71,8 +71,9 @@ Open this repo in Claude Code and ask it to do your WaniKani reviews (or use
 `/wanikani` if it's registered as a slash command). See
 [`.claude/skills/wanikani/SKILL.md`](.claude/skills/wanikani/SKILL.md) for
 what it does: it calls `wanikani queue --limit 10` to get a batch of due
-reviews with their answer keys, quizzes you in chat using its own judgment on
-typos/phrasing (more forgiving than the plain CLI's exact matching), then
+reviews — the questions only, no answers — grades each reply through
+`wanikani grade`, applying its own judgment on typos and phrasing where the
+answer key can't, then
 submits the whole batch in one `wanikani submit-batch` call before fetching
 the next 10 — so a 600-review session is a couple dozen tool calls, not
 hundreds. You can answer meaning and reading together in one line (e.g.
@@ -114,19 +115,24 @@ returns the counts to record plus the exact line to print:
 
 ```
 $ wanikani grade 3 "parent, oya"
-{ "parsed": { "meaning": "parent", "reading": "oya" },
-  "meaning": "correct", "reading": "other-reading",
-  "wrongMeaning": 0, "wrongReading": 0,
-  "say": "That's a real reading, but WaniKani wants the on'yomi here — try again.",
-  "open": true }
+That's a real reading, but WaniKani wants the on'yomi here — try again.
+(same item — still their turn)
+
+$ wanikani grade 3 "parent, mi"
+✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
 ```
+
+It prints the line to say and nothing else to summarise; `--json` adds the
+full verdict (`parsed`, `recorded`, per-part statuses) for anything that wants
+to inspect rather than speak.
 
 Each verdict goes straight onto the sitting's record, so `submit-batch`
 submits what was actually graded rather than a tally kept by hand;
 `grade <id> --forgive meaning` takes a miss back when the answer key was
-overruled. That record lives with the queue order and ages out with it after
-30 minutes, so a batch left overnight submits nothing and says so — the items
-are still due, unrecorded, and come back around.
+overruled. That record lives with the queue order, which ages out after 30
+minutes *idle* — a sitting that's still being worked stays alive however long
+it runs, and one abandoned overnight submits nothing and says so, with its
+items still due.
 
 That's deliberate: the rules below are a lookup table, and a lookup table
 interpreted afresh on every answer is a lookup table that eventually gets
@@ -142,6 +148,13 @@ at than a table.
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
   folded onto `du`/`di` first, since wanakana only understands the latter.
+- **An `n` before a vowel or `y` is read both ways.** "shinyuu" is しんゆう to
+  a reader and しにゅう to a converter — which is why strict Hepburn writes
+  shin'yū — so both parses are tried and either may match. This is a
+  deliberate step *away* from the website, which requires the apostrophe: the
+  alternate parse is only ever accepted when it turns out to be one of that
+  item's readings, so it can't promote a wrong answer, and 親友 answered
+  "shinyuu" is someone who knew the word losing a level to punctuation.
 - **Another of the kanji's readings**: 親 wants しん, but おや and した are real
   readings of it too, and nothing on the prompt says which one is being asked
   for. That's not graded wrong — as on the website, it re-prompts and names
