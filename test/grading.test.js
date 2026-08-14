@@ -4,6 +4,7 @@ import {
   requiresReading,
   isMeaningCorrect,
   isReadingCorrect,
+  readingCandidates,
   readingVerdict,
   wantedReadingType,
   unacceptedReadings,
@@ -163,6 +164,33 @@ test("readingVerdict gives a vocabulary near-miss no such reprieve", () => {
   assert.equal(readingVerdict("こころずよい", vocabKokorozuyoi).status, "incorrect");
   assert.equal(readingVerdict("kokorozuyoi", vocabKokorozuyoi).status, "incorrect");
   assert.deepEqual(unacceptedReadings(vocabKokorozuyoi), []);
+});
+
+// 親友 — the case that started this: しんゆう typed "shinyuu", which every
+// romaji converter reads as し・にゅう unless an apostrophe stops it.
+const closeFriend = {
+  characters: "親友",
+  meanings: [{ meaning: "Best Friend", primary: true, accepted_answer: true }],
+  readings: [{ primary: true, accepted_answer: true, reading: "しんゆう" }],
+};
+
+test("an n before a vowel or y is read both ways, since romaji can't tell them apart", () => {
+  for (const spelling of ["shinyuu", "shin'yuu", "しんゆう"]) {
+    assert.equal(isReadingCorrect(spelling, closeFriend), true, spelling);
+  }
+
+  const friday = { readings: [{ accepted_answer: true, reading: "きんようび" }] };
+  assert.equal(isReadingCorrect("kinyoubi", friday), true);
+
+  const everyone = { readings: [{ accepted_answer: true, reading: "ぜんいん" }] };
+  assert.equal(isReadingCorrect("zenin", everyone), true);
+});
+
+test("reading both ways can't turn a wrong answer into a right one", () => {
+  // The alternate parse only ever matches when it *is* an accepted reading.
+  assert.equal(isReadingCorrect("shinyuu", kanjiOne), false);
+  assert.equal(isReadingCorrect("hana", closeFriend), false);
+  assert.deepEqual(readingCandidates("hana"), ["はな", "はんあ"]);
 });
 
 test("primaryMeaning and primaryReading pick the primary entry", () => {

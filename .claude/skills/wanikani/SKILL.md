@@ -184,8 +184,10 @@ background reading.
    It's a local call — cached subject, no API — so it costs a round-trip and
    no network.
 4. **Override only where judgment beats the table.** `grade` holds the answer
-   key, the IME spellings ("dzu" and "du" are both づ), WaniKani's refusal of
-   Hepburn's *m* ("shimbun" is wrong for しんぶん), the blacklisted meanings
+   key, the IME spellings ("dzu" and "du" are both づ; "shinyuu" is read both
+   as しんゆう and しにゅう, since romaji can't tell them apart without an
+   apostrophe), WaniKani's refusal of Hepburn's *m* ("shimbun" is wrong for
+   しんぶん), the blacklisted meanings
    that look plausible and aren't, and the rule that another real reading of a
    kanji is a re-prompt rather than a miss — the website shakes and names the
    type it wants, and so does this. Don't re-derive any of it from memory:

@@ -294,6 +294,6 @@ test("an answer that won't be recorded says so where it can't be missed", async 
     await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, shin" })),
   );
 
-  assert.match(out, /^! NOT RECORDED — no live sitting/m);
+  assert.match(out, /^! NOT RECORDED — no sitting on disk/m);
   assert.match(out, /submit-batch/);
 });

@@ -148,6 +148,13 @@ at than a table.
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
   folded onto `du`/`di` first, since wanakana only understands the latter.
+- **An `n` before a vowel or `y` is read both ways.** "shinyuu" is しんゆう to
+  a reader and しにゅう to a converter — which is why strict Hepburn writes
+  shin'yū — so both parses are tried and either may match. This is a
+  deliberate step *away* from the website, which requires the apostrophe: the
+  alternate parse is only ever accepted when it turns out to be one of that
+  item's readings, so it can't promote a wrong answer, and 親友 answered
+  "shinyuu" is someone who knew the word losing a level to punctuation.
 - **Another of the kanji's readings**: 親 wants しん, but おや and した are real
   readings of it too, and nothing on the prompt says which one is being asked
   for. That's not graded wrong — as on the website, it re-prompts and names
