@@ -150,8 +150,13 @@ background reading.
 
    Re-run `queue --limit 10` when the batch is exhausted: submitting prunes
    those items, so it returns the next batch. Calling it *before* submitting
-   hands back the same items, by design — nothing unsubmitted has been
-   recorded anywhere.
+   hands back the same items and **discards whatever was graded for them** —
+   asking an item is asking it fresh. That's deliberate: a record kept across
+   a re-ask is a record of answers nobody gave this time, and one that
+   survived an abandoned sitting was submitted an hour later against a batch
+   the user had just answered correctly, demoting four items for it. So don't
+   re-fetch mid-batch to "check" something; the batch you're holding is the
+   batch you're answering.
 2. **Empty queue**: say there's nothing due right now and stop.
 3. **Ask, then let the CLI grade.** The first item of a sitting carries
    `convention`; the CLI decides when, so there's nothing to remember or
@@ -162,9 +167,13 @@ background reading.
    node bin/wanikani.js grade <subjectId> "parent, oya"
    ```
 
-   Their reply goes in verbatim — the whole line, both halves, however they
-   separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
-   whichever order they typed it. What comes back is **the line to say**, and
+   Their reply goes in **verbatim** — the whole line, both halves, however
+   they separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
+   whichever order they typed it. Don't tidy it on the way in: a session
+   swapped a full stop for a comma harmlessly for a while and then turned
+   `page. pe-ji` into `page, peji`, which is a different word — the answer was
+   right and the hyphen was load-bearing. Copy the line; the CLI knows what to
+   do with it. What comes back is **the line to say**, and
    saying it is the whole job:
 
    ```
