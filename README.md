@@ -124,7 +124,10 @@ $ wanikani grade 3 "parent, mi"
 
 It prints the line to say and nothing else to summarise; `--json` adds the
 full verdict (`parsed`, `recorded`, per-part statuses) for anything that wants
-to inspect rather than speak.
+to inspect rather than speak. When an item is mid-question — it asked
+`Reading?`, or re-prompted for the right kind of reading — the next bare reply
+is graded as the reading it was waiting for, so answering in two turns costs
+nothing.
 
 Each verdict goes straight onto the sitting's record, so `submit-batch`
 submits what was actually graded rather than a tally kept by hand;

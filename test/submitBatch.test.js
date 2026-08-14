@@ -220,7 +220,9 @@ test("nothing on record is said plainly, and names what records it", async () =>
     const { summaryLine, batch } = JSON.parse(output);
     assert.match(summaryLine, /Nothing submitted — no grades on record/);
     assert.match(summaryLine, /wanikani grade/, "the fix belongs in the message");
-    assert.match(summaryLine, /still due/);
+    assert.match(summaryLine, /grade 11 /, "with a real id from the sitting, not a placeholder");
+    assert.match(summaryLine, /can still be graded now/, "answered items aren't lost");
+    assert.match(summaryLine, /stay due/);
     assert.equal(batch.submitted, 0);
   });
 });

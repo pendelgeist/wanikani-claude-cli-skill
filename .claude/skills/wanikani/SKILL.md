@@ -37,10 +37,20 @@ retry.
 
 Drive the quiz in chat rather than shelling out to the interactive `review`
 command — you can use judgment on typos and phrasing that a rigid string
-match rejects.
+match rejects. `review` is a person's terminal UI, not a fallback for this
+flow: don't run it, and don't pipe answers into it.
 
 **You can't grade these yourself: `queue` returns the questions and no
-answers.** Every reply goes through `grade`, which holds the key, records the
+answers.** Every reply goes through `grade` — *as it arrives*, not at the end
+— because `grade` is what records it, and `submit-batch` submits the record
+and nothing else. A session that answered ten items in chat first found
+`submit-batch` had nothing to submit, tried to reconstruct the batch
+afterwards, tangled it, and concluded the tool didn't support the workflow.
+It does; the answers just have to go through it. If you ever find yourself
+there: grade the answers you still have, one call each, then submit. Nothing
+is lost until the items are re-answered.
+
+`grade` holds the key, records the
 miss and hands back the line to print. A session that skipped it graded
 twenty items from memory, and the bill was: romaji in every correction, not
 one lookup link, a batch tally that contradicted its own submission, a
@@ -178,8 +188,9 @@ background reading.
    `--json` adds the full verdict — `parsed`, `recorded`, per-part statuses —
    when something needs inspecting. Normal answering doesn't.
 
-   When a follow-up answers only one half, name it: `grade 3 --reading
-   "shin"`. That's the usual shape after a `Reading?` or a re-prompt.
+   A follow-up needs nothing special: after `Reading?` or a re-prompt the item
+   is waiting on a reading, and `grade 3 "shin"` is graded as one. (`--reading`
+   and `--meaning` are still there for naming a half outright.)
 
    It's a local call — cached subject, no API — so it costs a round-trip and
    no network.
