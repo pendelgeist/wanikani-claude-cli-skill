@@ -46,10 +46,10 @@ Commands:
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
   tips                  Everything you can say during a session, all at once
-  grade <subjectId> "<their answer>" [--meaning M] [--reading R] [--forgive meaning|reading]
-                        Grade one answer: the verdict, the line to print, and the miss
-                        recorded for submit-batch. --forgive takes one back off the
-                        record when you overrule it
+  grade <subjectId> "<their answer>" [--meaning M] [--reading R] [--forgive meaning|reading] [--json]
+                        Grade one answer. Prints the line to say, and records the miss
+                        for submit-batch. --forgive takes one back off the record when
+                        you overrule it; --json gives the full verdict
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
   submit-batch          Submit everything the grade command recorded this batch,
@@ -154,6 +154,7 @@ async function main() {
           meaning: { type: "string" },
           reading: { type: "string" },
           forgive: { type: "string" },
+          json: { type: "boolean" },
         },
       });
       const subjectId = parseCount(positionals[0], { flag: "<subjectId>", min: 1 });
@@ -169,6 +170,7 @@ async function main() {
         meaning: values.meaning,
         reading: values.reading,
         forgive: values.forgive,
+        json: values.json,
       });
       break;
     }

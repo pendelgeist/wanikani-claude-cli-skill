@@ -80,14 +80,14 @@ async function withWarmCache(fn) {
 
 test("grade's flags reach the command, and the answer round-trips through argv", async () => {
   await withWarmCache(async (wk) => {
-    const whole = JSON.parse((await wk("grade", "3", "parent, oya")).stdout);
+    const whole = JSON.parse((await wk("grade", "3", "parent, oya", "--json")).stdout);
     assert.equal(whole.reading, "other-reading");
     assert.equal(whole.open, true);
 
-    const half = JSON.parse((await wk("grade", "3", "--reading", "shin")).stdout);
+    const half = JSON.parse((await wk("grade", "3", "--reading", "shin", "--json")).stdout);
     assert.deepEqual([half.meaning, half.reading], [null, "correct"]);
 
-    const forgiven = JSON.parse((await wk("grade", "3", "--forgive", "reading")).stdout);
+    const forgiven = JSON.parse((await wk("grade", "3", "--forgive", "reading", "--json")).stdout);
     assert.equal(forgiven.forgave, "reading");
   });
 });

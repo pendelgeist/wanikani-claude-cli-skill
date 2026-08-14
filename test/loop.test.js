@@ -76,6 +76,8 @@ function fakeClient() {
 }
 
 const json = async (fn) => JSON.parse(await captureStdout(fn));
+const gradeJson = (client, options) =>
+  json(() => gradeCommand(client, { ...options, json: true }));
 
 test("a batch goes queue → grade → submit-batch --graded with nothing carried by hand", async () => {
   await withTempCacheDir(async () => {
@@ -86,17 +88,17 @@ test("a batch goes queue → grade → submit-batch --graded with nothing carrie
     const bySubject = new Map(batch.map((item) => [item.subjectId, item]));
 
     // 親: a real reading, but not the one wanted — a re-prompt, then right.
-    const nudged = await json(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }));
+    const nudged = await gradeJson(client, { subjectId: 3, answer: "parent, oya" });
     assert.equal(nudged.open, true);
     assert.equal(nudged.assignmentId, bySubject.get(3).assignmentId, "same assignment the queue named");
-    await json(() => gradeCommand(client, { subjectId: 3, reading: "shin" }));
+    await gradeJson(client, { subjectId: 3, reading: "shin" });
 
     // 心強い: meaning right, reading missed, then given.
-    await json(() => gradeCommand(client, { subjectId: 4, answer: "reassuring, kokorozuyoi" }));
-    await json(() => gradeCommand(client, { subjectId: 4, reading: "kokorodzuyoi" }));
+    await gradeJson(client, { subjectId: 4, answer: "reassuring, kokorozuyoi" });
+    await gradeJson(client, { subjectId: 4, reading: "kokorodzuyoi" });
 
     // 亅: meaning only, straight through.
-    const radical = await json(() => gradeCommand(client, { subjectId: 5, answer: "hook" }));
+    const radical = await gradeJson(client, { subjectId: 5, answer: "hook" });
     assert.equal(radical.say, null);
 
     const submitted = await json(() => submitBatchCommand(client));
@@ -125,9 +127,9 @@ test("an overruled miss is submitted as forgiven, not as recorded", async () => 
     await json(() => queueCommand(client, { limit: 3 }));
 
     // "parnet" — a typo the answer key can't forgive but a reader can.
-    const typo = await json(() => gradeCommand(client, { subjectId: 3, answer: "parnet, shin" }));
+    const typo = await gradeJson(client, { subjectId: 3, answer: "parnet, shin" });
     assert.equal(typo.meaning, "incorrect");
-    await json(() => gradeCommand(client, { subjectId: 3, forgive: "meaning" }));
+    await gradeJson(client, { subjectId: 3, forgive: "meaning" });
 
     await json(() => submitBatchCommand(client));
 
@@ -158,7 +160,7 @@ test("an item that failed to submit keeps its counts for the retry", async () =>
   await withTempCacheDir(async () => {
     const client = fakeClient();
     await json(() => queueCommand(client, { limit: 3 }));
-    await json(() => gradeCommand(client, { subjectId: 3, answer: "parent, mi" }));
+    await gradeJson(client, { subjectId: 3, answer: "parent, mi" });
     client.submitReview = async () => {
       const err = new Error("503 Service Unavailable");
       err.status = 503;
