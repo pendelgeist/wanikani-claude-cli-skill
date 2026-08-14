@@ -233,7 +233,9 @@ test("a re-prompt adds nothing to the record", async () => {
 
     await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }));
 
-    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 0, wrongReading: 0 } });
+    assert.deepEqual(await loadGrades(), {
+      77: { wrongMeaning: 0, wrongReading: 0, awaiting: "reading" },
+    });
   });
 });
 

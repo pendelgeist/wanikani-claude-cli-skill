@@ -151,7 +151,7 @@ test("submitting nothing recorded says so instead of reporting an empty batch", 
     const out = await json(() => submitBatchCommand(client));
 
     assert.match(out.summaryLine, /Nothing submitted — no grades on record/);
-    assert.match(out.summaryLine, /still due/);
+    assert.match(out.summaryLine, /stay due/);
     assert.deepEqual(client.submitted, []);
   });
 });
@@ -175,5 +175,53 @@ test("an item that failed to submit keeps its counts for the retry", async () =>
       { 100: { wrongMeaning: 0, wrongReading: 1 } },
       "the miss survives with the item, so the retry submits what actually happened",
     );
+  });
+});
+
+test("answering the two halves in two turns is one item, not two misses", async () => {
+  // The item asks "Reading?", they type the reading, and that used to be read
+  // as a *meaning* — a right answer scored as two wrong ones, on the most
+  // ordinary exchange there is.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+
+    const asked = await gradeJson(client, { subjectId: 3, answer: "parent" });
+    assert.equal(asked.say, "Reading?");
+
+    const answered = await gradeJson(client, { subjectId: 3, answer: "shin" });
+    assert.deepEqual([answered.meaning, answered.reading], [null, "correct"]);
+    assert.equal(answered.say, null);
+
+    await json(() => submitBatchCommand(client));
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 100, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+    ]);
+  });
+});
+
+test("a bare follow-up that's wrong is a missed reading, not a missed meaning", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "parent" });
+
+    const answered = await gradeJson(client, { subjectId: 3, answer: "mi" });
+
+    assert.deepEqual([answered.wrongMeaning, answered.wrongReading], [0, 1]);
+    assert.match(answered.say, /^reading is しん/);
+  });
+});
+
+test("resending both halves after the question still works", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "parent" });
+
+    const answered = await gradeJson(client, { subjectId: 3, answer: "parent shin" });
+
+    assert.deepEqual([answered.meaning, answered.reading], ["correct", "correct"]);
   });
 });
