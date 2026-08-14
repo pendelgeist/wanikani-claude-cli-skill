@@ -214,3 +214,20 @@ test("stripMnemonicMarkup passes through null/empty", () => {
   assert.equal(stripMnemonicMarkup(null), null);
   assert.equal(stripMnemonicMarkup(""), "");
 });
+
+test("a long vowel typed twice is the same reading, not a different one", () => {
+  // ページ: "peeji" to most people, "pe-ji" to a converter. The user typed the
+  // hyphen and had it stripped on the way in, then spelled it out and was
+  // marked wrong twice for a word they knew.
+  const page = {
+    readings: [
+      { accepted_answer: true, reading: "ページ" },
+      { accepted_answer: true, reading: "ぺーじ" },
+    ],
+  };
+
+  for (const typed of ["pe-ji", "peeji", "ページ", "ぺーじ"]) {
+    assert.equal(isReadingCorrect(typed, page), true, typed);
+  }
+  assert.equal(isReadingCorrect("peji", page), false, "a short vowel is still a different word");
+});

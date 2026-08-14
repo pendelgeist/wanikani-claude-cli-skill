@@ -225,3 +225,39 @@ test("resending both halves after the question still works", async () => {
     assert.deepEqual([answered.meaning, answered.reading], ["correct", "correct"]);
   });
 });
+
+test("asking an item again discards what an earlier attempt recorded for it", async () => {
+  // The failure this prevents: a sitting abandoned mid-batch left grades on
+  // disk, the same items were answered correctly an hour later, and
+  // `submit-batch` submitted the old attempt — four items demoted for answers
+  // nobody gave that day.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+    assert.deepEqual(await loadGrades(), { 100: { wrongMeaning: 1, wrongReading: 1 } });
+
+    await json(() => queueCommand(client, { limit: 3 }));
+
+    assert.deepEqual(await loadGrades(), {}, "the re-ask supersedes the abandoned attempt");
+    const out = await json(() => submitBatchCommand(client));
+    assert.match(out.summaryLine, /Nothing submitted/);
+    assert.deepEqual(client.submitted, [], "nothing goes in that this sitting didn't grade");
+  });
+});
+
+test("a fresh answer after a re-ask is the one that counts", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
+    await json(() => submitBatchCommand(client));
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 100, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+    ]);
+  });
+});

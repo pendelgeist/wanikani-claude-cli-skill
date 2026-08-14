@@ -130,7 +130,10 @@ is graded as the reading it was waiting for, so answering in two turns costs
 nothing.
 
 Each verdict goes straight onto the sitting's record, so `submit-batch`
-submits what was actually graded rather than a tally kept by hand;
+submits what was actually graded rather than a tally kept by hand. Asking an
+item again clears whatever it had recorded — an abandoned attempt shouldn't
+submit itself later against answers nobody gave — so the record only ever
+holds grades made since the item was last asked;
 `grade <id> --forgive meaning` takes a miss back when the answer key was
 overruled. That record lives with the queue order, which ages out after 30
 minutes *idle* — a sitting that's still being worked stays alive however long
@@ -151,6 +154,8 @@ at than a table.
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
   folded onto `du`/`di` first, since wanakana only understands the latter.
+- **A long vowel typed twice is the same reading.** ページ is "peeji" to most
+  people and "pe-ji" to a converter, so a doubled vowel is also tried as ー.
 - **An `n` before a vowel or `y` is read both ways.** "shinyuu" is しんゆう to
   a reader and しにゅう to a converter — which is why strict Hepburn writes
   shin'yū — so both parses are tried and either may match. This is a
