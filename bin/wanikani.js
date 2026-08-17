@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import path from "node:path";
 import { WaniKaniClient, resolveToken } from "../lib/client.js";
 import { parseCount } from "../lib/args.js";
@@ -10,6 +11,8 @@ import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { explainCommand } from "../lib/commands/explain.js";
 import { gradeCommand } from "../lib/commands/grade.js";
+import { gradeManyCommand } from "../lib/commands/gradeMany.js";
+import { promptsCommand } from "../lib/commands/prompts.js";
 import { tipsCommand } from "../lib/commands/tips.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
@@ -42,6 +45,8 @@ Commands:
   queue [--limit N] [--answers]
                         Due reviews as JSON: the questions and their ids, no answers.
                         --answers adds the key back, for debugging this CLI
+  prompts               Every question in the current batch that's still unanswered,
+                        as one block to print — the rapid-fire list
   explain <id|characters> [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
@@ -50,6 +55,10 @@ Commands:
                         Grade one answer. Prints the line to say, and records the miss
                         for submit-batch. --forgive takes one back off the record when
                         you overrule it; --json gives the full verdict
+  grade-many "<a> | <b> | ..." [--json]
+                        Grade a whole batch answered in one message, in the order
+                        prompts listed them. Skips blanks; refuses a reply with more
+                        parts than there are open items rather than misaligning them
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
   submit-batch          Submit everything the grade command recorded this batch,
@@ -67,12 +76,36 @@ const COMMANDS = new Set([
   "start",
   "review",
   "queue",
+  "prompts",
   "explain",
   "tips",
   "grade",
+  "grade-many",
   "submit",
   "submit-batch",
 ]);
+
+/**
+ * Whether a heredoc was fed in — `submit-batch <<'EOF' […] EOF`, which is how
+ * a hand-assembled batch of counts arrives. Bash writes a here-document to a
+ * temp file, so that's what this looks for: a regular file on fd 0 with
+ * something in it.
+ *
+ * Stat, never read: a command with no use for stdin must not be the reason a
+ * session hangs waiting on one. That also rules out recognising a true pipe
+ * (`echo … |`), whose size reads as 0 — a miss worth taking, since a false
+ * "ignoring your input" printed under every submit would be worse than a
+ * warning that catches only the shape actually seen in the wild.
+ */
+function wasGivenStdin() {
+  try {
+    if (process.stdin.isTTY) return false;
+    const stats = fs.fstatSync(0);
+    return stats.isFile() && stats.size > 0;
+  } catch {
+    return false;
+  }
+}
 
 async function main() {
   const [, , command, ...rest] = process.argv;
@@ -135,6 +168,11 @@ async function main() {
       });
       break;
     }
+    case "prompts": {
+      parseArgs({ args: rest, options: {} });
+      await promptsCommand(client);
+      break;
+    }
     case "explain": {
       const { positionals, values } = parseArgs({
         args: rest,
@@ -174,6 +212,19 @@ async function main() {
       });
       break;
     }
+    case "grade-many": {
+      const { positionals, values } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { json: { type: "boolean" } },
+      });
+      const answers = positionals.join(" ");
+      if (!answers.trim()) {
+        throw new Error('Usage: wanikani grade-many "<answer> | <answer> | ..."');
+      }
+      await gradeManyCommand(client, { answers, json: values.json });
+      break;
+    }
     case "start": {
       const { positionals } = parseArgs({ args: rest, allowPositionals: true, options: {} });
       const assignmentIds = positionals.map((id) => parseCount(id, { flag: "<assignmentId>", min: 1 }));
@@ -208,6 +259,16 @@ async function main() {
       // typing it isn't an error, and so is a piped-in list, which is ignored
       // rather than obeyed — the record is the source of the counts.
       parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
+      if (wasGivenStdin()) {
+        // Silently ignoring it read as accepting it: one session piped a
+        // hand-assembled batch of counts into every submit for a whole
+        // sitting, and the counts it typed disagreed with the record more
+        // than once. Say it's going in the bin.
+        console.error(
+          "! Ignoring the piped-in list — submit-batch takes no counts. It submits what `grade` " +
+            "recorded, so an answer missing from the record needs grading, not adding by hand.",
+        );
+      }
       await submitBatchCommand(client);
       break;
     }

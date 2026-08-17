@@ -278,6 +278,27 @@ test("the default output is the line to say and nothing to summarise", async () 
   );
 });
 
+test("a miss says the item is closed, so it doesn't read as an invitation to retry", async () => {
+  // "Retry?" went out after nearly every wrong answer of one session, and a
+  // retry changes nothing: the miss is on the record, and WaniKani doesn't
+  // offer one either. The marker is the twin of the still-their-turn one.
+  const out = await withTempCacheDir(async () =>
+    (await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, mi" }))).trimEnd(),
+  );
+
+  const [line, note] = out.split("\n");
+  assert.match(line, /^✗ reading is しん/);
+  assert.equal(note, "(recorded — next item)");
+});
+
+test("nothing to correct means nothing to mark either way", async () => {
+  const out = await withTempCacheDir(async () =>
+    (await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, shin" }))).trimEnd(),
+  );
+
+  assert.doesNotMatch(out, /next item|still their turn/, "a bare ✓ already says it");
+});
+
 test("an item still waiting says so under the line, not inside it", async () => {
   const out = await withTempCacheDir(async () =>
     (await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }))).trimEnd(),

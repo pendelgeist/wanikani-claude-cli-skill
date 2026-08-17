@@ -81,6 +81,17 @@ hundreds. You can answer meaning and reading together in one line (e.g.
 "next", and it links out to [Jisho](https://jisho.org/) on anything you get
 wrong so you can dig into it right away.
 
+Once you've got a rhythm, one item per message is the slow part, so say
+**"rapid fire"** (or just answer a few at once) and the rest of the batch
+arrives as one numbered list. Answer the whole thing in a single message
+separated by `|` — `shore, kishi | low, tei | …` — and it comes back as one
+verdict line per item, with anything you skipped or got re-prompted on listed
+again for the next round. That's `wanikani prompts` and `wanikani grade-many`
+underneath, and both exist so the list of questions and the mapping from your
+answers back to them come out of the data rather than out of Claude's memory:
+a session that wrote its own list printed nine items' meanings and readings —
+the answers — as the question. Say "one at a time" to go back.
+
 You don't have to know any of that up front. Ask **"what can I say?"** at any
 point — or run `wanikani tips` — for the whole list of what a session
 understands, from "more" to how to slow the auto-advance down. The
@@ -140,6 +151,13 @@ minutes *idle* — a sitting that's still being worked stays alive however long
 it runs, and one abandoned overnight submits nothing and says so, with its
 items still due.
 
+The queue order also remembers which items the last `queue` handed out and in
+what order, which is what makes "the batch" something the CLI knows rather than
+something the caller holds in its head: `prompts` lists the ones still
+unanswered (keeping the numbers they were asked under), `grade-many` maps a
+one-line reply onto them in order, and both are counting jobs that were
+otherwise being done in prose nine items into a batch.
+
 That's deliberate: the rules below are a lookup table, and a lookup table
 interpreted afresh on every answer is a lookup table that eventually gets
 one wrong — which is how 親 answered "parent, oya" once cost an SRS level.
@@ -188,7 +206,9 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N] [--answers]` | Due reviews as JSON: questions and ids, no answers. `--answers` restores the key for debugging |
+| `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
+| `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |

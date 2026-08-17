@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { openSync, closeSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const run = promisify(execFile);
@@ -21,7 +22,18 @@ test("the CLI runs and prints its usage", async () => {
   const { stdout } = await cli("--help");
 
   assert.match(stdout, /^wanikani <command> \[options\]/);
-  for (const command of ["summary", "lessons", "review", "queue", "grade", "explain", "tips", "submit-batch"]) {
+  for (const command of [
+    "summary",
+    "lessons",
+    "review",
+    "queue",
+    "prompts",
+    "grade",
+    "grade-many",
+    "explain",
+    "tips",
+    "submit-batch",
+  ]) {
     assert.ok(stdout.includes(`  ${command}`), `${command} is missing from the help`);
   }
 });
@@ -72,7 +84,7 @@ async function withWarmCache(fn) {
   );
   const env = { ...process.env, WANIKANI_CACHE_DIR: dir, WANIKANI_API_TOKEN: "test-token" };
   try {
-    return await fn((...args) => run(process.execPath, [CLI, ...args], { env }));
+    return await fn((...args) => run(process.execPath, [CLI, ...args], { env }), { dir, env });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -108,6 +120,31 @@ test("submit-batch --graded returns without waiting on a stdin that never comes"
     const { stdout } = await wk("submit-batch", "--graded");
 
     assert.match(JSON.parse(stdout).summaryLine, /Nothing submitted — no grades on record/);
+  });
+});
+
+test("a batch of counts fed in by hand is refused out loud, not in silence", async () => {
+  // A whole sitting went in as `submit-batch <<'EOF' [{"assignmentId": …}] EOF`
+  // — ignored every time, which read as accepted, and the counts typed
+  // disagreed with the record more than once. A here-document is a temp file
+  // on fd 0, which is what this opens.
+  await withWarmCache(async (_wk, { dir, env }) => {
+    const heredoc = join(dir, "batch.json");
+    await writeFile(heredoc, '[{"assignmentId": 77, "wrongMeaning": 0, "wrongReading": 0}]');
+    const fd = openSync(heredoc, "r");
+    try {
+      const { status, stderr, stdout } = spawnSync(process.execPath, [CLI, "submit-batch"], {
+        env,
+        stdio: [fd, "pipe", "pipe"],
+        encoding: "utf8",
+      });
+
+      assert.equal(status, 0, stderr);
+      assert.match(stderr, /Ignoring the piped-in list/);
+      assert.match(JSON.parse(stdout).summaryLine, /Nothing submitted/, "and it still does its own job");
+    } finally {
+      closeSync(fd);
+    }
   });
 });
 
