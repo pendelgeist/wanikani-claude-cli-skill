@@ -153,7 +153,7 @@ test("grading keeps the sitting alive, and the record with it", async () => {
 test("pruning keeps the original fetch time, and counts as activity", async () => {
   await withTempCacheDir(async () => {
     const fetchedAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-    await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }], fetchedAt);
+    await saveQueueOrder([{ assignmentId: 1 }, { assignmentId: 2 }], { fetchedAt });
 
     const remaining = await dropFromQueueOrder([1]);
 
@@ -161,6 +161,41 @@ test("pruning keeps the original fetch time, and counts as activity", async () =
     const order = await loadQueueOrder();
     assert.equal(order.fetchedAt, fetchedAt, "provenance is when it was fetched");
     assert.ok(new Date(order.touchedAt).getTime() > new Date(fetchedAt).getTime(), "the clock is not");
+  });
+});
+
+test("submitting ends the batch, and what went unanswered goes back in the pile", async () => {
+  await withTempCacheDir(async () => {
+    const { beginBatch, openItems } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+      { assignmentId: 3, subjectId: 13 },
+    ]);
+    await beginBatch([1, 2]);
+    await recordGrade(1, { wrongMeaning: 1 });
+
+    // Only the graded one submits; the batch is over either way.
+    await dropFromQueueOrder([1]);
+
+    assert.deepEqual(
+      (await openItems()).map((item) => item.assignmentId),
+      [2],
+      "the unanswered one is still open, and still numbered where it was asked",
+    );
+    assert.deepEqual(await loadGrades(), {}, "a submitted item's counts don't ride into the next batch");
+  });
+});
+
+test("without a batch handed out there is nothing to call open", async () => {
+  await withTempCacheDir(async () => {
+    const { openItems } = await import("../lib/queueOrder.js");
+    assert.equal(await openItems(), null, "no sitting at all");
+
+    // A sitting from `review`, or one written before `served` existed: the
+    // items are real, but nothing was ever asked out of them.
+    await saveQueueOrder([{ assignmentId: 1, subjectId: 11 }]);
+    assert.equal(await openItems(), null);
   });
 });
 

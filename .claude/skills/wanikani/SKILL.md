@@ -72,23 +72,29 @@ for.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
-`convention`, `prompt`, `grade`'s `say`, `summaryLine`, and the blocks from
-`explain` and `tips` are all finished strings. **Print them
-as they are** — don't compose your own, don't append, don't paraphrase.
-Every one of them has been got wrong in a real session by being written out
-by hand instead.
+Steps 3 and 4 have a whole-batch form — `prompts` and `grade-many`, once
+they've asked for it. See *Rapid-fire* below; everything else on this page
+applies to it unchanged.
+
+`convention`, `prompt`, the block from `prompts`, `grade`'s and `grade-many`'s
+verdict lines, `summaryLine`, and the blocks from `explain` and `tips` are all
+finished strings. **Print them as they are** — don't compose your own, don't
+append, don't paraphrase. Every one of them has been got wrong in a real
+session by being written out by hand instead.
 
 **Rules that apply to every item, no exceptions — check each reply against
 these before sending, not just the first one:**
 
 - **`item.prompt` is the entire question. Nothing before it, nothing after
-  it.** No gloss, no type label, no `— meaning & reading?` tail — nor
-  `— meaning + reading?`, which is that same tail with a different join and
-  went on all twenty prompts of one session. `convention` said it once
-  already. `取 (take)` hands over the answer; so do
-  `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference that
-  the gloss is short, obvious or "just for clarity", because the meaning *is*
-  what you're about to grade. Nothing goes in front either — `Batch 1/10.
+  it.** The tail has now been tried in three spellings — `— meaning & reading?`,
+  `— meaning + reading?`, and `— meaning and reading?` on all twenty prompts of
+  one session — so the rule is the shape, not the wording: the message ends
+  where `prompt` ends. No gloss, no type label, no example answer
+  (`(e.g. "side, yoko")` opened one session by answering its own first item).
+  `convention` said all of that once already. `取 (take)` hands over the answer;
+  so do `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference
+  that the gloss is short, obvious or "just for clarity", because the meaning
+  *is* what you're about to grade. Nothing goes in front either — `Batch 1/10.
   Starting:` is a preamble, and the number in the prompt is already the
   progress marker.
 - **A glyph-less radical's `prompt` is an image URL. Print the URL.**
@@ -111,7 +117,8 @@ these before sending, not just the first one:**
   prompt, and the forbidden tail in one line.
   (The one exception: when `grade` comes back `open: true` the message ends
   with its `say`, because the item hasn't been answered yet and its prompt is
-  still standing.)
+  still standing. Rapid-fire keeps the same shape at batch scale — the verdict
+  lines, then the list of what's still open, and the list is last.)
 - **What you say about a wrong answer is `grade`'s `say`, not your own
   words.** Writing the correction by hand is where romaji gets in:
   `should be "kaeru", not "sasaeru"` and `should be "shin", not "mi"` are
@@ -127,6 +134,27 @@ these before sending, not just the first one:**
   verdicts, onyomi/kunyomi asides, recaps. The only romaji in a session is
   what the *user* types. The subtle leak: "it's あたり, not 回り" is fine, but
   "it's あたり, not mawari (that's 回り)" leaks it via the second word.
+
+- **An open item ends at `say`, and `say` is deliberately answerless.** The
+  on'yomi re-prompt names the *type* WaniKani wants and no kana, because the
+  item is still live. `Reading is kunyomi (uma), need on'yomi. Hint: ba.` and
+  `Hint: suu.` are from one session: both handed over the answer and both were
+  then typed back and marked correct. If you are adding a hint to a question
+  they haven't answered, you are answering it.
+
+- **A miss ends the item — there is no retry.** `grade` prints `(recorded —
+  next item)` under a correction to say so. `Retry?` went out after nearly
+  every wrong answer of one session; the extra round changes no score (the miss
+  is already on the record, and WaniKani doesn't offer one either), it reads to
+  the user as a recovery that didn't happen, and in one case the session typed
+  the retry *itself* — `grade 761 "ka"` — right after being told to submit as
+  is. Print the correction, move to the next prompt.
+
+- **Don't count the batch. `submit-batch` counts it.** `Batch complete: 8
+  perfect, 2 with errors. Submitting…` went out ahead of eight consecutive
+  submissions in one session and disagreed with the record in at least three of
+  them. There is nothing to tally: the counts are in the file, and the line
+  that reports them arrives a second later.
 
 Each of these has gone wrong in practice. Treat them as a checklist, not
 background reading.
@@ -280,7 +308,10 @@ background reading.
    to remember, nothing to add up. Ten round-trips become one. If it comes
    back saying nothing was on record, that means the answers were never
    graded: the items are still due, and the fix is to grade them, not to
-   assemble a list by hand. It prints `summaryLine` (step 9), `results[]` per
+   assemble a list by hand. It takes no list on stdin either: one session fed
+   it `<<'EOF' [{"assignmentId": …, "wrongMeaning": 0}] EOF` on all eight of
+   its batches, and every one of those went in the bin — it now says so out
+   loud rather than looking accepted. It prints `summaryLine` (step 9), `results[]` per
    item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.
@@ -310,19 +341,60 @@ background reading.
    dropped the item that reached Guru and the session total. The separators,
    the wording and the drop-empty-segments rules are all already decided.
 
-   Nor does a tally of your own belong *before* the call: one session
-   announced "Batch 1 done — 8 perfect, 2 with errors" and then submitted a
-   batch the record scored differently. The counting isn't yours to do, and
-   saying it first only means saying it wrong first. Then wait: "Batch 2
-   incoming…" is not the same thing as asking.
-
    Add a sentence of your own only for something the line can't know — a
-   pattern worth naming ("the ん readings are the ones catching you").
+   pattern worth naming ("the ん readings are the ones catching you"). And
+   then wait: "Batch 2 incoming…" is not the same thing as asking.
 
 Keep the pace conversational: one item's result plus the next prompt per
 message, not a wall of text per batch, and keep every line short. The goal
 is fewer *tool calls* and less waiting on "next" — not fewer chat turns.
 Auto-advancing means more turns, back to back, which is the point.
+
+### Rapid-fire: a whole batch in one exchange
+
+Once someone has their pace, one item per message *is* the slow part. So the
+batch can go out as a list and come back as a list — a real session ran nine
+items in one exchange that way, and the user asked for the next batch the
+same. Two commands, and the point of both is that nothing is composed from
+memory:
+
+1. `node bin/wanikani.js prompts` — every still-unanswered item in the batch,
+   numbered as `queue` numbered it, as one block. Print it as it comes; the
+   how-to line under it is part of it, and the CLI decides when to include it
+   (once a sitting), so there's nothing to remember or suppress.
+2. They answer them in one message, separated by `|`.
+3. `node bin/wanikani.js grade-many "<their whole line>"` — the reply goes in
+   **verbatim**, same as `grade`: don't tidy it, don't reorder it, don't drop
+   the empty slots. It grades in order and prints one numbered verdict line per
+   item, then what's still open.
+4. Some items come back open — a re-prompt, or ones they skipped. `prompts`
+   again lists just those, keeping their original numbers, and their next line
+   goes through `grade-many` again. When nothing is open, `submit-batch`.
+
+**Never write the list yourself.** This is the one that ended a session: asked
+for the remaining nine, it typed out `shore/kishi |
+city/town/village/shichouchouson | get ahead/sakimawari | …` — nine meanings
+and readings recalled from memory, two of them wrong, handed to the user as the
+question. `prompts` exists so there is nothing to recall. **If you are about to
+type a numbered list of items into chat, stop — that list is the batch's answer
+key.** The same goes for `grade-many`'s side: don't hand-map their answers to
+subject ids across nine `grade` calls, because that mapping is counting, and
+counting nine items deep into a batch is what the command is for.
+
+If `grade-many` refuses ("4 answers for 3 open items — nothing graded"), print
+what it said and let them re-send. It refuses because `|` also separates the
+halves of a single answer, and a guess there marks every item after the split
+against its neighbour's answer key.
+
+**When to switch.** They ask for it — "rapid fire", "faster", "all at once",
+"the rest in one go" — or they answer several items in one message unasked,
+which is the same request. It holds for the rest of the sitting, the way
+"wait" holds the other way; "one at a time" turns it off. You may offer it
+once, between batches, in a clause — never mid-batch, and never twice.
+
+**What doesn't change.** The verdict lines are `grade-many`'s, printed as they
+come, kana and links intact. A miss is still a miss with no retry. The batch
+still ends at `submit-batch`, and you still ask before starting the next one.
 
 ## Telling them what it can do
 
@@ -336,7 +408,8 @@ it and get out of the way.
   "is there a way to…". It needs no token and no network, so it answers even
   when nothing else will.
 - **The convention note carries the pointer** — it ends with `or "what can I
-  say?" for the rest`. That's the entire unsolicited advertisement.
+  say?" for the rest`. That, plus the single rapid-fire offer above, is the
+  whole of what a session brings up unasked.
 - **Don't hand-roll tips and don't volunteer them.** If you're writing "by
   the way, you can also…", stop: either it's in `tips` and they can ask, or
   it isn't and it belongs in `lib/tips.js` — a code change, not something to
