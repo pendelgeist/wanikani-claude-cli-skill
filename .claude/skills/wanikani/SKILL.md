@@ -50,6 +50,13 @@ It does; the answers just have to go through it. If you ever find yourself
 there: grade the answers you still have, one call each, then submit. Nothing
 is lost until the items are re-answered.
 
+The verdicts in that session were the other half of the damage. Ten answers
+came back `✓ Correct` in chat before any of them had been graded; when the
+same ten went through `grade` minutes later, four were wrong. There is no
+reading of the payload that makes a chat verdict possible — the answers
+aren't in it — so a `✓` you didn't get from `grade` is a guess, and it
+guessed wrong four times out of ten.
+
 `grade` holds the key, records the
 miss and hands back the line to print. A session that skipped it graded
 twenty items from memory, and the bill was: romaji in every correction, not
@@ -139,8 +146,10 @@ these before sending, not just the first one:**
   on'yomi re-prompt names the *type* WaniKani wants and no kana, because the
   item is still live. `Reading is kunyomi (uma), need on'yomi. Hint: ba.` and
   `Hint: suu.` are from one session: both handed over the answer and both were
-  then typed back and marked correct. If you are adding a hint to a question
-  they haven't answered, you are answering it.
+  then typed back and marked correct. `Need on'yomi — try じ (ji)?` is the same
+  move in a politer shape, from a later one, and it went the same way. If you
+  are adding a hint to a question they haven't answered, you are answering it —
+  and a question mark on the end doesn't make the kana any less legible.
 
 - **A miss ends the item — there is no retry.** `grade` prints `(recorded —
   next item)` under a correction to say so. `Retry?` went out after nearly
@@ -150,11 +159,26 @@ these before sending, not just the first one:**
   the retry *itself* — `grade 761 "ka"` — right after being told to submit as
   is. Print the correction, move to the next prompt.
 
+  **And the retry is usually a hand-over as well**, which is what makes it
+  worth its own paragraph. The correction *contains the answer* — that's its
+  job — so anything you write after it is written from the reveal. One session
+  did this six times: `✗ meaning is Public Official / Government Official` was
+  followed by `Try "public official"?`, the user typed it back, and it printed
+  `✓ Correct` over a miss that was already recorded. Six items, six
+  answers handed over, six false verdicts. `grade` now refuses a second answer
+  to a settled item and says what's on the record instead — but the refusal is
+  a backstop, not the rule. The rule is that the correction is the last word on
+  that item.
+
 - **Don't count the batch. `submit-batch` counts it.** `Batch complete: 8
   perfect, 2 with errors. Submitting…` went out ahead of eight consecutive
   submissions in one session and disagreed with the record in at least three of
   them. There is nothing to tally: the counts are in the file, and the line
-  that reports them arrives a second later.
+  that reports them arrives a second later. A tally with no `submit-batch`
+  under it is worse still — `Session total: 30 items (3 batches) — Batch 1: 6
+  perfect, 4 corrected…` was typed out by a session that had submitted nothing
+  at all, and two of its three batch tallies didn't add up to ten. Every number
+  in it was invented, including the ones that happened to be right.
 
 Each of these has gone wrong in practice. Treat them as a checklist, not
 background reading.
@@ -178,13 +202,23 @@ background reading.
 
    Re-run `queue --limit 10` when the batch is exhausted: submitting prunes
    those items, so it returns the next batch. Calling it *before* submitting
-   hands back the same items and **discards whatever was graded for them** —
-   asking an item is asking it fresh. That's deliberate: a record kept across
-   a re-ask is a record of answers nobody gave this time, and one that
-   survived an abandoned sitting was submitted an hour later against a batch
-   the user had just answered correctly, demoting four items for it. So don't
-   re-fetch mid-batch to "check" something; the batch you're holding is the
-   batch you're answering.
+   hands back the same items and would discard whatever was graded for them —
+   asking an item is asking it fresh — so it now refuses while anything is
+   graded and unsubmitted, and names `submit-batch`. Do that; don't re-fetch
+   mid-batch to "check" something. The batch you're holding is the batch
+   you're answering. (`--restart` throws the record away on purpose. It is for
+   a batch that really should be asked again, not for getting past the
+   refusal.)
+
+   **The same ten items coming back is the queue working, not the API
+   lagging.** Nothing is pruned until it's submitted, so an unsubmitted batch
+   is still the batch that's due. A session that read it as lag answered those
+   ten a second time, and a third batch after that, and submitted none of the
+   thirty: three sittings' worth of answers, no reviews recorded, and a running
+   total reported to the user that described none of it. Nor is slicing the
+   fetch a way round it — `queue --limit 20 | jq '.[10:]'` re-serves twenty
+   items as the batch, so `prompts`, `grade-many` and `submit-batch` are all
+   now talking about a different set than the one on screen.
 2. **Empty queue**: say there's nothing due right now and stop.
 3. **Ask, then let the CLI grade.** The first item of a sitting carries
    `convention`; the CLI decides when, so there's nothing to remember or
@@ -243,9 +277,16 @@ background reading.
    why 親 answered "parent, oya" can't be marked wrong and slipped to
    Apprentice 4 again.
 
-   What it can't know is whether "labratory" was a typo for the right answer
-   or whether a synonym of theirs is fair. That judgment is yours, and it's
-   the reason this skill drives the quiz instead of shelling out to `review`.
+   Ordinary typos it now handles too, the way the website does: a slip or two
+   in a meaning ("goverment official", "pubilc official") grades as correct
+   rather than as a miss. That closes the trap where a right answer came back
+   ✗, the correction revealed the meaning, and the session then read it out
+   for the user to type back.
+
+   What it can't know is whether a mangling well past a typo was meant as the
+   right answer, or whether a synonym of theirs is fair. That judgment is
+   yours, and it's the reason this skill drives the quiz instead of shelling
+   out to `review`.
    When you overrule a miss, take it back off the record in the same breath:
 
    ```
@@ -315,6 +356,14 @@ background reading.
    item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.
+
+   Two things it deliberately leaves behind. An item still mid-question — a
+   re-prompt nobody answered — isn't submitted, because the half that could be
+   wrong hasn't been given; it stays due. And anything asked but never graded
+   is counted in `summaryLine` as `left unanswered — still due`, which is the
+   line's way of showing the gap between what went past on screen and what
+   reached the record. If that segment appears and you weren't expecting it,
+   some answers didn't go through `grade`.
 
    If the session is interrupted before this call, nothing was sent for that
    batch: those items come back next time, nothing is double-counted.

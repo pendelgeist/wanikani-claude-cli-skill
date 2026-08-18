@@ -226,3 +226,62 @@ test("nothing on record is said plainly, and names what records it", async () =>
     assert.equal(batch.submitted, 0);
   });
 });
+
+/** A batch as `queue` hands it out: the order, plus which of it was asked. */
+async function servedBatch(items) {
+  await saveQueueOrder(items, { served: items.map((item) => item.assignmentId) });
+}
+
+test("the batch says how much of it never got answered", async () => {
+  // Ten prompts on screen and six answers on record looks identical to ten of
+  // each from the outside — one session reported the ten. The gap is knowable
+  // here, so the line says it.
+  await withTempCacheDir(async () => {
+    await servedBatch([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+      { assignmentId: 3, subjectId: 13 },
+    ]);
+    await recordGrade(1, {});
+
+    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+
+    const { summaryLine } = JSON.parse(output);
+    assert.match(summaryLine, /^1 done, 1 perfect · 2 left unanswered — still due/);
+  });
+});
+
+test("an item still mid-question isn't submitted as a clean pass", async () => {
+  // A re-prompt records the attempt so far and waits. Submitting that record
+  // would send "nothing wrong here" for a reading nobody has given yet.
+  await withTempCacheDir(async () => {
+    await servedBatch([
+      { assignmentId: 1, subjectId: 11 },
+      { assignmentId: 2, subjectId: 12 },
+    ]);
+    await recordGrade(1, {});
+    await recordGrade(2, { awaiting: "reading" });
+    const client = fakeClient();
+
+    const output = await captureStdout(() => submitBatchCommand(client));
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+    ]);
+    assert.match(JSON.parse(output).summaryLine, /1 left unanswered/);
+    assert.deepEqual(await loadGrades(), { 2: { wrongMeaning: 0, wrongReading: 0, awaiting: "reading" } });
+  });
+});
+
+test("a batch that only got as far as a re-prompt says that, not \"nothing graded\"", async () => {
+  await withTempCacheDir(async () => {
+    await servedBatch([{ assignmentId: 1, subjectId: 11 }]);
+    await recordGrade(1, { awaiting: "reading" });
+
+    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+
+    const { summaryLine } = JSON.parse(output);
+    assert.match(summaryLine, /still open/);
+    assert.doesNotMatch(summaryLine, /no grades on record/);
+  });
+});

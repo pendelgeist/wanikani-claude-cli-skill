@@ -243,7 +243,7 @@ test("--forgive takes an overruled miss back off the record", async () => {
   await withTempCacheDir(async () => {
     const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
     await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
-    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parnet, shin" }));
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parrents, shin" }));
 
     const forgiven = JSON.parse(
       await captureStdout(() => gradeCommand(client, { subjectId: 3, forgive: "meaning", json: true })),
@@ -319,4 +319,52 @@ test("an answer that won't be recorded says so where it can't be missed", async 
 
   assert.match(out, /^! NOT RECORDED — no sitting on disk/m);
   assert.match(out, /submit-batch/);
+});
+
+test("a second answer to a settled item is refused, not graded again", async () => {
+  // The loop this closes: ✗ with the meaning in it, "try X?", the user types
+  // X, ✓. The record still held the miss — attempts add up rather than
+  // replacing each other — so the ✓ contradicted what was about to be
+  // submitted, and the "question" was one the correction had already answered.
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "wrong, mi" }));
+
+    const out = (
+      await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, shin" }))
+    ).trimEnd();
+
+    assert.match(out, /^! 親 was already answered this batch/);
+    assert.match(out, /--forgive meaning/, "the override is named, since it's the only way to move it");
+    assert.doesNotMatch(out, /^✓/m, "no verdict, because nothing was graded");
+    assert.doesNotMatch(out, /next item|still their turn/);
+    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 1, wrongReading: 1 } });
+  });
+});
+
+test("an item answered clean is just as settled as a missed one", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder, loadGrades } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, shin" }));
+
+    const out = await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "wrong, mi" }));
+
+    assert.match(out, /no misses/);
+    assert.doesNotMatch(out, /--forgive/, "there's nothing on it to overrule");
+    assert.deepEqual(await loadGrades(), { 77: { wrongMeaning: 0, wrongReading: 0 } });
+  });
+});
+
+test("an item mid-question still takes the answer it's waiting for", async () => {
+  await withTempCacheDir(async () => {
+    const { saveQueueOrder } = await import("../lib/queueOrder.js");
+    await saveQueueOrder([{ assignmentId: 77, subjectId: 3 }]);
+    await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "parent, oya" }));
+
+    const out = await captureStdout(() => gradeCommand(client, { subjectId: 3, answer: "shin" }));
+
+    assert.match(out, /^✓/, "open is the one state a second answer belongs to");
+  });
 });

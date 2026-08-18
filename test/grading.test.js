@@ -53,6 +53,46 @@ test("isMeaningCorrect rejects blacklisted auxiliary meanings even though they l
   assert.equal(isMeaningCorrect("won", kanjiOne), false);
 });
 
+const official = {
+  characters: "役人",
+  meanings: [
+    { meaning: "Public Official", primary: true, accepted_answer: true },
+    { meaning: "Government Official", primary: false, accepted_answer: true },
+  ],
+  auxiliary_meanings: [{ meaning: "Government Office", type: "blacklist" }],
+};
+
+test("isMeaningCorrect forgives a typo, the way the website forgives one", () => {
+  // The session that made this necessary marked "government offical" wrong,
+  // then printed the meaning in the correction, then asked the same item
+  // again — so the user typed back the word the correction had just shown
+  // them, and got a ✓ over a miss that was already recorded.
+  assert.equal(isMeaningCorrect("government offical", official), true);
+  assert.equal(isMeaningCorrect("goverment official", official), true);
+  assert.equal(isMeaningCorrect("public offical", official), true);
+});
+
+test("two letters swapped is one typo, not two", () => {
+  assert.equal(isMeaningCorrect("pubilc official", official), true);
+});
+
+test("a short meaning gets no slack, since one letter makes it another word", () => {
+  assert.equal(isMeaningCorrect("won", kanjiOne), false);
+  assert.equal(isMeaningCorrect("ones", kanjiOne), false);
+});
+
+test("a near miss can't reach past a meaning the item refuses", () => {
+  // "Government Office" is blacklisted and one edit away from what was typed;
+  // "Government Official" is three. The nearer one decides it.
+  assert.equal(isMeaningCorrect("government offce", official), false);
+  assert.equal(isMeaningCorrect("government office", official), false);
+});
+
+test("a real word that isn't the meaning stays wrong, however close it looks", () => {
+  assert.equal(isMeaningCorrect("public officer", official), false);
+  assert.equal(isMeaningCorrect("government officials office", official), false);
+});
+
 test("isMeaningCorrect rejects unrelated input", () => {
   assert.equal(isMeaningCorrect("two", kanjiOne), false);
   assert.equal(isMeaningCorrect("", kanjiOne), false);
