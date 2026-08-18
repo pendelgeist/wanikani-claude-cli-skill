@@ -7,7 +7,7 @@ description: Run a WaniKani lesson or review session from Claude Code, using the
 
 Invoked with nothing more specific ("/wanikani", "do my wanikani reviews"),
 go straight into Reviews below — `summary`, then fetch and quiz. Don't offer
-a menu of subcommands; branch to Lessons or the Status check only if their
+a menu of subcommands; branch to Lessons or the Account check only if their
 own wording asked for one. If plan mode is active, exit it immediately
 rather than asking: this is fetch-quiz-submit, not a code change for plan
 mode to gate.
@@ -23,6 +23,13 @@ the session noticeably snappier, then drop it.
 Run commands plain, from the repo root: `node bin/wanikani.js summary`. The
 CLI auto-loads `.env` from the repo root, so nothing needs passing in. Run
 `npm install` first if `node_modules/wanakana` doesn't exist.
+
+**Run them plain — no `2>/dev/null`, no `| jq`.** stderr is where this CLI
+says a call was refused and why; a session that suppressed it on every `queue`
+call spent the rest of the sitting inferring what had happened, and inferred
+wrong. `jq` is the other half of the same problem: `queue … | jq '.[30:]'`
+throws away the shape of the payload and takes a slice the CLI doesn't know
+about. Read the output as it comes.
 
 **Never put the token value in a Bash command** (`export
 WANIKANI_API_TOKEN=<value> && node …`). It gets echoed verbatim into the
@@ -218,7 +225,10 @@ background reading.
    total reported to the user that described none of it. Nor is slicing the
    fetch a way round it — `queue --limit 20 | jq '.[10:]'` re-serves twenty
    items as the batch, so `prompts`, `grade-many` and `submit-batch` are all
-   now talking about a different set than the one on screen.
+   now talking about a different set than the one on screen. That session went
+   on to `--limit 40 | jq '.[30:]'` and then `--limit 50`, and each of those
+   calls cleared every grade recorded since the last submit: five batches
+   answered, one submitted, and the CLI blamed for it.
 2. **Empty queue**: say there's nothing due right now and stop.
 3. **Ask, then let the CLI grade.** The first item of a sitting carries
    `convention`; the CLI decides when, so there's nothing to remember or
@@ -394,6 +404,56 @@ background reading.
    pattern worth naming ("the ん readings are the ones catching you"). And
    then wait: "Batch 2 incoming…" is not the same thing as asking.
 
+### When you've lost track of what landed
+
+`node bin/wanikani.js status` answers it: how many of the batch are asked,
+answered and still open, how many answers are on record and unsent, what's
+been submitted this sitting, and the next call to make. It reads the local
+record — no token, no network — so it answers when nothing else does. Run it
+when the state is unclear, when a `submit-batch` says something you weren't
+expecting, and whenever they ask "did that go through?".
+
+- **Don't theorise about the tool. Ask it.** "CLI grading/submission system
+  seems partial/inconsistent", "Tool only accepted batch 5", "CLI broken",
+  "This one's unreliable — use the WaniKani web interface" all went to a user
+  in one sitting. The actual cause was that session's own `queue --limit 40`
+  calls, each of which cleared the record it then found empty; every number
+  needed to see that was one `status` away. A tool verdict is the last thing
+  to reach for and the first thing that gets typed.
+- **"Nothing was submitted" is not "your answers are lost".** An item stays
+  due until it's submitted, so an unsubmitted batch is a batch still waiting
+  to be answered — not forty items owed to a website. Say that, because the
+  alternative reads as an hour of work destroyed. Every message that reports
+  an empty record says it too; it keeps not being read.
+- **The numbers in a prompt are positions in one fetch, not names.**
+  Submitting prunes what went in, so the next fetch's "31" is a different item
+  from the last one's, and `queue` handing back something unfamiliar means the
+  list moved, not that reviews went missing. "Remaining 20 from your original
+  work are gone from queue" was the conclusion drawn from that in one session;
+  those twenty were sitting in the queue, still due, at different positions.
+- **Don't rebuild a lost batch from the chat log.** After a wipe the
+  temptation is to replay the answers upward in the transcript. Half of them
+  aren't theirs: the session that did this re-graded thirty items using the
+  corrected answers it had fed the user after each miss. It reported three
+  batches of "10/10 perfect" — fourteen of those thirty had been missed
+  minutes earlier, and four items were *burned*, out of the review cycle for
+  good, on answers the user never gave. The items were all still due. Ask them
+  again — that's what "still due" means — or move on and let WaniKani bring
+  them back. The recovery in the paragraph above is for answers *they* gave
+  this batch that never reached `grade`, and only those.
+
+  (`submit-batch` now carries a miss across a re-ask within the same sitting,
+  so this can't quietly promote anything any more. That's a floor under the
+  damage, not permission: it still asks them nothing and tells them a batch
+  went perfectly when it didn't.)
+
+- **One `grade` call per reply, in the turn the reply arrives.** A shell loop
+  over a list of answers — `for subjectId in 3504 616 …; do grade $subjectId
+  "…"; done` — is by construction not that: nobody typed anything while it
+  ran. It was the shape the replay above took, and the shape is the tell. The
+  legitimate whole-batch form is `grade-many`, which grades one message the
+  user actually sent.
+
 Keep the pace conversational: one item's result plus the next prompt per
 message, not a wall of text per batch, and keep every line short. The goal
 is fewer *tool calls* and less waiting on "next" — not fewer chat turns.
@@ -452,6 +512,9 @@ A feature nobody knows about may as well not exist, and this one has form:
 unprinted for weeks. So the tool advertises itself, in code, and you print
 it and get out of the way.
 
+- **`node bin/wanikani.js status`** answers "did that go through?", "what's
+  left?", "is that submitted?" — from the record rather than from memory. See
+  *When you've lost track of what landed* above; it needs no token either.
 - **`node bin/wanikani.js tips`** prints the whole list of what the user can
   say. Run it on "what can I say?", "what else can you do?", "help", "tips",
   "is there a way to…". It needs no token and no network, so it answers even
@@ -498,7 +561,8 @@ out loud: the characters, the meaning, the reading, the mnemonic.
    — "5 started, first reviews in 4h" — not per item. Anything they'd rather
    skip simply doesn't go in the `start` call and comes back next time.
 
-## Status check
+## Account check
 
 `node bin/wanikani.js summary [--json]` — level, lessons available, reviews
-available, and time to the next review batch.
+available, and time to the next review batch. That's the account; `status` is
+the sitting's own record, above.

@@ -98,6 +98,15 @@ understands, from "more" to how to slow the auto-advance down. The
 start-of-sitting note points at it, and that's the only time the tool brings
 it up unasked; nothing is drip-fed between items.
 
+Ask **"did that go through?"** and it reads the record instead of counting
+back through the chat: `wanikani status` says how much of the batch is
+answered, how many answers are on record and not yet sent, what's been
+submitted so far, and which call comes next. It reads local files only — no
+token, no network — because the moment you most want it is the moment
+something else isn't working. Answering never sends anything on its own, and
+an item stays due until it's submitted, so a batch that didn't submit is a
+batch still waiting rather than an hour of work lost.
+
 Say **"more"** on an item and it pulls up the full entry — mnemonics, hints,
 what the kanji is built from, the other readings, example sentences. That's
 `wanikani explain` under the hood, and it only ever runs because you asked:
@@ -150,6 +159,12 @@ sit on top of the miss it appeared to cancel. Asking an item *again* — a fresh
 shouldn't submit itself later against answers nobody gave; and while a batch
 holds graded, unsubmitted answers, `queue` refuses to re-serve at all and says
 to submit first (`--restart` bins them on purpose).
+A miss also survives the item being asked again inside the same sitting: the
+new answer is graded on its merits, and the earlier miss is submitted with it
+(`submit-batch` says how many carried). Clearing the record decides what gets
+*asked*, and shouldn't be able to decide how well someone did — a session that
+replayed a lost sitting out of its own chat log, corrections included, sent
+thirty items in as perfect scores and burned four of them.
 `grade <id> --forgive meaning` takes a miss back when the answer key was
 overruled. That record lives with the queue order, which ages out after 30
 minutes *idle* — a sitting that's still being worked stays alive however long
@@ -223,6 +238,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
+| `status [--json]` | What the current sitting's record holds: how much of the batch is answered, how much is waiting to be sent, and the next call to make (no token needed) |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Submit everything `grade` recorded this batch, in one call |

@@ -5,7 +5,7 @@ import { gradeCommand } from "../lib/commands/grade.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { loadGrades, loadQueueOrder } from "../lib/queueOrder.js";
+import { loadGrades, loadPriorGrades, loadQueueOrder } from "../lib/queueOrder.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
 /**
@@ -293,19 +293,41 @@ test("a stale sitting's leftovers are dropped without asking", async () => {
   });
 });
 
-test("a fresh answer after a re-ask is the one that counts", async () => {
+test("a re-ask changes what they're asked, not how well they did", async () => {
+  // The disaster this prevents: a session that had lost its record replayed
+  // the sitting out of the chat log — which by then held the answers it had
+  // handed over after each miss — and thirty items went in as thirty perfect
+  // scores. Fourteen had been missed minutes earlier; four were burned out of
+  // the review cycle on the strength of it.
   await withTempCacheDir(async () => {
     const client = fakeClient();
     await json(() => queueCommand(client, { limit: 3 }));
     await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
 
     await json(() => queueCommand(client, { limit: 3, restart: true }));
+    const second = await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
+    const out = await json(() => submitBatchCommand(client));
+
+    assert.deepEqual([second.meaning, second.reading], ["correct", "correct"], "graded on its merits");
+    assert.deepEqual(
+      client.submitted,
+      [{ assignmentId: 100, incorrectMeaningAnswers: 1, incorrectReadingAnswers: 1 }],
+      "and the miss from earlier in the sitting still goes in",
+    );
+    assert.match(out.summaryLine, /1 kept a miss from earlier this sitting/);
+  });
+});
+
+test("a carried miss is spent by the submission that used it", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+    await json(() => queueCommand(client, { limit: 3, restart: true }));
     await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
     await json(() => submitBatchCommand(client));
 
-    assert.deepEqual(client.submitted, [
-      { assignmentId: 100, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
-    ]);
+    assert.deepEqual(await loadPriorGrades(), {}, "it doesn't haunt the next batch too");
   });
 });
 
