@@ -24,6 +24,12 @@ Run commands plain, from the repo root: `node bin/wanikani.js summary`. The
 CLI auto-loads `.env` from the repo root, so nothing needs passing in. Run
 `npm install` first if `node_modules/wanakana` doesn't exist.
 
+**This CLI is the WaniKani client. Don't write another one.** No `curl` at
+the API, no scripts in `/tmp` against `/v2/subjects` — one session did exactly
+that and it cost it the batch (see below). If something you need genuinely
+isn't here, that's a change to `lib/`, proposed to the user, not a script
+written mid-review.
+
 **Run them plain — no `2>/dev/null`, no `| jq`.** stderr is where this CLI
 says a call was refused and why; a session that suppressed it on every `queue`
 call spent the rest of the sitting inferring what had happened, and inferred
@@ -47,10 +53,17 @@ command — you can use judgment on typos and phrasing that a rigid string
 match rejects. `review` is a person's terminal UI, not a fallback for this
 flow: don't run it, and don't pipe answers into it.
 
-**You can't grade these yourself: `queue` returns the questions and no
-answers.** Every reply goes through `grade` — *as it arrives*, not at the end
-— because `grade` is what records it, and `submit-batch` submits the record
-and nothing else. A session that answered ten items in chat first found
+**Grading doesn't happen in chat. It happens in `grade`, as each reply
+arrives** — not at the end, and not from an answer key you went and got
+yourself. `queue` returns the questions and no answers, but that's a nudge,
+not a wall: the token is in the environment and the API is public, and a
+session proved it by writing `/tmp/fetch_subjects.js` to pull the meanings and
+readings for its ten items and then grading all ten in chat from them. What
+that bought was ten unrecorded verdicts, four hand-written corrections in
+romaji, a `submit-batch` with nothing to submit, and every item graded a
+second time through `grade` anyway. The key was never the missing piece — the
+record is. `grade` is what records, and `submit-batch` submits the record and
+nothing else. A session that answered ten items in chat first found
 `submit-batch` had nothing to submit, tried to reconstruct the batch
 afterwards, tangled it, and concluded the tool didn't support the workflow.
 It does; the answers just have to go through it. If you ever find yourself
@@ -405,6 +418,12 @@ background reading.
    then wait: "Batch 2 incoming…" is not the same thing as asking.
 
 ### When you've lost track of what landed
+
+A sitting lives in a file, not in a conversation: it survives for 30 minutes
+of idleness, so a new session can walk into one already half-answered, with
+the one-off notes already said to somebody else. **When you arrive and the
+state isn't obvious, look before you fetch** — a `queue` call is not a free
+question.
 
 `node bin/wanikani.js status` answers it: how many of the batch are asked,
 answered and still open, how many answers are on record and unsent, what's

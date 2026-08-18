@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { queueCommand } from "../lib/commands/queue.js";
+import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
 const KANJI = {
@@ -62,6 +63,7 @@ test("the queue hands over a question and no way to answer it", async () => {
   assert.deepEqual(Object.keys(item).sort(), [
     "assignmentId",
     "convention",
+    "grading",
     "level",
     "needsReading",
     "prompt",
@@ -101,4 +103,34 @@ test("a vocabulary near-miss spelling is not offered as another reading", async 
     item.corrections.reading,
     "reading is こころづよい · https://jisho.org/word/心強い",
   );
+});
+
+test("every batch carries the note about where grading happens", async () => {
+  // A sitting outlives a conversation, so the once-a-sitting strings can all
+  // have been said to somebody else. The session this is for arrived mid-
+  // sitting, was handed ten questions with no framing, wrote a script against
+  // the WaniKani API to fetch the answer key, graded the batch in chat from
+  // it, and then had to grade all ten again through `grade` anyway.
+  await withTempCacheDir(async () => {
+    const client = fakeClient([KANJI, VOCAB]);
+    const first = JSON.parse(await captureStdout(() => queueCommand(client, {})));
+    // Answer and submit one, so the next fetch is mid-sitting rather than the
+    // start of one — which is where a fresh conversation walks in.
+    const { recordGrade } = await import("../lib/queueOrder.js");
+    await recordGrade(first[0].assignmentId, {});
+    await captureStdout(() =>
+      submitBatchCommand({
+        ...client,
+        async submitReview() {
+          return { data: { starting_srs_stage: 4, ending_srs_stage: 5 } };
+        },
+      }),
+    );
+    const later = JSON.parse(await captureStdout(() => queueCommand(client, {})));
+
+    assert.match(first[0].grading, /`grade <subjectId>/);
+    assert.match(later[0].grading, /`grade <subjectId>/, "said again, mid-sitting");
+    assert.equal(later[0].convention, undefined, "unlike the one the user was already told");
+    assert.doesNotMatch(JSON.stringify(later), /Parent|しん|おや/, "and still no answers");
+  });
 });
