@@ -71,8 +71,8 @@ Open this repo in Claude Code and ask it to do your WaniKani reviews (or use
 `/wanikani` if it's registered as a slash command). See
 [`.claude/skills/wanikani/SKILL.md`](.claude/skills/wanikani/SKILL.md) for
 what it does: it calls `wanikani queue --limit 10` to get a batch of due
-reviews — the questions only, no answers — grades each reply through
-`wanikani grade`, applying its own judgment on typos and phrasing where the
+reviews — the questions only, no answers, and a note in the payload saying
+where grading actually happens — grades each reply through `wanikani grade`, applying its own judgment on typos and phrasing where the
 answer key can't, then
 submits the whole batch in one `wanikani submit-batch` call before fetching
 the next 10 — so a 600-review session is a couple dozen tool calls, not

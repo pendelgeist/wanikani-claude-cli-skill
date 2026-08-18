@@ -190,7 +190,7 @@ test("batchSummaryLine adds the session total only once it exceeds the batch", (
   assert.doesNotMatch(first, /this session/, "on batch one the session total is the batch total");
 
   const later = batchSummaryLine({ submitted: 10, perfect: 8, sessionSubmitted: 30, sessionPerfect: 25 });
-  assert.match(later, /30 done this session, 25 perfect/);
+  assert.match(later, /30 done this sitting, 25 perfect/);
 });
 
 test("batchSummaryLine surfaces submit failures", () => {

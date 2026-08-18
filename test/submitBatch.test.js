@@ -138,7 +138,7 @@ test("the summary line carries a session total once past the first batch", async
 
     await recordGrade(2, {});
     const second = await captureStdout(() => submitBatchCommand(fakeClient()));
-    assert.match(JSON.parse(second).summaryLine, /2 done this session, 2 perfect/);
+    assert.match(JSON.parse(second).summaryLine, /2 done this sitting, 2 perfect/);
   });
 });
 
