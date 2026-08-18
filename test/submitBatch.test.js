@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
-import { saveQueueOrder, loadQueueOrder, recordGrade, loadGrades } from "../lib/queueOrder.js";
+import { saveQueueOrder, loadQueueOrder, recordGrade, loadGrades, beginBatch } from "../lib/queueOrder.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
 function apiError(message, status) {
@@ -283,5 +283,45 @@ test("a batch that only got as far as a re-prompt says that, not \"nothing grade
     const { summaryLine } = JSON.parse(output);
     assert.match(summaryLine, /still open/);
     assert.doesNotMatch(summaryLine, /no grades on record/);
+  });
+});
+
+test("a miss from earlier in the sitting is submitted with the answer that replaced it", async () => {
+  await withTempCacheDir(async () => {
+    await servedBatch([{ assignmentId: 1, subjectId: 11 }]);
+    await recordGrade(1, { wrongMeaning: 1, wrongReading: 1 });
+    // The re-ask: `queue` hands the same item out again and clears its record.
+    await beginBatch([1]);
+    await recordGrade(1, {});
+    const client = fakeClient();
+
+    const { summaryLine, batch, results } = JSON.parse(
+      await captureStdout(() => submitBatchCommand(client)),
+    );
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 1, incorrectMeaningAnswers: 1, incorrectReadingAnswers: 1 },
+    ]);
+    assert.equal(results[0].perfect, false);
+    assert.equal(results[0].carriedMiss, true);
+    assert.equal(batch.carriedMisses, 1);
+    assert.match(summaryLine, /1 kept a miss from earlier this sitting/);
+  });
+});
+
+test("a clean attempt leaves nothing behind to carry", async () => {
+  await withTempCacheDir(async () => {
+    await servedBatch([{ assignmentId: 1, subjectId: 11 }]);
+    await recordGrade(1, {});
+    await beginBatch([1]);
+    await recordGrade(1, { wrongReading: 1 });
+
+    const client = fakeClient();
+    const { batch } = JSON.parse(await captureStdout(() => submitBatchCommand(client)));
+
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 1 },
+    ]);
+    assert.equal(batch.carriedMisses, 0);
   });
 });

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { statusCommand } from "../lib/commands/status.js";
-import { saveQueueOrder, recordGrade } from "../lib/queueOrder.js";
+import { saveQueueOrder, recordGrade, beginBatch } from "../lib/queueOrder.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
 /**
@@ -111,5 +111,18 @@ test("--json gives the same state as fields", async () => {
     assert.equal(state.withMiss, 1);
     assert.equal(state.open, 2);
     assert.deepEqual(state.openPositions, [2, 3]);
+  });
+});
+
+test("a miss carried over a re-ask is named, since it changes what submits", async () => {
+  await withTempCacheDir(async () => {
+    await saveQueueOrder(BATCH, { served: [1, 2, 3] });
+    await recordGrade(1, { wrongMeaning: 1 });
+    await beginBatch([1, 2, 3]);
+
+    const out = await status();
+
+    assert.match(out, /Carried over: 1 item missed earlier in this sitting and asked again/);
+    assert.match(out, /those misses go in with whatever is answered now/);
   });
 });

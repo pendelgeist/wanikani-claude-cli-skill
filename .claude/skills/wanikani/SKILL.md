@@ -425,14 +425,34 @@ expecting, and whenever they ask "did that go through?".
   to be answered — not forty items owed to a website. Say that, because the
   alternative reads as an hour of work destroyed. Every message that reports
   an empty record says it too; it keeps not being read.
+- **The numbers in a prompt are positions in one fetch, not names.**
+  Submitting prunes what went in, so the next fetch's "31" is a different item
+  from the last one's, and `queue` handing back something unfamiliar means the
+  list moved, not that reviews went missing. "Remaining 20 from your original
+  work are gone from queue" was the conclusion drawn from that in one session;
+  those twenty were sitting in the queue, still due, at different positions.
 - **Don't rebuild a lost batch from the chat log.** After a wipe the
   temptation is to replay the answers upward in the transcript. Half of them
-  aren't theirs: a session that did this re-graded thirty items using the
-  corrected answers it had fed the user after each miss, so items they'd got
-  wrong would have gone in as perfect. The items are still due. Ask them
+  aren't theirs: the session that did this re-graded thirty items using the
+  corrected answers it had fed the user after each miss. It reported three
+  batches of "10/10 perfect" — fourteen of those thirty had been missed
+  minutes earlier, and four items were *burned*, out of the review cycle for
+  good, on answers the user never gave. The items were all still due. Ask them
   again — that's what "still due" means — or move on and let WaniKani bring
   them back. The recovery in the paragraph above is for answers *they* gave
   this batch that never reached `grade`, and only those.
+
+  (`submit-batch` now carries a miss across a re-ask within the same sitting,
+  so this can't quietly promote anything any more. That's a floor under the
+  damage, not permission: it still asks them nothing and tells them a batch
+  went perfectly when it didn't.)
+
+- **One `grade` call per reply, in the turn the reply arrives.** A shell loop
+  over a list of answers — `for subjectId in 3504 616 …; do grade $subjectId
+  "…"; done` — is by construction not that: nobody typed anything while it
+  ran. It was the shape the replay above took, and the shape is the tell. The
+  legitimate whole-batch form is `grade-many`, which grades one message the
+  user actually sent.
 
 Keep the pace conversational: one item's result plus the next prompt per
 message, not a wall of text per batch, and keep every line short. The goal

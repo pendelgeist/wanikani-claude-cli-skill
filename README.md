@@ -159,6 +159,12 @@ sit on top of the miss it appeared to cancel. Asking an item *again* — a fresh
 shouldn't submit itself later against answers nobody gave; and while a batch
 holds graded, unsubmitted answers, `queue` refuses to re-serve at all and says
 to submit first (`--restart` bins them on purpose).
+A miss also survives the item being asked again inside the same sitting: the
+new answer is graded on its merits, and the earlier miss is submitted with it
+(`submit-batch` says how many carried). Clearing the record decides what gets
+*asked*, and shouldn't be able to decide how well someone did — a session that
+replayed a lost sitting out of its own chat log, corrections included, sent
+thirty items in as perfect scores and burned four of them.
 `grade <id> --forgive meaning` takes a miss back when the answer key was
 overruled. That record lives with the queue order, which ages out after 30
 minutes *idle* — a sitting that's still being worked stays alive however long
