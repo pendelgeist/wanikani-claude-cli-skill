@@ -92,10 +92,11 @@ for.
 1. `queue --limit 10`
 2. Print the first item's `convention` if it has one.
 3. Print `item.prompt`. Stop. Wait.
-4. `grade <subjectId> "<their whole reply>"`. Print its `say`. `open: true`
-   → the same item is still waiting; otherwise record the counts and go to
-   step 3 for the next item, same message. Asked for "more" → `explain`, but
-   only because they asked.
+4. `grade <subjectId> "<their whole reply>"`. Print what it prints — for a
+   closed answer that's the verdict *and* the next item's prompt, which is the
+   whole message. `open: true` → the same item is still waiting, and the
+   output stops at `say`. Asked for "more" → `explain`, but only because they
+   asked.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
@@ -147,7 +148,17 @@ these before sending, not just the first one:**
   still standing. Rapid-fire keeps the same shape at batch scale — the verdict
   lines, then the list of what's still open, and the list is last.)
 - **What you say about a wrong answer is `grade`'s `say`, not your own
-  words.** Writing the correction by hand is where romaji gets in:
+  words — and `grade` now prints the whole message, so there is nothing left
+  to compose.** After a closed answer its output is the verdict, a blank line,
+  and the next item's prompt: send that block, end your turn. This exists
+  because composing the message around the line is where the line gets
+  rewritten. One sitting did it on all eleven of its misses — `Reading is
+  tsugi.` for `つぎ`, `Meaning is Parent, reading oya.` for `おや`, `reading
+  zo` for `ぞう`, which is also just wrong — and dropped every lookup link on
+  the way. Nothing in those messages was worth the typing: the CLI had already
+  said it, in kana, with the link.
+
+  The rest of the rule stands for everything the block doesn't cover: Writing the correction by hand is where romaji gets in:
   `should be "kaeru", not "sasaeru"` and `should be "shin", not "mi"` are
   both from real sessions, and so is `つぎつぎ is "tsugitsugu"` — romaji *and*
   misspelt, because it was transliterated from memory instead of read from
@@ -375,7 +386,10 @@ background reading.
    assemble a list by hand. It takes no list on stdin either: one session fed
    it `<<'EOF' [{"assignmentId": …, "wrongMeaning": 0}] EOF` on all eight of
    its batches, and every one of those went in the bin — it now says so out
-   loud rather than looking accepted. It prints `summaryLine` (step 9), `results[]` per
+   loud rather than looking accepted, in the payload as well as on stderr,
+   because a later sitting did the same on all six of its batches without ever
+   mentioning the warning. `ignoredStdin` in the result means the submission
+   was still right and the heredoc was the part that did nothing. It prints `summaryLine` (step 9), `results[]` per
    item, `batch` counts, and `remaining`. If anything failed to submit,
    `summaryLine` already says so *and* says what becomes of it — print it and
    don't restate; `results[]` has the per-item error if they ask.
@@ -472,6 +486,27 @@ expecting, and whenever they ask "did that go through?".
   ran. It was the shape the replay above took, and the shape is the tell. The
   legitimate whole-batch form is `grade-many`, which grades one message the
   user actually sent.
+
+### Drilling recent mistakes
+
+"Let's re-review my recent mistakes", "quiz me on what I got wrong", "drill
+the ones I missed" → `node bin/wanikani.js drill [--limit N]`. It returns the
+items recently answered wrong, as questions, in the same shape `queue` uses:
+a `prompt` and a `subjectId`, no answers. Ask them one at a time and grade each
+through `grade`, exactly as in a batch.
+
+- **The list comes from the record, never from the conversation.** Asked this
+  before the command existed, a session scrolled back through the transcript,
+  assembled nineteen items from what it remembered of them, and quizzed and
+  graded all nineteen from memory — romaji corrections, invented verdicts, and
+  a hint handed over when the user typed `x.x`. Every one of those items was
+  in the record, misses and all.
+- **Nothing in a drill is due and nothing submits.** `grade` says so —
+  `(drill — nothing recorded, nothing submitted)` — because the items were
+  submitted when their batch was. Say it once at the start so they know the
+  drill costs and earns nothing; it's practice.
+- **Everything else is the same**: prompts printed as they come, verdicts from
+  `grade`, no hints, no answers before they've answered.
 
 Keep the pace conversational: one item's result plus the next prompt per
 message, not a wall of text per batch, and keep every line short. The goal

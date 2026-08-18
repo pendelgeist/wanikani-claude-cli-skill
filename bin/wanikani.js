@@ -15,6 +15,7 @@ import { gradeManyCommand } from "../lib/commands/gradeMany.js";
 import { promptsCommand } from "../lib/commands/prompts.js";
 import { tipsCommand } from "../lib/commands/tips.js";
 import { statusCommand } from "../lib/commands/status.js";
+import { drillCommand } from "../lib/commands/drill.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { startCommand } from "../lib/commands/start.js";
@@ -48,6 +49,8 @@ Commands:
                         Refuses while answers are graded and unsubmitted, since serving a
                         batch clears them; --restart throws them away on purpose.
                         --answers adds the key back, for debugging this CLI
+  drill [--limit N]     The items answered wrong recently, as questions — same shape as
+                        queue. A drill: nothing here is due and nothing submits
   prompts               Every question in the current batch that's still unanswered,
                         as one block to print — the rapid-fire list
   explain <id|characters> [--json]
@@ -82,6 +85,7 @@ const COMMANDS = new Set([
   "start",
   "review",
   "queue",
+  "drill",
   "prompts",
   "explain",
   "status",
@@ -186,6 +190,11 @@ async function main() {
       });
       break;
     }
+    case "drill": {
+      const { values } = parseArgs({ args: rest, options: { limit: { type: "string" } } });
+      await drillCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) ?? 10 });
+      break;
+    }
     case "prompts": {
       parseArgs({ args: rest, options: {} });
       await promptsCommand(client);
@@ -277,7 +286,8 @@ async function main() {
       // typing it isn't an error, and so is a piped-in list, which is ignored
       // rather than obeyed — the record is the source of the counts.
       parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
-      if (wasGivenStdin()) {
+      const pipedIn = wasGivenStdin();
+      if (pipedIn) {
         // Silently ignoring it read as accepting it: one session piped a
         // hand-assembled batch of counts into every submit for a whole
         // sitting, and the counts it typed disagreed with the record more
@@ -287,7 +297,7 @@ async function main() {
             "recorded, so an answer missing from the record needs grading, not adding by hand.",
         );
       }
-      await submitBatchCommand(client);
+      await submitBatchCommand(client, { ignoredStdin: pipedIn });
       break;
     }
     default:

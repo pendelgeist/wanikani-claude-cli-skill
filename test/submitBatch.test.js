@@ -325,3 +325,21 @@ test("a clean attempt leaves nothing behind to carry", async () => {
     assert.equal(batch.carriedMisses, 0);
   });
 });
+
+test("a piped-in list is called out in the payload, not only on stderr", async () => {
+  // Six batches in one sitting went in with a heredoc of hand-written counts
+  // attached. All six were ignored and the submissions were right anyway —
+  // and the session never mentioned it, because the warning wasn't in the
+  // thing it was reading.
+  await withTempCacheDir(async () => {
+    await graded([[1, {}]]);
+
+    const output = await captureStdout(() =>
+      submitBatchCommand(fakeClient(), { ignoredStdin: true }),
+    );
+
+    const { ignoredStdin, batch } = JSON.parse(output);
+    assert.match(ignoredStdin, /takes no counts/);
+    assert.equal(batch.submitted, 1, "and the submission still goes through on the record");
+  });
+});

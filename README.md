@@ -98,6 +98,11 @@ understands, from "more" to how to slow the auto-advance down. The
 start-of-sitting note points at it, and that's the only time the tool brings
 it up unasked; nothing is drip-fed between items.
 
+Ask to **re-review your recent mistakes** and it drills them: `wanikani drill`
+returns the items you last got wrong, as questions, from the record rather than
+from anyone's memory of the session. They're graded the same way and submit
+nothing — they went in when their batch did.
+
 Ask **"did that go through?"** and it reads the record instead of counting
 back through the chat: `wanikani status` says how much of the batch is
 answered, how many answers are on record and not yet sent, what's been
@@ -234,6 +239,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
+| `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |

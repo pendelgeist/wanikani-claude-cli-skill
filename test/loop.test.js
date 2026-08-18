@@ -351,3 +351,61 @@ test("an item answered once doesn't get graded a second time", async () => {
     ]);
   });
 });
+
+test("grading prints the whole message: the verdict, then the next question", async () => {
+  // The message a session sends after an answer is a verdict and the next
+  // prompt. Composing that around the CLI's line is where the line gets
+  // rewritten — eleven times in one sitting the correction came back
+  // paraphrased into romaji with the lookup link dropped, once with the kana
+  // wrong ("zo" for ぞう). So the CLI hands over the message, not the half.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const batch = await json(() => queueCommand(client, { limit: 3 }));
+    const order = batch.map((item) => item.subjectId);
+
+    const out = (
+      await captureStdout(() => gradeCommand(client, { subjectId: order[0], answer: "wrong, mi" }))
+    ).trimEnd();
+
+    const lines = out.split("\n");
+    assert.match(lines[0], /^✗ /);
+    assert.equal(lines[1], "(recorded — next item)");
+    assert.equal(lines[2], "");
+    assert.equal(lines[3], batch[1].prompt, "the next question, exactly as `queue` gave it");
+  });
+});
+
+test("the last answer of a batch points at the submit instead", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const batch = await json(() => queueCommand(client, { limit: 3 }));
+    for (const item of batch.slice(0, 2)) {
+      await captureStdout(() => gradeCommand(client, { subjectId: item.subjectId, answer: "wrong" }));
+    }
+
+    const out = (
+      await captureStdout(() =>
+        gradeCommand(client, { subjectId: batch[2].subjectId, answer: "nonsense" }),
+      )
+    ).trimEnd();
+
+    const lines = out.split("\n");
+    assert.equal(lines.at(-2), "(recorded)", "not \"next item\" when there isn't one");
+    assert.equal(lines.at(-1), "(that's the batch — `submit-batch` next)");
+  });
+});
+
+test("an open item keeps its own prompt standing, and gets no next one", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const batch = await json(() => queueCommand(client, { limit: 3 }));
+    const kanji = batch.find((item) => item.subjectId === 3);
+
+    const out = (
+      await captureStdout(() => gradeCommand(client, { subjectId: kanji.subjectId, answer: "parent, oya" }))
+    ).trimEnd();
+
+    assert.equal(out.split("\n").length, 2, "the nudge and the whose-turn marker, nothing after");
+    assert.match(out, /still their turn/);
+  });
+});
