@@ -42,8 +42,10 @@ Commands:
   start <id> [<id>...]  Mark lesson assignments as started — the non-interactive
                         counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
-  queue [--limit N] [--answers]
+  queue [--limit N] [--answers] [--restart]
                         Due reviews as JSON: the questions and their ids, no answers.
+                        Refuses while answers are graded and unsubmitted, since serving a
+                        batch clears them; --restart throws them away on purpose.
                         --answers adds the key back, for debugging this CLI
   prompts               Every question in the current batch that's still unanswered,
                         as one block to print — the rapid-fire list
@@ -160,11 +162,13 @@ async function main() {
           limit: { type: "string" },
           json: { type: "boolean" },
           answers: { type: "boolean" },
+          restart: { type: "boolean" },
         },
       });
       await queueCommand(client, {
         limit: parseCount(values.limit, { flag: "--limit", min: 1 }),
         answers: values.answers,
+        restart: values.restart,
       });
       break;
     }

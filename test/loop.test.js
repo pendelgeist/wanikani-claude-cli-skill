@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { queueCommand } from "../lib/commands/queue.js";
 import { gradeCommand } from "../lib/commands/grade.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { loadGrades, loadQueueOrder } from "../lib/queueOrder.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
@@ -76,6 +78,14 @@ function fakeClient() {
 }
 
 const json = async (fn) => JSON.parse(await captureStdout(fn));
+
+/** Backdates the sitting on disk, so the idle timeout can be tested in a millisecond. */
+async function ageTheSitting(minutes) {
+  const stale = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  const file = join(process.env.WANIKANI_CACHE_DIR, "queue-order.json");
+  const raw = JSON.parse(await readFile(file, "utf8"));
+  await writeFile(file, JSON.stringify({ ...raw, fetchedAt: stale, touchedAt: stale }));
+}
 const gradeJson = (client, options) =>
   json(() => gradeCommand(client, { ...options, json: true }));
 
@@ -126,8 +136,9 @@ test("an overruled miss is submitted as forgiven, not as recorded", async () => 
     const client = fakeClient();
     await json(() => queueCommand(client, { limit: 3 }));
 
-    // "parnet" — a typo the answer key can't forgive but a reader can.
-    const typo = await gradeJson(client, { subjectId: 3, answer: "parnet, shin" });
+    // "parrents" — two slips, past what the tolerance forgives on a word this
+    // short, and still plainly the right answer to a reader.
+    const typo = await gradeJson(client, { subjectId: 3, answer: "parrents, shin" });
     assert.equal(typo.meaning, "incorrect");
     await gradeJson(client, { subjectId: 3, forgive: "meaning" });
 
@@ -226,6 +237,25 @@ test("resending both halves after the question still works", async () => {
   });
 });
 
+test("re-fetching over a graded batch is refused, and says which call to make", async () => {
+  // The session that needed this graded six items, called `queue` instead of
+  // `submit-batch`, got the same ten back — nothing is pruned until it's
+  // submitted — and concluded the API was lagging. Thirty answers later it had
+  // submitted none of them.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+
+    await assert.rejects(() => queueCommand(client, { limit: 3 }), /submit-batch/);
+    assert.deepEqual(
+      await loadGrades(),
+      { 100: { wrongMeaning: 1, wrongReading: 1 } },
+      "the refused fetch left the record alone",
+    );
+  });
+});
+
 test("asking an item again discards what an earlier attempt recorded for it", async () => {
   // The failure this prevents: a sitting abandoned mid-batch left grades on
   // disk, the same items were answered correctly an hour later, and
@@ -237,12 +267,29 @@ test("asking an item again discards what an earlier attempt recorded for it", as
     await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
     assert.deepEqual(await loadGrades(), { 100: { wrongMeaning: 1, wrongReading: 1 } });
 
-    await json(() => queueCommand(client, { limit: 3 }));
+    await json(() => queueCommand(client, { limit: 3, restart: true }));
 
     assert.deepEqual(await loadGrades(), {}, "the re-ask supersedes the abandoned attempt");
     const out = await json(() => submitBatchCommand(client));
     assert.match(out.summaryLine, /Nothing submitted/);
     assert.deepEqual(client.submitted, [], "nothing goes in that this sitting didn't grade");
+  });
+});
+
+test("a stale sitting's leftovers are dropped without asking", async () => {
+  // The refusal is about answers given minutes ago, which are still worth
+  // submitting. An abandoned sitting is the other case entirely: the fetch
+  // that follows it is a new day's, and there's nothing there to protect.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+    await ageTheSitting(3 * 60);
+
+    const batch = await json(() => queueCommand(client, { limit: 3 }));
+
+    assert.equal(batch.length, 3, "no refusal, and a fresh batch");
+    assert.deepEqual(await loadGrades(), {});
   });
 });
 
@@ -252,12 +299,33 @@ test("a fresh answer after a re-ask is the one that counts", async () => {
     await json(() => queueCommand(client, { limit: 3 }));
     await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
 
-    await json(() => queueCommand(client, { limit: 3 }));
+    await json(() => queueCommand(client, { limit: 3, restart: true }));
     await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
     await json(() => submitBatchCommand(client));
 
     assert.deepEqual(client.submitted, [
       { assignmentId: 100, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
+    ]);
+  });
+});
+
+test("an item answered once doesn't get graded a second time", async () => {
+  // Handing over the answer and taking it back is the failure mode: one
+  // session followed six corrections with "try X?", the user typed X, and the
+  // ✓ it printed contradicted the miss still sitting on the record.
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await json(() => queueCommand(client, { limit: 3 }));
+    await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
+
+    const second = await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
+
+    assert.ok(second.alreadyAnswered, "no verdict on an answer to a settled item");
+    assert.match(second.say, /--forgive meaning/);
+    assert.deepEqual(await loadGrades(), { 100: { wrongMeaning: 1, wrongReading: 1 } });
+    await json(() => submitBatchCommand(client));
+    assert.deepEqual(client.submitted, [
+      { assignmentId: 100, incorrectMeaningAnswers: 1, incorrectReadingAnswers: 1 },
     ]);
   });
 });

@@ -104,6 +104,22 @@ test("grade's flags reach the command, and the answer round-trips through argv",
   });
 });
 
+test("queue refuses to bin a graded batch, and --restart is how you mean it", async () => {
+  await withWarmCache(async (wk) => {
+    await wk("grade", "3", "wrong, mi");
+
+    await assert.rejects(() => wk("queue", "--limit", "1"), (err) => {
+      assert.equal(err.code, 1);
+      assert.match(err.stderr, /1 answer graded and not submitted/);
+      assert.match(err.stderr, /submit-batch/);
+      return true;
+    });
+
+    const batch = JSON.parse((await wk("queue", "--limit", "1", "--restart")).stdout);
+    assert.equal(batch.length, 1, "and the deliberate version goes through");
+  });
+});
+
 test("a --forgive it can't act on is refused rather than guessed at", async () => {
   await withWarmCache(async (wk) => {
     await assert.rejects(() => wk("grade", "3", "--forgive", "everything"), (err) => {

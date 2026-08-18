@@ -141,10 +141,15 @@ is graded as the reading it was waiting for, so answering in two turns costs
 nothing.
 
 Each verdict goes straight onto the sitting's record, so `submit-batch`
-submits what was actually graded rather than a tally kept by hand. Asking an
-item again clears whatever it had recorded — an abandoned attempt shouldn't
-submit itself later against answers nobody gave — so the record only ever
-holds grades made since the item was last asked;
+submits what was actually graded rather than a tally kept by hand. Once an item
+is settled it stays settled: a second answer to it is refused rather than
+graded again, since the correction has already shown the answer and attempts
+add up rather than replacing one another — a ✓ typed back from the reveal would
+sit on top of the miss it appeared to cancel. Asking an item *again* — a fresh
+`queue` — does clear what it had recorded, because an abandoned attempt
+shouldn't submit itself later against answers nobody gave; and while a batch
+holds graded, unsubmitted answers, `queue` refuses to re-serve at all and says
+to submit first (`--restart` bins them on purpose).
 `grade <id> --forgive meaning` takes a miss back when the answer key was
 overruled. That record lives with the queue order, which ages out after 30
 minutes *idle* — a sitting that's still being worked stays alive however long
@@ -161,13 +166,21 @@ otherwise being done in prose nine items into a batch.
 That's deliberate: the rules below are a lookup table, and a lookup table
 interpreted afresh on every answer is a lookup table that eventually gets
 one wrong — which is how 親 answered "parent, oya" once cost an SRS level.
-What's left to judgment is whether "labratory" was a typo and whether a
-synonym is fair, which is the part a person (or a model) is actually better
-at than a table.
+What's left to judgment is whether a mangling well past a typo was meant as
+the right answer and whether a synonym is fair, which is the part a person (or
+a model) is actually better at than a table.
 
 - **Meaning**: case/whitespace-insensitive match against the subject's
   accepted meanings plus whitelisted auxiliary meanings; blacklisted
   auxiliary meanings (things that look right but aren't) are always rejected.
+- **A typo in a meaning is forgiven**, the way the website forgives one:
+  nothing on a word of three letters or fewer, one edit up to seven, two
+  beyond that, with a swap of adjacent letters counting as one edit rather
+  than two. So "goverment official" and "pubilc official" are correct, and
+  "officer" still isn't. Exact matches settle it first in both directions;
+  only then is distance measured, and the nearest meaning wins, so a slip on a
+  blacklisted meaning is still that meaning unless the answer is closer to one
+  the item accepts.
 - **Reading**: romaji input is converted to kana (via
   [wanakana](https://www.npmjs.com/package/wanakana)) before matching against
   the subject's accepted readings. The `dzu`/`dzi`/`dji` spellings of づ/ぢ are
@@ -205,7 +218,7 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
-| `queue [--limit N] [--answers]` | Due reviews as JSON: questions and ids, no answers. `--answers` restores the key for debugging |
+| `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
@@ -283,8 +296,10 @@ Two files live in `~/.cache/wanikani-cli` (override the location with
 - `queue-order.json` — the shuffled order of the reviews due in the current
   session, so a second `queue --limit 10` slices the next ten rather than
   re-fetching every due assignment. Submitting removes items from it;
-  anything answered but not submitted stays put and comes back around. The
-  order expires after 30 minutes, and is re-fetched whenever it runs dry.
+  anything answered but not submitted stays put and comes back around, as does
+  anything left mid-question — an unanswered re-prompt is not submitted as a
+  clean pass. The order expires after 30 minutes, and is re-fetched whenever it
+  runs dry.
 
 Assignment, review, and summary data are otherwise always fetched live.
 
