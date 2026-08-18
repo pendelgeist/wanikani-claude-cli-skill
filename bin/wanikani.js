@@ -14,6 +14,7 @@ import { gradeCommand } from "../lib/commands/grade.js";
 import { gradeManyCommand } from "../lib/commands/gradeMany.js";
 import { promptsCommand } from "../lib/commands/prompts.js";
 import { tipsCommand } from "../lib/commands/tips.js";
+import { statusCommand } from "../lib/commands/status.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { startCommand } from "../lib/commands/start.js";
@@ -52,6 +53,9 @@ Commands:
   explain <id|characters> [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request
+  status [--json]       What the current sitting's record holds — how much of the batch is
+                        answered, how much is waiting to be sent, what to call next.
+                        Local, so it answers when the API doesn't
   tips                  Everything you can say during a session, all at once
   grade <subjectId> "<their answer>" [--meaning M] [--reading R] [--forgive meaning|reading] [--json]
                         Grade one answer. Prints the line to say, and records the miss
@@ -80,6 +84,7 @@ const COMMANDS = new Set([
   "queue",
   "prompts",
   "explain",
+  "status",
   "tips",
   "grade",
   "grade-many",
@@ -117,8 +122,8 @@ async function main() {
     return;
   }
 
-  // Both of these come before the client, because neither is about the
-  // account: a typo'd command name and the tip sheet should answer for
+  // These come before the client, because none of them is about the account: a
+  // typo'd command name, the tip sheet and the local record should answer for
   // themselves rather than demanding a token first.
   if (!COMMANDS.has(command)) {
     console.error(`Unknown command: ${command}\n`);
@@ -127,8 +132,17 @@ async function main() {
     return;
   }
 
+  // Neither of these is about the account, and both are most wanted when
+  // something else has gone wrong — a broken token shouldn't be the reason you
+  // can't ask what's on the record.
   if (command === "tips") {
     await tipsCommand();
+    return;
+  }
+
+  if (command === "status") {
+    const { values } = parseArgs({ args: rest, options: { json: { type: "boolean" } } });
+    await statusCommand(values);
     return;
   }
 

@@ -31,6 +31,7 @@ test("the CLI runs and prints its usage", async () => {
     "grade",
     "grade-many",
     "explain",
+    "status",
     "tips",
     "submit-batch",
   ]) {
@@ -43,6 +44,17 @@ test("an unknown command says so and exits non-zero", async () => {
     assert.equal(err.code, 1);
     assert.match(err.stderr, /Unknown command: nonsense/);
     return true;
+  });
+});
+
+test("status runs without a token, because that's when it gets asked", async () => {
+  await withWarmCache(async (wk, { env }) => {
+    const { stdout } = await run(process.execPath, [CLI, "status"], {
+      env: { ...env, WANIKANI_API_TOKEN: "" },
+    });
+
+    assert.match(stdout, /Sitting: 1 still due/);
+    assert.match(stdout, /Nothing reaches WaniKani until `submit-batch`/);
   });
 });
 
