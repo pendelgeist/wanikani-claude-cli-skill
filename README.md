@@ -70,16 +70,34 @@ Optionally `npm link` to get a `wanikani` command on your `$PATH`.
 Open this repo in Claude Code and ask it to do your WaniKani reviews (or use
 `/wanikani` if it's registered as a slash command). See
 [`.claude/skills/wanikani/SKILL.md`](.claude/skills/wanikani/SKILL.md) for
-what it does: it calls `wanikani queue --limit 10` to get a batch of due
-reviews — the questions only, no answers, and a note in the payload saying
-where grading actually happens — grades each reply through `wanikani grade`, applying its own judgment on typos and phrasing where the
-answer key can't, then
-submits the whole batch in one `wanikani submit-batch` call before fetching
-the next 10 — so a 600-review session is a couple dozen tool calls, not
-hundreds. You can answer meaning and reading together in one line (e.g.
-"fur, ke"), it auto-advances to the next item without needing you to say
-"next", and it links out to [Jisho](https://jisho.org/) on anything you get
-wrong so you can dig into it right away.
+what it does — which is very little, deliberately. The whole review loop is
+two commands:
+
+```
+wanikani ask                            # prints the question that's waiting
+wanikani answer "<your whole reply>"    # prints the verdict and the next question
+```
+
+`ask` fetches a batch when there isn't one, re-asks the open item when there
+is, and submits a finished batch before serving the next. `answer` grades
+against whatever is open. Neither takes an id, and nothing about the batch is
+held in the conversation — it lives in a file, so a sitting survives a new
+session walking into the middle of it, and a 600-review session is a couple
+dozen tool calls rather than hundreds.
+
+That shape is the result of several sittings' worth of things going wrong.
+Every decision left to the model eventually got made wrong — which of ten
+subject ids this reply belongs to, whether the batch was exhausted, whether
+it was time to submit — so those decisions were moved into the CLI one at a
+time until there were none left. What remains in the skill is five rules
+about what it says and what it passes along, and
+[`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) records what each one
+cost before it was a rule.
+
+You can answer meaning and reading together in one line (e.g. "fur, ke"), it
+auto-advances without needing you to say "next", and it links out to
+[Jisho](https://jisho.org/) on anything you get wrong so you can dig into it
+right away.
 
 Once you've got a rhythm, one item per message is the slow part, so say
 **"rapid fire"** (or just answer a few at once) and the rest of the batch
@@ -238,6 +256,8 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
+| `ask [--limit N]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next |
+| `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
