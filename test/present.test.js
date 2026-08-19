@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { promptFor, correctionsFor, readingNudgeFor, explainBlock, batchSummaryLine } from "../lib/present.js";
+import {
+  promptFor,
+  promptListFor,
+  correctionsFor,
+  readingNudgeFor,
+  explainBlock,
+  batchSummaryLine,
+} from "../lib/present.js";
 
 const KANJI = {
   characters: "親",
@@ -37,20 +44,40 @@ const RADICAL = {
   meanings: [{ meaning: "Hook", primary: true, accepted_answer: true }],
 };
 
-test("promptFor is the number and the characters, nothing else", () => {
-  assert.equal(promptFor(VOCAB, 3), "3. 心強い");
-  assert.equal(promptFor(VOCAB, null), "心強い");
+const RADICAL_WITH_GLYPH = { ...RADICAL, characters: "亅", characterImageUrl: null };
+
+test("promptFor is the number, the characters, and the question — nothing else", () => {
+  assert.equal(promptFor(VOCAB, 3), "3. 心強い — meaning & reading?");
+  assert.equal(promptFor(VOCAB, null), "心強い — meaning & reading?");
+});
+
+test("promptFor asks a meaning-only item for the meaning alone", () => {
+  assert.equal(promptFor(RADICAL_WITH_GLYPH, 4), "4. 亅 — meaning?");
+  assert.equal(promptFor({ ...VOCAB, subjectType: "kana_vocabulary" }, 4), "4. 心強い — meaning?");
+});
+
+test("promptFor takes the item's own word for it over the type, where it has one", () => {
+  // `queue` items carry `needsReading`; a bare subject view doesn't, and the
+  // type answers it. Neither shape gets the wrong question.
+  assert.match(promptFor({ characters: "亅", needsReading: true }, 1), / — meaning & reading\?$/);
+  assert.match(promptFor({ characters: "亅", subjectType: "radical" }, 1), / — meaning\?$/);
 });
 
 test("promptFor never carries the meaning that is being asked for", () => {
-  const prompt = promptFor(VOCAB, 1);
+  // The tail is the one piece of English allowed here, and it is the same
+  // string every time — so take it off and nothing Latin may remain.
+  const prompt = promptFor(VOCAB, 1).replace(/ — meaning( & reading)?\?$/, "");
   assert.doesNotMatch(prompt, /[A-Za-z(]/, "a Latin letter or bracket here would be the answer");
 });
 
 test("promptFor shows a glyph-less radical as a bare image URL, never a description", () => {
   // Markdown image syntax doesn't render in a terminal, and an un-rendered
   // one invites naming the radical instead — "Rib Cage image" is the answer.
-  assert.equal(promptFor(RADICAL, 2), "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png");
+  assert.equal(
+    promptFor(RADICAL, 2),
+    "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png — meaning?",
+    "the tail sits after the URL, where the space that ends it keeps it clickable",
+  );
   assert.doesNotMatch(promptFor(RADICAL, 2), /Hook/i);
   assert.doesNotMatch(promptFor(RADICAL, 2), /wanikani\.com\/radicals/, "the document URL slug is the name");
 });
@@ -227,4 +254,15 @@ test("the summary line says what becomes of anything that failed to submit", () 
 
 test("a clean batch gets no second line at all", () => {
   assert.doesNotMatch(batchSummaryLine({ submitted: 10, perfect: 10 }), /\n/);
+});
+
+test("a stacked batch asks the question once underneath, not on all ten lines", () => {
+  const block = promptListFor([
+    { ...KANJI, position: 1 },
+    { ...RADICAL_WITH_GLYPH, position: 2 },
+  ]);
+
+  assert.match(block, /^1\. 親$/m, "ten copies of the tail down the left is the noise it was left off to avoid");
+  assert.match(block, /^2\. 亅$/m);
+  assert.match(block, /meaning and reading together on each/, "the convention line asks for all of them at once");
 });

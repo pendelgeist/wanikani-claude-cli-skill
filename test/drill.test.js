@@ -89,7 +89,7 @@ test("the drill asks the questions and hands over no answers", async () => {
 
     const [item] = JSON.parse(await captureStdout(() => drillCommand(client)));
 
-    assert.equal(item.prompt, "1. 親");
+    assert.equal(item.prompt, "1. 親 — meaning & reading?");
     assert.equal(item.subjectId, 3);
     assert.match(item.drill, /none of these are due and none of them submit/);
     assert.doesNotMatch(JSON.stringify(item), /Parent|しん/, "no answer, in any field");
