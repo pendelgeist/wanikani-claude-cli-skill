@@ -91,14 +91,13 @@ for.
 
 1. `queue --limit 10`
 2. Print the first item's `convention` if it has one.
-3. Print `item.prompt` — all of it, including the `— meaning & reading?` it
-   already ends with. Stop. Wait.
-4. `grade <subjectId> "<their whole reply>"`. Print what it prints — for a
-   closed answer that's the verdict *and* the next item's prompt, which is the
-   whole message, and it stays the whole message however much of it the tool
-   output has already shown you. `open: true` → the same item is still waiting, and the
-   output stops at `say`. Asked for "more" → `explain`, but only because they
-   asked.
+3. Print `item.prompt`. Stop. Wait.
+4. `grade <subjectId> "<their whole reply>"`. **Then say nothing.** It has
+   already printed the whole message — the verdict, and under it the next
+   item's prompt — and that output is on the user's screen. End your turn
+   there, with no text of your own. `open: true` → the same item is still
+   waiting, and the output stops at `say`; still nothing to add. Asked for
+   "more" → `explain`, but only because they asked.
 5. After the last item: `submit-batch`.
 6. Print `summaryLine`. Ask whether to continue.
 
@@ -106,74 +105,90 @@ Steps 3 and 4 have a whole-batch form — `prompts` and `grade-many`, once
 they've asked for it. See *Rapid-fire* below; everything else on this page
 applies to it unchanged.
 
-`convention`, `prompt`, the block from `prompts`, `grade`'s and `grade-many`'s
-verdict lines, `summaryLine`, and the blocks from `explain` and `tips` are all
-finished strings. **Print them as they are** — don't compose your own, don't
-append, don't paraphrase. Every one of them has been got wrong in a real
-session by being written out by hand instead.
+### What to say, and when to say nothing
+
+One line decides it: **what the CLI printed as plain text is already said.
+What it handed back as JSON is data, and the finished string inside it is
+yours to print.**
+
+- **JSON — read it, print the string it gives you.** `queue` (`convention`,
+  `prompt`) and `submit-batch` (`summaryLine`). These are buried in a payload;
+  nobody has seen them yet.
+- **Plain text — it is on the screen already. Add nothing.** `grade`,
+  `grade-many`, `prompts`, `explain`, `tips`, `status`. Run the command; that
+  *is* the message. Re-typing it is where it gets rewritten, and the empty
+  turn is not rudeness — it is the question standing where the CLI put it.
+
+`convention`, `prompt`, `summaryLine` and the blocks are all finished strings
+either way: **never compose your own, never append, never paraphrase.** Every
+one of them has been got wrong in a real session by being written out by hand.
+
+**Why step 4 is an empty turn, in full.** It was "print what it prints" for a
+long time, and what came back instead was: a paraphrase of the correction
+with the lookup link dropped; then, when the correction was left alone, a bare
+`—meaning and reading?` on thirty consecutive items with the glyph left behind
+in the tool output; then, once the prompt was made to arrive as a complete
+question, *the answer to it*. That last sitting typed `complete, sei` under 成,
+`wave` under 㠯, `effort, dou` under 働 — and on 㠯 the user answered `bear.`,
+correctly, and the session passed its own `wave` to `grade` and recorded a
+miss on an item they had right. Every one of those is the same slot being
+filled with something. The fix is that there is no slot: **after `grade`, your
+message is empty.**
 
 **Rules that apply to every item, no exceptions — check each reply against
 these before sending, not just the first one:**
 
-- **`item.prompt` is the entire question — and it now ends in the question
-  it's asking.** `1. 昔 — meaning & reading?`, or `— meaning?` on a radical or
-  kana vocabulary. That tail is part of the string; it is not an invitation to
-  add another. The tail was tried in four spellings before it was moved into
-  the CLI — `— meaning & reading?`, `— meaning + reading?`, `— meaning and
-  reading?` on all twenty prompts of one session, and `—meaning and reading?`
-  through a thirty-item sitting — so it is issued from one place now and the
-  wording is not yours to pick. Nothing before it, nothing after it: no gloss,
-  no type label, no example answer (`(e.g. "side, yoko")` opened one session by
-  answering its own first item). `取 (take)` hands over the answer; so do
-  `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference that the
-  gloss is short, obvious or "just for clarity", because the meaning *is* what
-  you're about to grade. Nothing goes in front either — `Batch 1/10. Starting:`
-  is a preamble, and the number in the prompt is already the progress marker.
-- **Send the whole prompt, not just the tail.** The failure that put the tail
-  in the CLI was not the wording: it was thirty consecutive messages that read
-  `—meaning and reading?` and nothing else, because the prompt had already gone
-  past in the tool output and re-printing it felt redundant. It isn't. The tool
-  output is the CLI talking to you; your message is the question the user is
-  answering, and a question with no item in it can't be answered. **The item's
-  own line being visible on screen somewhere is not a reason to drop it.** Same
-  for the verdict above it.
+- **`item.prompt` is the entire question. Nothing before it, nothing after
+  it.** The tail has now been tried in four spellings — `— meaning & reading?`,
+  `— meaning + reading?`, `— meaning and reading?` on all twenty prompts of one
+  session, `—meaning and reading?` on all thirty of another — and then issued
+  from the CLI for one release, which was worse: a prompt that arrives as a
+  finished question gets *answered* by the session that is supposed to be
+  asking it. So the rule is the shape, not the wording: the message ends where
+  `prompt` ends. No gloss, no type label, no example answer (`(e.g. "side,
+  yoko")` opened one session by answering its own first item). `取 (take)` hands
+  over the answer; so do `心持ち (mindset)` and `ユ (Hook radical)`, and it makes
+  no difference that the gloss is short, obvious or "just for clarity", because
+  the meaning *is* what you're about to grade. Nothing goes in front either —
+  `Batch 1/10. Starting:` is a preamble, and the number in the prompt is
+  already the progress marker.
 - **A glyph-less radical's `prompt` is an image URL. Print the URL** — the
-  whole one, live and clickable, tail and all. `7. Rib Cage image` names the
-  radical, which is the answer; `9. [radical image]` doesn't name it but
-  doesn't *show* it either, and the sitting that sent that had the item missed
-  by a user who never saw the picture. A null `prompt` means there was no image
-  either: say so and skip the item rather than describing it.
-- **Every mid-batch message is the same two lines: a short verdict for the
-  item they just answered, then the next prompt — and the prompt is last,
-  full stop.** Nothing follows it: no answer, no guess at their answer, no
-  hint. Send it, end your turn, wait. This holds when you know the answer
-  cold, when the same item came up minutes ago (a `queue` call before the
-  last batch was submitted hands back the same items), and on item 10 of 10.
-  Recognising an item is not permission to fill it in: in one session item 4
-  was printed, answered and graded inside a single message, so 当たり went in
-  as a perfect score for a question nobody was ever asked. If you find
-  yourself writing anything in the shape the user has been typing — a
-  meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
-  before sending. That includes glossing the item you're about to ask about:
-  `2. 転 — revolve, twist, turn over. Meaning + reading?` is the answer and a
-  second, hand-typed tail wrapped around the one line that was already
-  finished.
-  (The one exception: when `grade` comes back `open: true` the message ends
-  with its `say`, because the item hasn't been answered yet and its prompt is
-  still standing. Rapid-fire keeps the same shape at batch scale — the verdict
-  lines, then the list of what's still open, and the list is last.)
-- **What you say about a wrong answer is `grade`'s `say`, not your own
-  words — and `grade` now prints the whole message, so there is nothing left
-  to compose.** After a closed answer its output is the verdict, a blank line,
-  and the next item's prompt: send that block, end your turn. This exists
-  because composing the message around the line is where the line gets
-  rewritten. One sitting did it on all eleven of its misses — `Reading is
-  tsugi.` for `つぎ`, `Meaning is Parent, reading oya.` for `おや`, `reading
-  zo` for `ぞう`, which is also just wrong — and dropped every lookup link on
-  the way. Nothing in those messages was worth the typing: the CLI had already
-  said it, in kana, with the link.
+  whole one, live and clickable. `7. Rib Cage image` names the radical, which
+  is the answer; `9. [radical image]` doesn't name it but doesn't *show* it
+  either, and the sitting that sent that had the item missed by a user who
+  never saw the picture. A null `prompt` means there was no image either: say
+  so and skip the item rather than describing it.
+- **There is no mid-batch message.** `grade` prints the verdict and the next
+  prompt itself, to the screen, and step 4 above is an empty turn — so
+  mid-batch there is nothing of yours to get wrong. What this rule is really
+  guarding is the thing that keeps refilling that gap: **never write the
+  answer to a prompt.** Not as a guess, not as a hint, not as "I think this
+  one is". This holds when you know the answer cold, when the same item came
+  up minutes ago (a `queue` call before the last batch was submitted hands
+  back the same items), and on item 10 of 10. Recognising an item is not
+  permission to fill it in. Two sittings show the cost: one printed, answered
+  and graded item 4 inside a single message, so 当たり went in as a perfect
+  score for a question nobody was ever asked; a later one typed its own answer
+  under four prompts in a row, and on 㠯 the user answered `bear.` — correct —
+  while `grade 8777 "wave"` went out carrying the session's own guess, and the
+  miss it recorded was on an item the user had right. **If the user has typed
+  a reply, that reply is the only thing that can go into `grade`.** If you find
+  yourself writing anything in the shape they have been typing — a meaning,
+  kana, romaji, "meaning, reading" — stop, delete it, and end the turn empty.
+- **You say nothing about a wrong answer.** `grade` has already said it, on
+  screen, in kana, with the lookup link — the verdict, a blank line, and the
+  next item's prompt. There is no summary of it to write, no gloss to add and
+  no "so close" in front. This has its own rule because composing a message
+  *around* the line is where the line gets rewritten. One sitting did it on
+  all eleven of its misses — `Reading is tsugi.` for `つぎ`, `Meaning is
+  Parent, reading oya.` for `おや`, `reading zo` for `ぞう`, which is also just
+  wrong — and dropped every lookup link on the way. A later one compressed
+  them instead: `✗ (rib cage)`, `✗ (expected "to work well / be effective",
+  reading きく)`, and again not one link reached the screen.
 
-  The rest of the rule stands for everything the block doesn't cover: Writing the correction by hand is where romaji gets in:
+  The rest of the rule stands wherever you are writing in your own words at
+  all — between batches, in a recap, answering a question. Writing a correction
+  by hand is where romaji gets in:
   `should be "kaeru", not "sasaeru"` and `should be "shin", not "mi"` are
   both from real sessions, and so is `つぎつぎ is "tsugitsugu"` — romaji *and*
   misspelt, because it was transliterated from memory instead of read from
@@ -203,7 +218,7 @@ these before sending, not just the first one:**
   is already on the record, and WaniKani doesn't offer one either), it reads to
   the user as a recovery that didn't happen, and in one case the session typed
   the retry *itself* — `grade 761 "ka"` — right after being told to submit as
-  is. Print the correction, move to the next prompt.
+  is. The correction is already on screen; the next prompt is under it. Move on.
 
   **And the retry is usually a hand-over as well**, which is what makes it
   worth its own paragraph. The correction *contains the answer* — that's its
@@ -272,8 +287,7 @@ background reading.
 3. **Ask, then let the CLI grade.** The first item of a sitting carries
    `convention`; the CLI decides when, so there's nothing to remember or
    suppress. After that it's `prompt` and nothing else, including for the
-   meaning-only items (radicals, kana_vocabulary) — the prompt asks those for
-   `— meaning?` on its own, so there is nothing to add there either. When they answer:
+   meaning-only items (radicals, kana_vocabulary). When they answer:
 
    ```
    node bin/wanikani.js grade <subjectId> "parent, oya"
@@ -295,20 +309,32 @@ background reading.
    what they typed and let the verdict come back.
 
    Copy the line; the CLI knows what to do with it. What comes back is **the
-   line to say**, and saying it is the whole job:
+   whole message, already printed** — a verdict, and under it the next item's
+   prompt:
 
    ```
    ✓
+
+   4. 働
+   ```
+   ```
    ✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
+   (recorded — next item)
+
+   4. 働
+   ```
+   ```
    That's a real reading, but WaniKani wants the on'yomi here — try again.
    (same item — still their turn)
    ```
 
-   Print it. Don't restate it, don't translate the kana, don't add a romaji
-   gloss in brackets: `Reading: かる (karu)`, `correct is どうろ (douro)` and
-   `correct is え (e)` are all from one session where the right line was
-   printed by the CLI and retyped by hand anyway, and one of them came out
-   misspelt. The kana is the answer; the romaji is noise.
+   **Say nothing after it.** Not a restatement, not a translation of the kana,
+   not a romaji gloss in brackets — `Reading: かる (karu)`, `correct is どうろ
+   (douro)` and `correct is え (e)` are all from one session where the right
+   line was printed by the CLI and retyped by hand anyway, and one of them came
+   out misspelt. And not a shorter version either: `✗ (rib cage)` is a
+   correction with the link amputated. The output is the message; your turn
+   ends empty.
 
    `(same item — still their turn)` means end your turn there and grade their
    next reply against the same item. A line starting `!` is a problem to read,
@@ -367,8 +393,9 @@ background reading.
 
 6. **"more" pulls up the item info — only when asked.** "more", "details",
    "why", "mnemonic", "tell me about that one", a bare "?" → run
-   `node bin/wanikani.js explain <subjectId>`, print the block as-is, then
-   re-print the open prompt so the batch picks up where it was.
+   `node bin/wanikani.js explain <subjectId>`. The block prints itself — add
+   nothing to it — then print the open item's `prompt` from the payload, so
+   the batch picks up where it was.
 
    - **Run it — don't answer from memory, and don't decide there's nothing to
      show.** "Don't have mnemonic for that one", "No mnemonic on file" and a
@@ -386,10 +413,10 @@ background reading.
      earlier. `explain` holds what WaniKani teaches about the item; the record
      holds what happened to it. Both are one call away, and neither is in your
      head.
-   - **Print the block, don't re-typeset it.** A later session ran `explain`
-     properly and then rewrote its output with romaji in brackets — `かる
-     (karu)`, `ぶつ (butsu)`, `けってん (kettten)`, that last one misspelt.
-     The block is finished text.
+   - **Don't re-typeset the block.** A later session ran `explain` properly
+     and then rewrote its output with romaji in brackets — `かる (karu)`,
+     `ぶつ (butsu)`, `けってん (kettten)`, that last one misspelt. The block is
+     finished text, and it has already been printed by the command.
    - **Deflecting still isn't glossing.** When a "more" is unclear or belongs
      to an item you can't identify, ask which one — `Item 5 is フランス語
      (French language). Give meaning and reading?` answered the question it
@@ -403,12 +430,15 @@ background reading.
    - It also works between batches, after a session, and on characters
      (`explain 親`) rather than an id — which can match a kanji *and* a word,
      in which case it explains both and you print both.
-7. **Auto-advance within a batch**: right or wrong, say so briefly and move
-   into the next prompt in the same message — don't wait for "next". This
-   only skips that round-trip after grading a *real reply*; it is never
-   licence to answer the new prompt yourself. Pause only if they ask to slow
-   down ("wait", "hold on", "explain that one"), and treat that as standing
-   for the rest of the sitting. Between batches is different — see step 9.
+7. **Auto-advance within a batch**: `grade` prints the verdict and the next
+   prompt together, so the batch moves on by itself — don't wait for "next",
+   and don't announce the move. This only happens after grading a *real
+   reply*; it is never licence to answer the new prompt yourself, and the
+   sitting that did exactly that — its own guess typed under four prompts in a
+   row, one of them graded in place of the user's correct answer — is why step
+   4 ends the turn empty. Pause only if they ask to slow down ("wait", "hold
+   on", "explain that one"), and treat that as standing for the rest of the
+   sitting. Between batches is different — see step 9.
 8. **Submit the whole batch in one call.**
 
    ```
@@ -558,9 +588,9 @@ same. Two commands, and the point of both is that nothing is composed from
 memory:
 
 1. `node bin/wanikani.js prompts` — every still-unanswered item in the batch,
-   numbered as `queue` numbered it, as one block. Print it as it comes; the
+   numbered as `queue` numbered it, as one block. It prints itself — the
    how-to line under it is part of it, and the CLI decides when to include it
-   (once a sitting), so there's nothing to remember or suppress.
+   (once a sitting), so there's nothing to remember, suppress, or repeat.
 2. They answer them in one message, separated by `|`.
 3. `node bin/wanikani.js grade-many "<their whole line>"` — the reply goes in
    **verbatim**, same as `grade`: don't tidy it, don't reorder it, don't drop
@@ -591,8 +621,8 @@ which is the same request. It holds for the rest of the sitting, the way
 "wait" holds the other way; "one at a time" turns it off. You may offer it
 once, between batches, in a clause — never mid-batch, and never twice.
 
-**What doesn't change.** The verdict lines are `grade-many`'s, printed as they
-come, kana and links intact. A miss is still a miss with no retry. The batch
+**What doesn't change.** The verdict lines are `grade-many`'s own, on screen
+already, kana and links intact — nothing of yours goes under them. A miss is still a miss with no retry. The batch
 still ends at `submit-batch`, and you still ask before starting the next one.
 
 ## Telling them what it can do

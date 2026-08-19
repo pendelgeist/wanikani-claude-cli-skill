@@ -46,40 +46,32 @@ const RADICAL = {
 
 const RADICAL_WITH_GLYPH = { ...RADICAL, characters: "亅", characterImageUrl: null };
 
-test("promptFor is the number, the characters, and the question — nothing else", () => {
-  assert.equal(promptFor(VOCAB, 3), "3. 心強い — meaning & reading?");
-  assert.equal(promptFor(VOCAB, null), "心強い — meaning & reading?");
+test("promptFor is the number and the characters, nothing else", () => {
+  assert.equal(promptFor(VOCAB, 3), "3. 心強い");
+  assert.equal(promptFor(VOCAB, null), "心強い");
 });
 
-test("promptFor asks a meaning-only item for the meaning alone", () => {
-  assert.equal(promptFor(RADICAL_WITH_GLYPH, 4), "4. 亅 — meaning?");
-  assert.equal(promptFor({ ...VOCAB, subjectType: "kana_vocabulary" }, 4), "4. 心強い — meaning?");
-});
-
-test("promptFor takes the item's own word for it over the type, where it has one", () => {
-  // `queue` items carry `needsReading`; a bare subject view doesn't, and the
-  // type answers it. Neither shape gets the wrong question.
-  assert.match(promptFor({ characters: "亅", needsReading: true }, 1), / — meaning & reading\?$/);
-  assert.match(promptFor({ characters: "亅", subjectType: "radical" }, 1), / — meaning\?$/);
+test("promptFor asks no question of its own, on any item type", () => {
+  // The tail lived here for one release. A prompt that arrived as a finished
+  // question got answered by the session that was supposed to be asking it —
+  // four items in five — so the prompt is a fragment again, and there is
+  // nothing here for a reader to mistake for a question addressed to them.
+  for (const item of [VOCAB, KANJI, RADICAL_WITH_GLYPH, { ...VOCAB, subjectType: "kana_vocabulary" }]) {
+    assert.doesNotMatch(promptFor(item, 1), /meaning|reading|\?/i);
+  }
 });
 
 test("promptFor never carries the meaning that is being asked for", () => {
-  // The tail is the one piece of English allowed here, and it is the same
-  // string every time — so take it off and nothing Latin may remain.
-  const prompt = promptFor(VOCAB, 1).replace(/ — meaning( & reading)?\?$/, "");
+  const prompt = promptFor(VOCAB, 1);
   assert.doesNotMatch(prompt, /[A-Za-z(]/, "a Latin letter or bracket here would be the answer");
 });
 
 test("promptFor shows a glyph-less radical as a bare image URL, never a description", () => {
   // Markdown image syntax doesn't render in a terminal, and an un-rendered
   // one invites naming the radical instead — "Rib Cage image" is the answer.
-  assert.equal(
-    promptFor(RADICAL, 2),
-    "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png — meaning?",
-    "the tail sits after the URL, where the space that ends it keeps it clickable",
-  );
+  assert.equal(promptFor(RADICAL, 2), "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png");
   assert.doesNotMatch(promptFor(RADICAL, 2), /Hook/i);
-  assert.doesNotMatch(promptFor(RADICAL, 2), /wanikani\.com\/radicals/, "the document URL slug is the name");
+  assert.doesNotMatch(promptFor(RADICAL, 2), /!\[/);
 });
 
 test("promptFor gives up rather than inventing a prompt with no glyph or image", () => {
@@ -256,7 +248,7 @@ test("a clean batch gets no second line at all", () => {
   assert.doesNotMatch(batchSummaryLine({ submitted: 10, perfect: 10 }), /\n/);
 });
 
-test("a stacked batch asks the question once underneath, not on all ten lines", () => {
+test("a stacked batch is prompts and the how-to line, and no questions of its own", () => {
   const block = promptListFor([
     { ...KANJI, position: 1 },
     { ...RADICAL_WITH_GLYPH, position: 2 },
