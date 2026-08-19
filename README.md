@@ -251,9 +251,12 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 
 The CLI hands back finished strings rather than raw data to assemble, and —
 since a session that *can* grade by hand eventually will — it no longer hands
-over the answers at all. `queue` gives each item a `prompt` (`"1. 心強い"`, or
-the inline image for a radical with no glyph) and the ids to act on it;
-`grade` holds the key and returns the line to print. With `--answers`, for
+over the answers at all. `queue` gives each item a `prompt` (`"1. 心強い — meaning & reading?"`, or the
+image URL for a radical with no glyph, and `— meaning?` on anything that takes
+no reading) and the ids to act on it; `grade` holds the key and returns the
+line to print. The question rides on the prompt because leaving it off didn't
+keep it away — four sittings composed their own tail, in four spellings, and
+the last of them sent the tail without the item in front of it. With `--answers`, for
 debugging, the old shape comes back: `corrections` — `meaning`, `reading` and
 `both`, one finished line each, kana copied straight from the answer key, the
 reading labelled with its type for a kanji, and a lookup link welded onto the

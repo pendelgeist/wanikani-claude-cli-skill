@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   requiresReading,
+  splitAnswer,
   isMeaningCorrect,
   isReadingCorrect,
   readingCandidates,
@@ -270,4 +271,41 @@ test("a long vowel typed twice is the same reading, not a different one", () => 
     assert.equal(isReadingCorrect(typed, page), true, typed);
   }
   assert.equal(isReadingCorrect("peji", page), false, "a short vowel is still a different word");
+});
+
+test("a meaning-only item takes a volunteered reading off an otherwise correct answer", () => {
+  // 令 was asked for its meaning alone and answered "orders. rei", because
+  // "meaning, reading" is the habit of the sitting and it doesn't switch off
+  // for one item in ten. Grading the whole line as the meaning made a right
+  // answer a miss.
+  const radical = {
+    characters: "令",
+    meanings: [{ meaning: "Orders", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  for (const typed of ["orders. rei", "orders, rei", ".orders. rei", "orders / rei"]) {
+    const split = splitAnswer(typed, radical, false);
+    assert.equal(split.reading, null, "a meaning-only item still grades no reading");
+    assert.equal(isMeaningCorrect(split.meaning, radical), true, typed);
+  }
+
+  assert.equal(splitAnswer("orders", radical, false).meaning, "orders", "an answer with no tail is untouched");
+});
+
+test("a meaning-only item's wrong answer stays wrong, however much follows it", () => {
+  const radical = {
+    characters: "令",
+    meanings: [{ meaning: "Orders", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  // Shedding the tail is for a volunteered reading, not for a spray of
+  // guesses: the leading answer has to be the right one on its own.
+  for (const typed of ["chase, orders", "rei. orders", "chase", "orders, rei, extra"]) {
+    const { meaning } = splitAnswer(typed, radical, false);
+    assert.equal(isMeaningCorrect(meaning, radical), false, typed);
+  }
 });

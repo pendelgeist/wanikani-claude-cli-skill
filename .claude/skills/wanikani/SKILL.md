@@ -91,10 +91,12 @@ for.
 
 1. `queue --limit 10`
 2. Print the first item's `convention` if it has one.
-3. Print `item.prompt`. Stop. Wait.
+3. Print `item.prompt` — all of it, including the `— meaning & reading?` it
+   already ends with. Stop. Wait.
 4. `grade <subjectId> "<their whole reply>"`. Print what it prints — for a
    closed answer that's the verdict *and* the next item's prompt, which is the
-   whole message. `open: true` → the same item is still waiting, and the
+   whole message, and it stays the whole message however much of it the tool
+   output has already shown you. `open: true` → the same item is still waiting, and the
    output stops at `say`. Asked for "more" → `explain`, but only because they
    asked.
 5. After the last item: `submit-batch`.
@@ -113,22 +115,34 @@ session by being written out by hand instead.
 **Rules that apply to every item, no exceptions — check each reply against
 these before sending, not just the first one:**
 
-- **`item.prompt` is the entire question. Nothing before it, nothing after
-  it.** The tail has now been tried in three spellings — `— meaning & reading?`,
-  `— meaning + reading?`, and `— meaning and reading?` on all twenty prompts of
-  one session — so the rule is the shape, not the wording: the message ends
-  where `prompt` ends. No gloss, no type label, no example answer
-  (`(e.g. "side, yoko")` opened one session by answering its own first item).
-  `convention` said all of that once already. `取 (take)` hands over the answer;
-  so do `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference
-  that the gloss is short, obvious or "just for clarity", because the meaning
-  *is* what you're about to grade. Nothing goes in front either — `Batch 1/10.
-  Starting:` is a preamble, and the number in the prompt is already the
-  progress marker.
-- **A glyph-less radical's `prompt` is an image URL. Print the URL.**
-  `7. Rib Cage image` names the radical, which is the answer. A null `prompt`
-  means there was no image either: say so and skip the item rather than
-  describing it.
+- **`item.prompt` is the entire question — and it now ends in the question
+  it's asking.** `1. 昔 — meaning & reading?`, or `— meaning?` on a radical or
+  kana vocabulary. That tail is part of the string; it is not an invitation to
+  add another. The tail was tried in four spellings before it was moved into
+  the CLI — `— meaning & reading?`, `— meaning + reading?`, `— meaning and
+  reading?` on all twenty prompts of one session, and `—meaning and reading?`
+  through a thirty-item sitting — so it is issued from one place now and the
+  wording is not yours to pick. Nothing before it, nothing after it: no gloss,
+  no type label, no example answer (`(e.g. "side, yoko")` opened one session by
+  answering its own first item). `取 (take)` hands over the answer; so do
+  `心持ち (mindset)` and `ユ (Hook radical)`, and it makes no difference that the
+  gloss is short, obvious or "just for clarity", because the meaning *is* what
+  you're about to grade. Nothing goes in front either — `Batch 1/10. Starting:`
+  is a preamble, and the number in the prompt is already the progress marker.
+- **Send the whole prompt, not just the tail.** The failure that put the tail
+  in the CLI was not the wording: it was thirty consecutive messages that read
+  `—meaning and reading?` and nothing else, because the prompt had already gone
+  past in the tool output and re-printing it felt redundant. It isn't. The tool
+  output is the CLI talking to you; your message is the question the user is
+  answering, and a question with no item in it can't be answered. **The item's
+  own line being visible on screen somewhere is not a reason to drop it.** Same
+  for the verdict above it.
+- **A glyph-less radical's `prompt` is an image URL. Print the URL** — the
+  whole one, live and clickable, tail and all. `7. Rib Cage image` names the
+  radical, which is the answer; `9. [radical image]` doesn't name it but
+  doesn't *show* it either, and the sitting that sent that had the item missed
+  by a user who never saw the picture. A null `prompt` means there was no image
+  either: say so and skip the item rather than describing it.
 - **Every mid-batch message is the same two lines: a short verdict for the
   item they just answered, then the next prompt — and the prompt is last,
   full stop.** Nothing follows it: no answer, no guess at their answer, no
@@ -141,8 +155,9 @@ these before sending, not just the first one:**
   yourself writing anything in the shape the user has been typing — a
   meaning, kana, romaji, "meaning, reading" — after a prompt, delete it
   before sending. That includes glossing the item you're about to ask about:
-  `2. 転 — revolve, twist, turn over. Meaning + reading?` is the answer, the
-  prompt, and the forbidden tail in one line.
+  `2. 転 — revolve, twist, turn over. Meaning + reading?` is the answer and a
+  second, hand-typed tail wrapped around the one line that was already
+  finished.
   (The one exception: when `grade` comes back `open: true` the message ends
   with its `say`, because the item hasn't been answered yet and its prompt is
   still standing. Rapid-fire keeps the same shape at batch scale — the verdict
@@ -257,7 +272,8 @@ background reading.
 3. **Ask, then let the CLI grade.** The first item of a sitting carries
    `convention`; the CLI decides when, so there's nothing to remember or
    suppress. After that it's `prompt` and nothing else, including for the
-   meaning-only items (radicals, kana_vocabulary). When they answer:
+   meaning-only items (radicals, kana_vocabulary) — the prompt asks those for
+   `— meaning?` on its own, so there is nothing to add there either. When they answer:
 
    ```
    node bin/wanikani.js grade <subjectId> "parent, oya"
@@ -268,9 +284,18 @@ background reading.
    whichever order they typed it. Don't tidy it on the way in: a session
    swapped a full stop for a comma harmlessly for a while and then turned
    `page. pe-ji` into `page, peji`, which is a different word — the answer was
-   right and the hyphen was load-bearing. Copy the line; the CLI knows what to
-   do with it. What comes back is **the line to say**, and
-   saying it is the whole job:
+   right and the hyphen was load-bearing.
+
+   **Including the half the item didn't ask for.** `.orders. rei` went in as
+   `grade 189 ".orders"` on a radical, the reading trimmed off on the way past
+   because a radical takes no reading — a good guess, silently applied, on an
+   answer that was never yours to edit. It isn't needed: a meaning-only item
+   now sheds a volunteered reading itself when what's in front of it is
+   already right, so `orders. rei` grades exactly like `orders`. Hand over
+   what they typed and let the verdict come back.
+
+   Copy the line; the CLI knows what to do with it. What comes back is **the
+   line to say**, and saying it is the whole job:
 
    ```
    ✓
@@ -349,7 +374,18 @@ background reading.
      show.** "Don't have mnemonic for that one", "No mnemonic on file" and a
      recollected paragraph in place of `explain 親` are all from one session,
      and all three were wrong: the command had the mnemonic, the parts and
-     the links every time.
+     the links every time. **The user typing the command is not an exception
+     to this.** `explain 転送` — the command, by name, with the item — was
+     answered in a later sitting with a two-line gloss composed on the spot,
+     so what came back was one model's reading of a word instead of the
+     mnemonic, the parts, the context sentences and the links that `explain
+     3175` had ready. If they said the word, run the command.
+   - **Any question about an item goes through the CLI too.** "help me compare
+     転 and roll" was answered from memory in that same sitting, and the answer
+     cited the wrong batch for an item that had been graded eight messages
+     earlier. `explain` holds what WaniKani teaches about the item; the record
+     holds what happened to it. Both are one call away, and neither is in your
+     head.
    - **Print the block, don't re-typeset it.** A later session ran `explain`
      properly and then rewrote its output with romaji in brackets — `かる
      (karu)`, `ぶつ (butsu)`, `けってん (kettten)`, that last one misspelt.

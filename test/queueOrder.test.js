@@ -230,11 +230,11 @@ test("queue items arrive with a prompt and correction lines already composed", a
 
     assert.deepEqual(
       items.map((item) => item.prompt),
-      items.map((item, index) => `${index + 1}. ${item.characters}`),
-      "numbered in the order they'll be asked, characters only",
+      items.map((item, index) => `${index + 1}. ${item.characters} — meaning & reading?`),
+      "numbered in the order they'll be asked, characters and the question",
     );
     for (const item of items) {
-      assert.doesNotMatch(item.prompt, /[A-Za-z(]/, "no gloss, no label");
+      assert.doesNotMatch(item.prompt.replace(/ — meaning & reading\?$/, ""), /[A-Za-z(]/, "no gloss, no label");
       assert.match(item.corrections.reading, /^reading is [^A-Za-z]+ · https:/);
       assert.match(item.corrections.reading, /https:\/\/jisho\.org\/\S+$/, "the link rides on the line");
     }
