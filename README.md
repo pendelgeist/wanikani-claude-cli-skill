@@ -144,7 +144,7 @@ That's a real reading, but WaniKani wants the on'yomi here — try again.
 (same item — still their turn)
 
 $ wanikani grade 3 "parent, mi"
-✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
 ```
 
 It prints the line to say and nothing else to summarise; `--json` adds the
@@ -260,7 +260,7 @@ reading labelled with its type for a kanji, and a lookup link welded onto the
 end:
 
   ```
-  meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+  meaning is Parent · reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
   ```
 
   The link is part of the line rather than a field beside it because a field
@@ -282,7 +282,7 @@ end:
   Meaning mnemonic: …
     Hint: …
   Reading mnemonic: …
-  More: https://www.wanikani.com/kanji/親 · https://jisho.org/search/親%20%23kanji
+  More: https://www.wanikani.com/kanji/%E8%A6%AA · https://jisho.org/search/%E8%A6%AA%20%23kanji
   ```
 
   It takes the `subjectId` from a queue item or the characters themselves

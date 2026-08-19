@@ -110,7 +110,7 @@ test("explain says which reading is wanted and which ones aren't", async () => {
 
 test("explain links WaniKani and Jisho, and doesn't repeat itself for a radical", async () => {
   const { output: kanji } = await run("3");
-  assert.match(kanji, /More: https:\/\/www\.wanikani\.com\/kanji\/親 · https:\/\/jisho\.org\/search\/親%20%23kanji$/m);
+  assert.match(kanji, /More: https:\/\/www\.wanikani\.com\/kanji\/%E8%A6%AA · https:\/\/jisho\.org\/search\/%E8%A6%AA%20%23kanji$/m);
 
   const { output: radical } = await run("2");
   assert.match(radical, /More: https:\/\/www\.wanikani\.com\/radicals\/hook$/m);

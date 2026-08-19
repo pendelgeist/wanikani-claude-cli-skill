@@ -88,7 +88,7 @@ test("the correction says which reading type WaniKani was after", async () => {
 
   assert.equal(
     item.corrections.reading,
-    "reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji",
+    "reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji",
   );
 });
 
@@ -101,7 +101,7 @@ test("a vocabulary near-miss spelling is not offered as another reading", async 
   assert.equal(item.readingNudge, undefined);
   assert.equal(
     item.corrections.reading,
-    "reading is こころづよい · https://jisho.org/word/心強い",
+    "reading is こころづよい · https://jisho.org/word/%E5%BF%83%E5%BC%B7%E3%81%84",
   );
 });
 
