@@ -70,7 +70,7 @@ test("the queue hands over a question and no way to answer it", async () => {
     "subjectId",
     "subjectType",
   ]);
-  assert.equal(item.prompt, "1. 親 — meaning & reading?");
+  assert.equal(item.prompt, "1. 親");
   assert.doesNotMatch(JSON.stringify(item), /Parent|しん|おや/, "no answer, in any field");
 });
 
