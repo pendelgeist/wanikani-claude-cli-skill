@@ -274,7 +274,7 @@ background reading.
 
    ```
    ✓
-   ✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji
+   ✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
    That's a real reading, but WaniKani wants the on'yomi here — try again.
    (same item — still their turn)
    ```

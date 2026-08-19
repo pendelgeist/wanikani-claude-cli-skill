@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatRelativeToNow, srsStageName, srsTierName, srsTierChange } from "../lib/format.js";
+import { clickableUrl, formatRelativeToNow, srsStageName, srsTierName, srsTierChange } from "../lib/format.js";
 
 test("formatRelativeToNow returns 'now' for past/present timestamps", () => {
   assert.equal(formatRelativeToNow(new Date(Date.now() - 1000).toISOString()), "now");
@@ -56,4 +56,25 @@ test("srsTierChange only flags movement across a tier boundary", () => {
 test("srsTierChange tolerates a response without stage data", () => {
   assert.equal(srsTierChange(undefined, 5), null);
   assert.equal(srsTierName(undefined), "Stage undefined");
+});
+
+test("clickableUrl percent-encodes the glyphs a terminal's link detection stops at", () => {
+  assert.equal(clickableUrl("https://www.wanikani.com/kanji/親"), "https://www.wanikani.com/kanji/%E8%A6%AA");
+  assert.equal(
+    clickableUrl("https://jisho.org/search/追%20%23kanji"),
+    "https://jisho.org/search/%E8%BF%BD%20%23kanji",
+    "the escapes already in the URL survive untouched",
+  );
+});
+
+test("clickableUrl leaves an all-ASCII URL exactly as it was, and re-encodes nothing twice", () => {
+  const ascii = "https://www.wanikani.com/radicals/hook";
+  assert.equal(clickableUrl(ascii), ascii);
+  const once = clickableUrl("https://jisho.org/word/心強い");
+  assert.equal(clickableUrl(once), once);
+});
+
+test("clickableUrl passes a missing URL through rather than inventing one", () => {
+  assert.equal(clickableUrl(null), null);
+  assert.equal(clickableUrl(undefined), undefined);
 });

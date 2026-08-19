@@ -123,7 +123,7 @@ test("a missed reading reveals the reading line and closes the item", async () =
 
   assert.equal(verdict.reading, "incorrect");
   assert.equal(verdict.wrongReading, 1);
-  assert.equal(verdict.say, "reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji");
+  assert.equal(verdict.say, "reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji");
   assert.equal(verdict.open, false);
 });
 
@@ -274,7 +274,7 @@ test("the default output is the line to say and nothing to summarise", async () 
   assert.equal(await said({ subjectId: 3, answer: "parent, shin" }), "✓");
   assert.equal(
     await said({ subjectId: 3, answer: "parent, mi" }),
-    "✗ reading is しん (on'yomi) · https://jisho.org/search/親%20%23kanji",
+    "✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji",
   );
 });
 

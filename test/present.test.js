@@ -61,7 +61,7 @@ test("promptFor gives up rather than inventing a prompt with no glyph or image",
 
 test("correctionsFor reveals kana verbatim, never romaji", () => {
   const { reading } = correctionsFor(VOCAB);
-  assert.equal(reading, "reading is こころづよい · https://jisho.org/word/心強い");
+  assert.equal(reading, "reading is こころづよい · https://jisho.org/word/%E5%BF%83%E5%BC%B7%E3%81%84");
 
   // The label and the link are English; the answer must not be.
   const answer = reading.replace(/^reading is /, "").replace(/ · https:\/\/\S+$/, "");
@@ -76,20 +76,31 @@ test("correctionsFor lists every accepted answer and no rejected one", () => {
 
 test("every correction line carries the lookup link, since a separate field never got printed", () => {
   for (const line of Object.values(correctionsFor(VOCAB))) {
-    assert.match(line, / · https:\/\/jisho\.org\/word\/心強い$/);
+    assert.match(line, / · https:\/\/jisho\.org\/word\/%E5%BF%83%E5%BC%B7%E3%81%84$/);
   }
 });
 
 test("correctionsFor combines both misses into one line rather than two", () => {
   assert.equal(
     correctionsFor(VOCAB).both,
-    "meaning is Reassuring / Heartening · reading is こころづよい · https://jisho.org/word/心強い",
+    "meaning is Reassuring / Heartening · reading is こころづよい · https://jisho.org/word/%E5%BF%83%E5%BC%B7%E3%81%84",
   );
 });
 
 test("correctionsFor sends a kanji to Jisho's kanji page, not the word of the same name", () => {
   // jisho.org/word/親 is おや — the reading the correction just ruled out.
-  assert.match(correctionsFor(KANJI).reading, /jisho\.org\/search\/親%20%23kanji$/);
+  assert.match(correctionsFor(KANJI).reading, /jisho\.org\/search\/%E8%A6%AA%20%23kanji$/);
+});
+
+test("every lookup link is ASCII, so a terminal makes the whole of it clickable", () => {
+  // A raw glyph in the URL breaks the link where it stands: ctrl-click opens
+  // `https://jisho.org/search/` and the rest has to be pasted in by hand.
+  for (const item of [KANJI, VOCAB]) {
+    for (const line of Object.values(correctionsFor(item)).filter(Boolean)) {
+      const link = line.match(/https:\/\/\S+$/)[0];
+      assert.doesNotMatch(link, /[^\x20-\x7E]/, `not clickable to its end: ${link}`);
+    }
+  }
 });
 
 test("correctionsFor links WaniKani for radicals, which Jisho doesn't have", () => {
