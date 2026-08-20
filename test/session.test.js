@@ -23,12 +23,7 @@ const KANJI = {
     auxiliary_meanings: [],
     readings: [
       { type: "onyomi", primary: true, accepted_answer: true, reading: "しん" },
-      {
-        type: "kunyomi",
-        primary: false,
-        accepted_answer: false,
-        reading: "おや",
-      },
+      { type: "kunyomi", primary: false, accepted_answer: false, reading: "おや" },
     ],
   },
 };
@@ -42,9 +37,7 @@ const VOCAB = {
     document_url: "https://www.wanikani.com/vocabulary/心強い",
     meanings: [{ meaning: "Reassuring", primary: true, accepted_answer: true }],
     auxiliary_meanings: [],
-    readings: [
-      { primary: true, accepted_answer: true, reading: "こころづよい" },
-    ],
+    readings: [{ primary: true, accepted_answer: true, reading: "こころづよい" }],
   },
 };
 
@@ -61,27 +54,16 @@ const RADICAL = {
 };
 
 const SUBJECTS = [KANJI, VOCAB, RADICAL];
-const RIGHT = {
-  親: "parent, shin",
-  心強い: "reassuring, kokoroduyoi",
-  亅: "hook",
-};
+const RIGHT = { 親: "parent, shin", 心強い: "reassuring, kokoroduyoi", 亅: "hook" };
 
 function fakeClient() {
   const client = {
     submitted: [],
     async getAssignments() {
-      return SUBJECTS.map((subject, index) => ({
-        id: 100 + index,
-        data: { subject_id: subject.id },
-      }));
+      return SUBJECTS.map((subject, index) => ({ id: 100 + index, data: { subject_id: subject.id } }));
     },
     async getSubjectsByIds(ids) {
-      return new Map(
-        ids
-          .map((id) => [id, SUBJECTS.find((s) => s.id === id)])
-          .filter(([, s]) => s),
-      );
+      return new Map(ids.map((id) => [id, SUBJECTS.find((s) => s.id === id)]).filter(([, s]) => s));
     },
     async submitReview(review) {
       client.submitted.push(review);
@@ -95,26 +77,17 @@ const ask = (client) => captureStdout(() => askCommand(client, { limit: 3 }));
 const answer = (client, reply) => captureStdout(() => answerCommand(client, { reply }));
 
 /** The glyph in a printed prompt — how a person knows what they're answering. */
-const glyphOf = (output) =>
-  Object.keys(RIGHT).find((characters) => output.includes(characters));
+const glyphOf = (output) => Object.keys(RIGHT).find((characters) => output.includes(characters));
 
 test("ask starts a batch and prints the question, and answer needs no id to grade it", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient();
 
     const opening = await ask(client);
-    assert.match(
-      opening,
-      /Meaning and reading together on one line/,
-      "the convention, once",
-    );
+    assert.match(opening, /Meaning and reading together on one line/, "the convention, once");
     const glyph = glyphOf(opening);
     assert.ok(glyph, `a question with an item in it, got: ${opening}`);
-    assert.match(
-      opening,
-      new RegExp(`^1\\. ${glyph}$`, "m"),
-      "numbered, and nothing else on the line",
-    );
+    assert.match(opening, new RegExp(`^1\\. ${glyph}$`, "m"), "numbered, and nothing else on the line");
 
     const verdict = await answer(client, RIGHT[glyph]);
     assert.match(verdict, /^✓$/m);
@@ -135,11 +108,7 @@ test("answer grades against whatever is open, in the order the batch was served"
     }
 
     assert.equal(new Set(asked).size, 3, "each item asked once, none repeated");
-    assert.equal(
-      Object.keys(await loadGrades()).length,
-      3,
-      "and all three on the record",
-    );
+    assert.equal(Object.keys(await loadGrades()).length, 3, "and all three on the record");
   });
 });
 
@@ -162,11 +131,7 @@ test("a finished batch is submitted by the next ask, with nobody deciding to", a
     const summary = await ask(client);
     assert.match(summary, /3 done, 3 perfect/);
     assert.equal(client.submitted.length, 3);
-    assert.deepEqual(
-      await loadGrades(),
-      {},
-      "and the record is spent, not left to double up",
-    );
+    assert.deepEqual(await loadGrades(), {}, "and the record is spent, not left to double up");
   });
 });
 
@@ -200,17 +165,12 @@ test("a re-prompt leaves the item open, and the next answer lands on the same it
 
     // Walk to 親 whatever position the shuffle gave it, answering the rest right.
     let output = await ask(client);
-    while (glyphOf(output) !== "親")
-      output = await answer(client, RIGHT[glyphOf(output)]);
+    while (glyphOf(output) !== "親") output = await answer(client, RIGHT[glyphOf(output)]);
 
     // おや is a real reading of 親 — the website shakes and asks again.
     const nudged = await answer(client, "parent, oya");
     assert.match(nudged, /on'yomi/, "it names the type it wants");
-    assert.doesNotMatch(
-      nudged,
-      /しん/,
-      "and not the reading itself — the item is still live",
-    );
+    assert.doesNotMatch(nudged, /しん/, "and not the reading itself — the item is still live");
     assert.match(nudged, /same item — still their turn/);
 
     const open = await openItems();
@@ -231,16 +191,8 @@ test("ask re-asks the open item rather than serving a new one", async () => {
     const glyph = glyphOf(opening);
 
     const again = await ask(client);
-    assert.match(
-      again,
-      new RegExp(`^1\\. ${glyph}$`, "m"),
-      "the same question, at the same number",
-    );
-    assert.doesNotMatch(
-      again,
-      /Meaning and reading together/,
-      "the convention is said once a sitting",
-    );
+    assert.match(again, new RegExp(`^1\\. ${glyph}$`, "m"), "the same question, at the same number");
+    assert.doesNotMatch(again, /Meaning and reading together/, "the convention is said once a sitting");
   });
 });
 
@@ -249,17 +201,12 @@ test("ask says a mid-question item is waiting on its reading, not on a fresh ans
     const client = fakeClient();
 
     let output = await ask(client);
-    while (glyphOf(output) !== "親")
-      output = await answer(client, RIGHT[glyphOf(output)]);
+    while (glyphOf(output) !== "親") output = await answer(client, RIGHT[glyphOf(output)]);
     await answer(client, "parent, oya");
 
     const waiting = await ask(client);
     assert.match(waiting, /親/);
-    assert.match(
-      waiting,
-      /^Reading\?$/m,
-      "printing the prompt alone would be answered with a meaning again",
-    );
+    assert.match(waiting, /^Reading\?$/m, "a prompt alone would be answered with a meaning again");
   });
 });
 
@@ -285,9 +232,7 @@ test("--forgive takes back the item just graded, without being told which", asyn
     const missed = await answer(client, "encouraging, kokoroduyoi");
     assert.match(missed, /^✗ /m);
 
-    const forgiven = await captureStdout(() =>
-      answerCommand(client, { forgive: "meaning" }),
-    );
+    const forgiven = await captureStdout(() => answerCommand(client, { forgive: "meaning" }));
     assert.match(forgiven, /forgiven \(meaning\)/);
 
     const grades = Object.values(await loadGrades());
