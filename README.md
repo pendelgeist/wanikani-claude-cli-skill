@@ -76,6 +76,10 @@ npm link                                  # puts `wanikani` on your PATH
 ln -s "$PWD/.claude/skills/wanikani" ~/.claude/skills/wanikani
 ```
 
+Once it's installed, `wanikani update` pulls this repo from wherever you happen
+to be — no `cd` — and says whether what it pulled is live already or wants a
+Claude Code restart.
+
 **Symlink it; don't copy it.** A copy goes stale the moment the repo moves on,
 and silently: the session keeps working, just to last month's instructions. A
 real one ran four releases behind for three weeks, driving sittings with

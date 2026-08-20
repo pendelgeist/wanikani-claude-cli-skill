@@ -141,6 +141,11 @@ the level.
   batches, if they're moving fast.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
+- **"update wanikani", "pull the latest"** → `wanikani update`. It pulls the
+  repo it lives in, so it works from any directory and needs no path from
+  anyone — don't go looking for the checkout or ask where it is. Print what it
+  says: it ends by naming whether the change is live already or wants a Claude
+  Code restart, and that's the only part they have to act on.
 
 ## Lessons
 
