@@ -6,683 +6,168 @@ description: Run a WaniKani lesson or review session from Claude Code, using the
 # WaniKani study session
 
 Invoked with nothing more specific ("/wanikani", "do my wanikani reviews"),
-go straight into Reviews below — `summary`, then fetch and quiz. Don't offer
-a menu of subcommands; branch to Lessons or the Account check only if their
-own wording asked for one. If plan mode is active, exit it immediately
-rather than asking: this is fetch-quiz-submit, not a code change for plan
-mode to gate.
+go straight into Reviews below. Don't offer a menu; branch to Lessons or the
+account check only if their own wording asked for one. If plan mode is
+active, exit it immediately rather than asking: this is ask-answer-repeat,
+not a code change for plan mode to gate.
 
-Most of a review turn is a CLI call and a printed string — it needs no
-deliberation. If the current model or reasoning effort is a slow one,
-mention once at the start of the first batch that `/model` or `/fast` makes
-the session noticeably snappier, then drop it.
+Most of a review turn is one CLI call and no deliberation. If the current
+model or reasoning effort is a slow one, say once at the start that `/model`
+or `/fast` makes the session snappier, then drop it.
 
 ## Running the CLI
 
-`bin/wanikani.js` talks to the WaniKani API and needs `WANIKANI_API_TOKEN`.
-Run commands plain, from the repo root: `node bin/wanikani.js summary`. The
-CLI auto-loads `.env` from the repo root, so nothing needs passing in. Run
-`npm install` first if `node_modules/wanakana` doesn't exist.
-
-**This CLI is the WaniKani client. Don't write another one.** No `curl` at
-the API, no scripts in `/tmp` against `/v2/subjects` — one session did exactly
-that and it cost it the batch (see below). If something you need genuinely
-isn't here, that's a change to `lib/`, proposed to the user, not a script
-written mid-review.
-
-**Run them plain — no `2>/dev/null`, no `| jq`.** stderr is where this CLI
-says a call was refused and why; a session that suppressed it on every `queue`
-call spent the rest of the sitting inferring what had happened, and inferred
-wrong. `jq` is the other half of the same problem: `queue … | jq '.[30:]'`
-throws away the shape of the payload and takes a slice the CLI doesn't know
-about. Read the output as it comes.
-
-**Never put the token value in a Bash command** (`export
-WANIKANI_API_TOKEN=<value> && node …`). It gets echoed verbatim into the
-visible tool call and from there into transcripts — that's a leak. Don't ask
-for the token in chat either, and don't type it yourself: the errors carry
-their own remedy, so pass them on rather than improvising one. "No API token
-found" already says to copy `.env.example`, and a 403 already names the one
-permission checkbox that call needed — which is a settings change, not a
-retry.
-
-## Reviews (the main flow)
-
-Drive the quiz in chat rather than shelling out to the interactive `review`
-command — you can use judgment on typos and phrasing that a rigid string
-match rejects. `review` is a person's terminal UI, not a fallback for this
-flow: don't run it, and don't pipe answers into it.
-
-**Grading doesn't happen in chat. It happens in `grade`, as each reply
-arrives** — not at the end, and not from an answer key you went and got
-yourself. `queue` returns the questions and no answers, but that's a nudge,
-not a wall: the token is in the environment and the API is public, and a
-session proved it by writing `/tmp/fetch_subjects.js` to pull the meanings and
-readings for its ten items and then grading all ten in chat from them. What
-that bought was ten unrecorded verdicts, four hand-written corrections in
-romaji, a `submit-batch` with nothing to submit, and every item graded a
-second time through `grade` anyway. The key was never the missing piece — the
-record is. `grade` is what records, and `submit-batch` submits the record and
-nothing else. A session that answered ten items in chat first found
-`submit-batch` had nothing to submit, tried to reconstruct the batch
-afterwards, tangled it, and concluded the tool didn't support the workflow.
-It does; the answers just have to go through it. If you ever find yourself
-there: grade the answers you still have, one call each, then submit. Nothing
-is lost until the items are re-answered.
-
-The verdicts in that session were the other half of the damage. Ten answers
-came back `✓ Correct` in chat before any of them had been graded; when the
-same ten went through `grade` minutes later, four were wrong. There is no
-reading of the payload that makes a chat verdict possible — the answers
-aren't in it — so a `✓` you didn't get from `grade` is a guess, and it
-guessed wrong four times out of ten.
-
-`grade` holds the key, records the
-miss and hands back the line to print. A session that skipped it graded
-twenty items from memory, and the bill was: romaji in every correction, not
-one lookup link, a batch tally that contradicted its own submission, a
-mnemonic declared not to exist without looking, an item answered on the
-user's behalf, and the next item's meaning printed above its own prompt. The
-answer key isn't in the payload any more, so most of that is now unreachable
-— what's left is inventing answers from memory, and that's what this rule is
-for.
-
-**The loop:**
-
-1. `queue --limit 10`
-2. Print the first item's `convention` if it has one.
-3. Print `item.prompt`. Stop. Wait.
-4. `grade <subjectId> "<their whole reply>"`. **Then say nothing.** It has
-   already printed the whole message — the verdict, and under it the next
-   item's prompt — and that output is on the user's screen. End your turn
-   there, with no text of your own. `open: true` → the same item is still
-   waiting, and the output stops at `say`; still nothing to add. Asked for
-   "more" → `explain`, but only because they asked.
-5. After the last item: `submit-batch`.
-6. Print `summaryLine`. Ask whether to continue.
-
-Steps 3 and 4 have a whole-batch form — `prompts` and `grade-many`, once
-they've asked for it. See *Rapid-fire* below; everything else on this page
-applies to it unchanged.
-
-### What to say, and when to say nothing
-
-One line decides it: **what the CLI printed as plain text is already said.
-What it handed back as JSON is data, and the finished string inside it is
-yours to print.**
-
-- **JSON — read it, print the string it gives you.** `queue` (`convention`,
-  `prompt`) and `submit-batch` (`summaryLine`). These are buried in a payload;
-  nobody has seen them yet.
-- **Plain text — it is on the screen already. Add nothing.** `grade`,
-  `grade-many`, `prompts`, `explain`, `tips`, `status`. Run the command; that
-  *is* the message. Re-typing it is where it gets rewritten, and the empty
-  turn is not rudeness — it is the question standing where the CLI put it.
-
-`convention`, `prompt`, `summaryLine` and the blocks are all finished strings
-either way: **never compose your own, never append, never paraphrase.** Every
-one of them has been got wrong in a real session by being written out by hand.
-
-**Why step 4 is an empty turn, in full.** It was "print what it prints" for a
-long time, and what came back instead was: a paraphrase of the correction
-with the lookup link dropped; then, when the correction was left alone, a bare
-`—meaning and reading?` on thirty consecutive items with the glyph left behind
-in the tool output; then, once the prompt was made to arrive as a complete
-question, *the answer to it*. That last sitting typed `complete, sei` under 成,
-`wave` under 㠯, `effort, dou` under 働 — and on 㠯 the user answered `bear.`,
-correctly, and the session passed its own `wave` to `grade` and recorded a
-miss on an item they had right. Every one of those is the same slot being
-filled with something. The fix is that there is no slot: **after `grade`, your
-message is empty.**
-
-**Rules that apply to every item, no exceptions — check each reply against
-these before sending, not just the first one:**
-
-- **`item.prompt` is the entire question. Nothing before it, nothing after
-  it.** The tail has now been tried in four spellings — `— meaning & reading?`,
-  `— meaning + reading?`, `— meaning and reading?` on all twenty prompts of one
-  session, `—meaning and reading?` on all thirty of another — and then issued
-  from the CLI for one release, which was worse: a prompt that arrives as a
-  finished question gets *answered* by the session that is supposed to be
-  asking it. So the rule is the shape, not the wording: the message ends where
-  `prompt` ends. No gloss, no type label, no example answer (`(e.g. "side,
-  yoko")` opened one session by answering its own first item). `取 (take)` hands
-  over the answer; so do `心持ち (mindset)` and `ユ (Hook radical)`, and it makes
-  no difference that the gloss is short, obvious or "just for clarity", because
-  the meaning *is* what you're about to grade. Nothing goes in front either —
-  `Batch 1/10. Starting:` is a preamble, and the number in the prompt is
-  already the progress marker.
-- **A glyph-less radical's `prompt` is an image URL. Print the URL** — the
-  whole one, live and clickable. `7. Rib Cage image` names the radical, which
-  is the answer; `9. [radical image]` doesn't name it but doesn't *show* it
-  either, and the sitting that sent that had the item missed by a user who
-  never saw the picture. A null `prompt` means there was no image either: say
-  so and skip the item rather than describing it.
-- **There is no mid-batch message.** `grade` prints the verdict and the next
-  prompt itself, to the screen, and step 4 above is an empty turn — so
-  mid-batch there is nothing of yours to get wrong. What this rule is really
-  guarding is the thing that keeps refilling that gap: **never write the
-  answer to a prompt.** Not as a guess, not as a hint, not as "I think this
-  one is". This holds when you know the answer cold, when the same item came
-  up minutes ago (a `queue` call before the last batch was submitted hands
-  back the same items), and on item 10 of 10. Recognising an item is not
-  permission to fill it in. Two sittings show the cost: one printed, answered
-  and graded item 4 inside a single message, so 当たり went in as a perfect
-  score for a question nobody was ever asked; a later one typed its own answer
-  under four prompts in a row, and on 㠯 the user answered `bear.` — correct —
-  while `grade 8777 "wave"` went out carrying the session's own guess, and the
-  miss it recorded was on an item the user had right. **If the user has typed
-  a reply, that reply is the only thing that can go into `grade`.** If you find
-  yourself writing anything in the shape they have been typing — a meaning,
-  kana, romaji, "meaning, reading" — stop, delete it, and end the turn empty.
-- **You say nothing about a wrong answer.** `grade` has already said it, on
-  screen, in kana, with the lookup link — the verdict, a blank line, and the
-  next item's prompt. There is no summary of it to write, no gloss to add and
-  no "so close" in front. This has its own rule because composing a message
-  *around* the line is where the line gets rewritten. One sitting did it on
-  all eleven of its misses — `Reading is tsugi.` for `つぎ`, `Meaning is
-  Parent, reading oya.` for `おや`, `reading zo` for `ぞう`, which is also just
-  wrong — and dropped every lookup link on the way. A later one compressed
-  them instead: `✗ (rib cage)`, `✗ (expected "to work well / be effective",
-  reading きく)`, and again not one link reached the screen.
-
-  The rest of the rule stands wherever you are writing in your own words at
-  all — between batches, in a recap, answering a question. Writing a correction
-  by hand is where romaji gets in:
-  `should be "kaeru", not "sasaeru"` and `should be "shin", not "mi"` are
-  both from real sessions, and so is `つぎつぎ is "tsugitsugu"` — romaji *and*
-  misspelt, because it was transliterated from memory instead of read from
-  the data. **And don't annotate the string once printed.** `Reading is
-  はなし (hanashi)` and `Reading is じょう (jou)` are from a later session where
-  the field *was* used and then decorated with a romaji gloss. The user
-  typing romaji is not a reason to mirror it back; they can read the kana,
-  which is the entire point.
-
-  The kana-only rule governs anything you add in your own words too —
-  verdicts, onyomi/kunyomi asides, recaps. The only romaji in a session is
-  what the *user* types. The subtle leak: "it's あたり, not 回り" is fine, but
-  "it's あたり, not mawari (that's 回り)" leaks it via the second word.
-
-- **An open item ends at `say`, and `say` is deliberately answerless.** The
-  on'yomi re-prompt names the *type* WaniKani wants and no kana, because the
-  item is still live. `Reading is kunyomi (uma), need on'yomi. Hint: ba.` and
-  `Hint: suu.` are from one session: both handed over the answer and both were
-  then typed back and marked correct. `Need on'yomi — try じ (ji)?` is the same
-  move in a politer shape, from a later one, and it went the same way. If you
-  are adding a hint to a question they haven't answered, you are answering it —
-  and a question mark on the end doesn't make the kana any less legible.
-
-- **A miss ends the item — there is no retry.** `grade` prints `(recorded —
-  next item)` under a correction to say so. `Retry?` went out after nearly
-  every wrong answer of one session; the extra round changes no score (the miss
-  is already on the record, and WaniKani doesn't offer one either), it reads to
-  the user as a recovery that didn't happen, and in one case the session typed
-  the retry *itself* — `grade 761 "ka"` — right after being told to submit as
-  is. The correction is already on screen; the next prompt is under it. Move on.
-
-  **And the retry is usually a hand-over as well**, which is what makes it
-  worth its own paragraph. The correction *contains the answer* — that's its
-  job — so anything you write after it is written from the reveal. One session
-  did this six times: `✗ meaning is Public Official / Government Official` was
-  followed by `Try "public official"?`, the user typed it back, and it printed
-  `✓ Correct` over a miss that was already recorded. Six items, six
-  answers handed over, six false verdicts. `grade` now refuses a second answer
-  to a settled item and says what's on the record instead — but the refusal is
-  a backstop, not the rule. The rule is that the correction is the last word on
-  that item.
-
-- **Don't count the batch. `submit-batch` counts it.** `Batch complete: 8
-  perfect, 2 with errors. Submitting…` went out ahead of eight consecutive
-  submissions in one session and disagreed with the record in at least three of
-  them. There is nothing to tally: the counts are in the file, and the line
-  that reports them arrives a second later. A tally with no `submit-batch`
-  under it is worse still — `Session total: 30 items (3 batches) — Batch 1: 6
-  perfect, 4 corrected…` was typed out by a session that had submitted nothing
-  at all, and two of its three batch tallies didn't add up to ten. Every number
-  in it was invented, including the ones that happened to be right.
-
-Each of these has gone wrong in practice. Treat them as a checklist, not
-background reading.
-
-### The steps in detail
-
-1. **Fetch.** `node bin/wanikani.js queue --limit 10` — always JSON, no flag
-   needed. Batches of ~10, not one at a time: there can be hundreds due, and
-   a `queue` call per item wastes a round-trip when you already hold the next
-   nine answer keys. Per item:
-
-   - `prompt` — the question, printed as-is.
-   - `subjectId` for `grade` and `explain`, `assignmentId` for `submit-batch`.
-     Two different ids; the first names the *item*, the second names *your
-     assignment of it*.
-   - `subjectType`, `level`, `needsReading` — context, not answers.
-
-   That's the whole payload: no meanings, no readings, no correction lines.
-   (`--answers` puts them back for debugging this CLI. It is not a grading
-   shortcut, and a session has no reason to pass it.)
-
-   Re-run `queue --limit 10` when the batch is exhausted: submitting prunes
-   those items, so it returns the next batch. Calling it *before* submitting
-   hands back the same items and would discard whatever was graded for them —
-   asking an item is asking it fresh — so it now refuses while anything is
-   graded and unsubmitted, and names `submit-batch`. Do that; don't re-fetch
-   mid-batch to "check" something. The batch you're holding is the batch
-   you're answering. (`--restart` throws the record away on purpose. It is for
-   a batch that really should be asked again, not for getting past the
-   refusal.)
-
-   **The same ten items coming back is the queue working, not the API
-   lagging.** Nothing is pruned until it's submitted, so an unsubmitted batch
-   is still the batch that's due. A session that read it as lag answered those
-   ten a second time, and a third batch after that, and submitted none of the
-   thirty: three sittings' worth of answers, no reviews recorded, and a running
-   total reported to the user that described none of it. Nor is slicing the
-   fetch a way round it — `queue --limit 20 | jq '.[10:]'` re-serves twenty
-   items as the batch, so `prompts`, `grade-many` and `submit-batch` are all
-   now talking about a different set than the one on screen. That session went
-   on to `--limit 40 | jq '.[30:]'` and then `--limit 50`, and each of those
-   calls cleared every grade recorded since the last submit: five batches
-   answered, one submitted, and the CLI blamed for it.
-2. **Empty queue**: say there's nothing due right now and stop.
-3. **Ask, then let the CLI grade.** The first item of a sitting carries
-   `convention`; the CLI decides when, so there's nothing to remember or
-   suppress. After that it's `prompt` and nothing else, including for the
-   meaning-only items (radicals, kana_vocabulary). When they answer:
-
-   ```
-   node bin/wanikani.js grade <subjectId> "parent, oya"
-   ```
-
-   Their reply goes in **verbatim** — the whole line, both halves, however
-   they separated them (`,` `.` `;` `/` `|` `x` `、` or just a space) and in
-   whichever order they typed it. Don't tidy it on the way in: a session
-   swapped a full stop for a comma harmlessly for a while and then turned
-   `page. pe-ji` into `page, peji`, which is a different word — the answer was
-   right and the hyphen was load-bearing.
-
-   **Including the half the item didn't ask for.** `.orders. rei` went in as
-   `grade 189 ".orders"` on a radical, the reading trimmed off on the way past
-   because a radical takes no reading — a good guess, silently applied, on an
-   answer that was never yours to edit. It isn't needed: a meaning-only item
-   now sheds a volunteered reading itself when what's in front of it is
-   already right, so `orders. rei` grades exactly like `orders`. Hand over
-   what they typed and let the verdict come back.
-
-   Copy the line; the CLI knows what to do with it. What comes back is **the
-   whole message, already printed** — a verdict, and under it the next item's
-   prompt:
-
-   ```
-   ✓
-
-   4. 働
-   ```
-   ```
-   ✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
-   (recorded — next item)
-
-   4. 働
-   ```
-   ```
-   That's a real reading, but WaniKani wants the on'yomi here — try again.
-   (same item — still their turn)
-   ```
-
-   **Say nothing after it.** Not a restatement, not a translation of the kana,
-   not a romaji gloss in brackets — `Reading: かる (karu)`, `correct is どうろ
-   (douro)` and `correct is え (e)` are all from one session where the right
-   line was printed by the CLI and retyped by hand anyway, and one of them came
-   out misspelt. And not a shorter version either: `✗ (rib cage)` is a
-   correction with the link amputated. The output is the message; your turn
-   ends empty.
-
-   `(same item — still their turn)` means end your turn there and grade their
-   next reply against the same item. A line starting `!` is a problem to read,
-   not a verdict — `NOT RECORDED` in particular means `submit-batch` won't see
-   this answer, and continuing past it wastes the batch.
-
-   `--json` adds the full verdict — `parsed`, `recorded`, per-part statuses —
-   when something needs inspecting. Normal answering doesn't.
-
-   A follow-up needs nothing special: after `Reading?` or a re-prompt the item
-   is waiting on a reading, and `grade 3 "shin"` is graded as one. (`--reading`
-   and `--meaning` are still there for naming a half outright.)
-
-   It's a local call — cached subject, no API — so it costs a round-trip and
-   no network.
-4. **Override only where judgment beats the table.** `grade` holds the answer
-   key, the IME spellings ("dzu" and "du" are both づ; "shinyuu" is read both
-   as しんゆう and しにゅう, since romaji can't tell them apart without an
-   apostrophe), WaniKani's refusal of Hepburn's *m* ("shimbun" is wrong for
-   しんぶん), the blacklisted meanings
-   that look plausible and aren't, and the rule that another real reading of a
-   kanji is a re-prompt rather than a miss — the website shakes and names the
-   type it wants, and so does this. Don't re-derive any of it from memory:
-   it's the same code the interactive `review` command grades with, and it's
-   why 親 answered "parent, oya" can't be marked wrong and slipped to
-   Apprentice 4 again.
-
-   Ordinary typos it now handles too, the way the website does: a slip or two
-   in a meaning ("goverment official", "pubilc official") grades as correct
-   rather than as a miss. That closes the trap where a right answer came back
-   ✗, the correction revealed the meaning, and the session then read it out
-   for the user to type back.
-
-   What it can't know is whether a mangling well past a typo was meant as the
-   right answer, or whether a synonym of theirs is fair. That judgment is
-   yours, and it's the reason this skill drives the quiz instead of shelling
-   out to `review`.
-   When you overrule a miss, take it back off the record in the same breath:
-
-   ```
-   node bin/wanikani.js grade <subjectId> --forgive meaning
-   ```
-
-   (or `--forgive reading`). Say so in a short clause — "counting that as a
-   typo" — and carry on. Skipping the `--forgive` is how a typo you forgave
-   out loud still costs them a level at `submit-batch`.
-
-   If `grade` itself errors, or warns that an answer wasn't recorded, say so
-   and sort it out before carrying on — a batch answered on top of that
-   warning is a batch `submit-batch` can't submit. There's no answer key in
-   the payload to fall back on, and memory is exactly what this replaced.
-5. **A missed meaning ends the item.** `grade` already does this: it reveals
-   both halves and closes the item rather than chasing a reading that almost
-   never changes the outcome. Worth knowing so the behaviour doesn't look
-   like a bug.
-
-6. **"more" pulls up the item info — only when asked.** "more", "details",
-   "why", "mnemonic", "tell me about that one", a bare "?" → run
-   `node bin/wanikani.js explain <subjectId>`. The block prints itself — add
-   nothing to it — then print the open item's `prompt` from the payload, so
-   the batch picks up where it was.
-
-   - **Run it — don't answer from memory, and don't decide there's nothing to
-     show.** "Don't have mnemonic for that one", "No mnemonic on file" and a
-     recollected paragraph in place of `explain 親` are all from one session,
-     and all three were wrong: the command had the mnemonic, the parts and
-     the links every time. **The user typing the command is not an exception
-     to this.** `explain 転送` — the command, by name, with the item — was
-     answered in a later sitting with a two-line gloss composed on the spot,
-     so what came back was one model's reading of a word instead of the
-     mnemonic, the parts, the context sentences and the links that `explain
-     3175` had ready. If they said the word, run the command.
-   - **Any question about an item goes through the CLI too.** "help me compare
-     転 and roll" was answered from memory in that same sitting, and the answer
-     cited the wrong batch for an item that had been graded eight messages
-     earlier. `explain` holds what WaniKani teaches about the item; the record
-     holds what happened to it. Both are one call away, and neither is in your
-     head.
-   - **Don't re-typeset the block.** A later session ran `explain` properly
-     and then rewrote its output with romaji in brackets — `かる (karu)`,
-     `ぶつ (butsu)`, `けってん (kettten)`, that last one misspelt. The block is
-     finished text, and it has already been printed by the command.
-   - **Deflecting still isn't glossing.** When a "more" is unclear or belongs
-     to an item you can't identify, ask which one — `Item 5 is フランス語
-     (French language). Give meaning and reading?` answered the question it
-     was standing in front of.
-   - **Never run it unasked.** Most misses are a fat finger, and a mnemonic
-     they didn't want is a wall of text between them and the next item.
-   - **It means the item just graded**, not the prompt now open — that one
-     would be handing over the answer. If they clearly mean the open item,
-     say so and let them decide; if they still want it, run it.
-   - **It changes no score.** The item was graded before they asked.
-   - It also works between batches, after a session, and on characters
-     (`explain 親`) rather than an id — which can match a kanji *and* a word,
-     in which case it explains both and you print both.
-7. **Auto-advance within a batch**: `grade` prints the verdict and the next
-   prompt together, so the batch moves on by itself — don't wait for "next",
-   and don't announce the move. This only happens after grading a *real
-   reply*; it is never licence to answer the new prompt yourself, and the
-   sitting that did exactly that — its own guess typed under four prompts in a
-   row, one of them graded in place of the user's correct answer — is why step
-   4 ends the turn empty. Pause only if they ask to slow down ("wait", "hold
-   on", "explain that one"), and treat that as standing for the rest of the
-   sitting. Between batches is different — see step 9.
-8. **Submit the whole batch in one call.**
-
-   ```
-   node bin/wanikani.js submit-batch
-   ```
-
-   That submits exactly what `grade` recorded this batch — no list, no counts
-   to remember, nothing to add up. Ten round-trips become one. If it comes
-   back saying nothing was on record, that means the answers were never
-   graded: the items are still due, and the fix is to grade them, not to
-   assemble a list by hand. It takes no list on stdin either: one session fed
-   it `<<'EOF' [{"assignmentId": …, "wrongMeaning": 0}] EOF` on all eight of
-   its batches, and every one of those went in the bin — it now says so out
-   loud rather than looking accepted, in the payload as well as on stderr,
-   because a later sitting did the same on all six of its batches without ever
-   mentioning the warning. `ignoredStdin` in the result means the submission
-   was still right and the heredoc was the part that did nothing. It prints `summaryLine` (step 9), `results[]` per
-   item, `batch` counts, and `remaining`. If anything failed to submit,
-   `summaryLine` already says so *and* says what becomes of it — print it and
-   don't restate; `results[]` has the per-item error if they ask.
-
-   Two things it deliberately leaves behind. An item still mid-question — a
-   re-prompt nobody answered — isn't submitted, because the half that could be
-   wrong hasn't been given; it stays due. And anything asked but never graded
-   is counted in `summaryLine` as `left unanswered — still due`, which is the
-   line's way of showing the gap between what went past on screen and what
-   reached the record. If that segment appears and you weren't expecting it,
-   some answers didn't go through `grade`.
-
-   If the session is interrupted before this call, nothing was sent for that
-   batch: those items come back next time, nothing is double-counted.
-9. **Between batches**, give the summary, then ask a brief "Continue?" rather
-   than auto-chaining. Unlike within a batch, ask every time. On yes, `queue
-   --limit 10` again; on no, or an empty queue, give the final summary and
-   stop.
-
-   `summaryLine` is printed as-is. It already names what changed status,
-   carries the running session total, and drops segments that would say
-   nothing:
-
-   ```
-   10 done, 8 perfect · 心強い → Guru, 集中 → Burned, 作業 slipped to Apprentice 1 · 30 done this session, 25 perfect · 127 left
-   ```
-
-   Summarising the summary loses exactly the parts worth having. This rewrite
-
-   ```
-   line:  10 done, 5 perfect · 工業 → Guru · 20 done this session, 10 perfect · 92 left
-   typed: Batch 1 done. 5 perfect. 92 left.
-   ```
-
-   dropped the item that reached Guru and the session total. The separators,
-   the wording and the drop-empty-segments rules are all already decided.
-
-   Add a sentence of your own only for something the line can't know — a
-   pattern worth naming ("the ん readings are the ones catching you"). And
-   then wait: "Batch 2 incoming…" is not the same thing as asking.
-
-### When you've lost track of what landed
-
-A sitting lives in a file, not in a conversation: it survives for 30 minutes
-of idleness, so a new session can walk into one already half-answered, with
-the one-off notes already said to somebody else. **When you arrive and the
-state isn't obvious, look before you fetch** — a `queue` call is not a free
-question.
-
-`node bin/wanikani.js status` answers it: how many of the batch are asked,
-answered and still open, how many answers are on record and unsent, what's
-been submitted this sitting, and the next call to make. It reads the local
-record — no token, no network — so it answers when nothing else does. Run it
-when the state is unclear, when a `submit-batch` says something you weren't
-expecting, and whenever they ask "did that go through?".
-
-- **Don't theorise about the tool. Ask it.** "CLI grading/submission system
-  seems partial/inconsistent", "Tool only accepted batch 5", "CLI broken",
-  "This one's unreliable — use the WaniKani web interface" all went to a user
-  in one sitting. The actual cause was that session's own `queue --limit 40`
-  calls, each of which cleared the record it then found empty; every number
-  needed to see that was one `status` away. A tool verdict is the last thing
-  to reach for and the first thing that gets typed.
-- **"Nothing was submitted" is not "your answers are lost".** An item stays
-  due until it's submitted, so an unsubmitted batch is a batch still waiting
-  to be answered — not forty items owed to a website. Say that, because the
-  alternative reads as an hour of work destroyed. Every message that reports
-  an empty record says it too; it keeps not being read.
-- **The numbers in a prompt are positions in one fetch, not names.**
-  Submitting prunes what went in, so the next fetch's "31" is a different item
-  from the last one's, and `queue` handing back something unfamiliar means the
-  list moved, not that reviews went missing. "Remaining 20 from your original
-  work are gone from queue" was the conclusion drawn from that in one session;
-  those twenty were sitting in the queue, still due, at different positions.
-- **Don't rebuild a lost batch from the chat log.** After a wipe the
-  temptation is to replay the answers upward in the transcript. Half of them
-  aren't theirs: the session that did this re-graded thirty items using the
-  corrected answers it had fed the user after each miss. It reported three
-  batches of "10/10 perfect" — fourteen of those thirty had been missed
-  minutes earlier, and four items were *burned*, out of the review cycle for
-  good, on answers the user never gave. The items were all still due. Ask them
-  again — that's what "still due" means — or move on and let WaniKani bring
-  them back. The recovery in the paragraph above is for answers *they* gave
-  this batch that never reached `grade`, and only those.
-
-  (`submit-batch` now carries a miss across a re-ask within the same sitting,
-  so this can't quietly promote anything any more. That's a floor under the
-  damage, not permission: it still asks them nothing and tells them a batch
-  went perfectly when it didn't.)
-
-- **One `grade` call per reply, in the turn the reply arrives.** A shell loop
-  over a list of answers — `for subjectId in 3504 616 …; do grade $subjectId
-  "…"; done` — is by construction not that: nobody typed anything while it
-  ran. It was the shape the replay above took, and the shape is the tell. The
-  legitimate whole-batch form is `grade-many`, which grades one message the
-  user actually sent.
-
-### Drilling recent mistakes
-
-"Let's re-review my recent mistakes", "quiz me on what I got wrong", "drill
-the ones I missed" → `node bin/wanikani.js drill [--limit N]`. It returns the
-items recently answered wrong, as questions, in the same shape `queue` uses:
-a `prompt` and a `subjectId`, no answers. Ask them one at a time and grade each
-through `grade`, exactly as in a batch.
-
-- **The list comes from the record, never from the conversation.** Asked this
-  before the command existed, a session scrolled back through the transcript,
-  assembled nineteen items from what it remembered of them, and quizzed and
-  graded all nineteen from memory — romaji corrections, invented verdicts, and
-  a hint handed over when the user typed `x.x`. Every one of those items was
-  in the record, misses and all.
-- **Nothing in a drill is due and nothing submits.** `grade` says so —
-  `(drill — nothing recorded, nothing submitted)` — because the items were
-  submitted when their batch was. Say it once at the start so they know the
-  drill costs and earns nothing; it's practice.
-- **Everything else is the same**: prompts printed as they come, verdicts from
-  `grade`, no hints, no answers before they've answered.
-
-Keep the pace conversational: one item's result plus the next prompt per
-message, not a wall of text per batch, and keep every line short. The goal
-is fewer *tool calls* and less waiting on "next" — not fewer chat turns.
-Auto-advancing means more turns, back to back, which is the point.
-
-### Rapid-fire: a whole batch in one exchange
-
-Once someone has their pace, one item per message *is* the slow part. So the
-batch can go out as a list and come back as a list — a real session ran nine
-items in one exchange that way, and the user asked for the next batch the
-same. Two commands, and the point of both is that nothing is composed from
-memory:
-
-1. `node bin/wanikani.js prompts` — every still-unanswered item in the batch,
-   numbered as `queue` numbered it, as one block. It prints itself — the
-   how-to line under it is part of it, and the CLI decides when to include it
-   (once a sitting), so there's nothing to remember, suppress, or repeat.
-2. They answer them in one message, separated by `|`.
-3. `node bin/wanikani.js grade-many "<their whole line>"` — the reply goes in
-   **verbatim**, same as `grade`: don't tidy it, don't reorder it, don't drop
-   the empty slots. It grades in order and prints one numbered verdict line per
-   item, then what's still open.
-4. Some items come back open — a re-prompt, or ones they skipped. `prompts`
-   again lists just those, keeping their original numbers, and their next line
-   goes through `grade-many` again. When nothing is open, `submit-batch`.
-
-**Never write the list yourself.** This is the one that ended a session: asked
-for the remaining nine, it typed out `shore/kishi |
-city/town/village/shichouchouson | get ahead/sakimawari | …` — nine meanings
-and readings recalled from memory, two of them wrong, handed to the user as the
-question. `prompts` exists so there is nothing to recall. **If you are about to
-type a numbered list of items into chat, stop — that list is the batch's answer
-key.** The same goes for `grade-many`'s side: don't hand-map their answers to
-subject ids across nine `grade` calls, because that mapping is counting, and
-counting nine items deep into a batch is what the command is for.
-
-If `grade-many` refuses ("4 answers for 3 open items — nothing graded"), print
-what it said and let them re-send. It refuses because `|` also separates the
-halves of a single answer, and a guess there marks every item after the split
-against its neighbour's answer key.
-
-**When to switch.** They ask for it — "rapid fire", "faster", "all at once",
-"the rest in one go" — or they answer several items in one message unasked,
-which is the same request. It holds for the rest of the sitting, the way
-"wait" holds the other way; "one at a time" turns it off. You may offer it
-once, between batches, in a clause — never mid-batch, and never twice.
-
-**What doesn't change.** The verdict lines are `grade-many`'s own, on screen
-already, kana and links intact — nothing of yours goes under them. A miss is still a miss with no retry. The batch
-still ends at `submit-batch`, and you still ask before starting the next one.
-
-## Telling them what it can do
-
-A feature nobody knows about may as well not exist, and this one has form:
-"more" sat unused because it lived in this file, and the lookup link went
-unprinted for weeks. So the tool advertises itself, in code, and you print
-it and get out of the way.
-
-- **`node bin/wanikani.js status`** answers "did that go through?", "what's
-  left?", "is that submitted?" — from the record rather than from memory. See
-  *When you've lost track of what landed* above; it needs no token either.
-- **`node bin/wanikani.js tips`** prints the whole list of what the user can
-  say. Run it on "what can I say?", "what else can you do?", "help", "tips",
-  "is there a way to…". It needs no token and no network, so it answers even
-  when nothing else will.
-- **The convention note carries the pointer** — it ends with `or "what can I
-  say?" for the rest`. That, plus the single rapid-fire offer above, is the
-  whole of what a session brings up unasked.
-- **Don't hand-roll tips and don't volunteer them.** If you're writing "by
-  the way, you can also…", stop: either it's in `tips` and they can ask, or
-  it isn't and it belongs in `lib/tips.js` — a code change, not something to
-  improvise between two review items.
+`bin/wanikani.js` needs `WANIKANI_API_TOKEN`. Run commands plain, from the
+repo root: `node bin/wanikani.js ask`. The CLI auto-loads `.env`, so nothing
+needs passing in. Run `npm install` first if `node_modules/wanakana` doesn't
+exist.
+
+- **This CLI is the WaniKani client. Don't write another one.** No `curl` at
+  the API, no scripts in `/tmp` against `/v2/subjects`. One session did
+  exactly that to get the answer key, graded ten items in chat from it, and
+  ended the batch with nothing submittable. If something you need genuinely
+  isn't here, that's a change to `lib/`, proposed to the user.
+- **No `2>/dev/null`, no `| jq`.** stderr is where a refusal explains itself,
+  and `jq` throws away the shape of what came back.
+- **Never put the token value in a command.** It gets echoed into the visible
+  tool call and from there into transcripts. Don't ask for it in chat either;
+  the errors carry their own remedy — "No API token found" already says to
+  copy `.env.example`, and a 403 already names the permission it needed.
+
+## Reviews
+
+Two commands, in a loop:
+
+```
+node bin/wanikani.js ask                              → prints the question
+node bin/wanikani.js answer "<their whole reply>"     → prints the verdict and the next question
+```
+
+`ask` fetches a batch when there isn't one, re-asks the open item when there
+is, and submits a finished batch before serving the next. `answer` grades
+against whatever is open. **Neither takes an id, and there is no batch to
+keep track of** — that all lives in a file on disk, which is also how a
+sitting survives a new conversation walking into the middle of it.
+
+So the whole loop is: `ask`, print it, wait. They reply, `answer` with what
+they typed, print it, wait. When the output says the batch is done, `ask`
+again — that submits it and prints the summary. Then ask whether to continue.
+
+### The five rules
+
+Everything the CLI can decide, it decides. These are what's left, and each
+one is here because it has gone wrong in a real sitting.
+
+1. **Their reply goes in verbatim — the whole line, exactly as typed.**
+   Whatever separator they used, whichever order, typos and all. `page. pe-ji`
+   went in as `page, peji`, which is a different word, and `.conventient. ben`
+   went in as `convenient ben` — a typo silently corrected on the way past.
+   The CLI knows what to do with the line; it does not need tidying, and an
+   answer isn't yours to edit.
+
+2. **Never type an answer.** Not a guess, not a hint, not "I think this one
+   is". One sitting typed its own answer under four prompts in a row, and on
+   one item the user answered `bear.` — correctly — while the session passed
+   its own `wave` to the grader and recorded a miss on an item they had
+   right. Recognising an item is not permission to fill it in. **If they have
+   typed a reply, that reply is the only thing that goes into `answer`.**
+
+3. **Add nothing to what the CLI printed.** The verdict, the correction, the
+   next prompt, the summary — all finished text, on the screen already. Don't
+   restate it, don't shorten it, don't gloss the kana. Every compression so
+   far has lost the same two things: `✗ (rib cage)` and `✗ (meaning: release,
+   reading: hou)` dropped the lookup link and put the reading back into
+   romaji. The kana is the answer; the romaji is noise. That holds for
+   anything you write in your own words too — the only romaji in a session is
+   what the *user* types.
+
+4. **A glyph-less radical's prompt is an image URL. Print the URL**, whole and
+   clickable. `7. Rib Cage image` names the radical, which is the answer;
+   `5. Radical` doesn't name it but doesn't show it either, and the user
+   answered a picture they never saw.
+
+5. **A miss ends the item.** The correction contains the answer, so there is
+   no retry to offer — the miss is already recorded and WaniKani doesn't offer
+   one either. `Retry?` went out after nearly every wrong answer of one
+   sitting; each one invited the user to read the answer back off the screen.
+
+If a line starts with `!`, it's a problem to read rather than a verdict —
+`NOT RECORDED` in particular means nothing was written down, and continuing
+past it wastes the batch.
+
+### Overruling a verdict
+
+When the answer key says wrong and a reasonable reading of a typo says right:
+
+```
+node bin/wanikani.js answer --forgive meaning     (or --forgive reading)
+```
+
+It takes the last verdict back off the record — no id, and it works right up
+until `ask` submits the batch. Say so in a short clause ("counting that as a
+typo") and carry on. Forgiving out loud without this call still costs them
+the level.
+
+### What they can ask for mid-batch
+
+- **"more", "why", "mnemonic", a bare "?"** → `node bin/wanikani.js explain
+  <id|characters>`, then `ask` to put the open question back. **Run it — never
+  answer from memory.** "No mnemonic on file" and a recollected paragraph in
+  place of `explain 親` are both from real sittings, and both were wrong. The
+  user typing the command themselves (`explain 転送`) is not an exception. It
+  means the item just *graded*, not the one now open — that one would be
+  handing over the answer. Never run it unasked.
+- **Any other question about an item** — "what was that one again?", "how does
+  this relate to X?" — goes through `explain` too, for the same reason.
+- **"what can I say?", "help"** → `node bin/wanikani.js tips`. Don't hand-roll
+  tips and don't volunteer them; if it isn't in `tips` it belongs in
+  `lib/tips.js`, which is a code change and not something to improvise
+  between two items.
+- **"did that go through?", "what's left?"** → `node bin/wanikani.js status`.
+  It reads the local record — no token, no network — so it answers when
+  nothing else does. **Don't theorise about the tool; ask it.** "CLI broken"
+  and "use the WaniKani web interface instead" both went to a user in one
+  sitting, over a problem that was one `status` call away from being visible.
+- **"wait", "hold on", "one at a time"** → stop auto-advancing and wait for
+  them between items, for the rest of the sitting.
+- **A whole batch in one message** ("rapid fire") → `prompts` lists what's
+  still open as one block, `grade-many "<a> | <b> | ...>"` grades them in that
+  order. Same rules; the CLI still prints everything. Offer it once, between
+  batches, if they're moving fast.
+- **"drill me on what I got wrong"** → `node bin/wanikani.js drill`, then
+  `grade` per item. Nothing there is due and nothing submits; say that once.
 
 ## Lessons
 
 Teaching, not quizzing — so unlike reviews, everything is meant to be said
 out loud: the characters, the meaning, the reading, the mnemonic.
 
-1. `node bin/wanikani.js lessons --json --limit 5`. Batches of ~5; lessons
-   are much heavier going than reviews. Each item has `assignmentId`,
-   `characters` (null for glyph-less radicals — render `characterImageUrl`
-   inline instead), `subjectType`, `level`, `meanings`, `readings`,
-   `meaningMnemonic`/`meaningHint` and `readingMnemonic`/`readingHint`,
-   markup already stripped. They arrive in WaniKani's teaching order, so take
-   them in the order given — radicals before the kanji built from them. Empty
+1. `node bin/wanikani.js lessons --json --limit 5`. Batches of ~5; lessons are
+   heavier going than reviews. They arrive in WaniKani's teaching order —
+   radicals before the kanji built from them — so take them as given. Empty
    array: say there's nothing to learn and stop.
-2. One item per message: characters, meaning, reading (kana only — the
-   no-romaji rule holds here too), and the mnemonic in your own words rather
-   than read out. Tie it to a radical or kanji they've already had where the
-   mnemonic does. Then ask if they've got it and wait — same rule as reviews,
-   the question is the last thing in the message.
-3. When they've got it, keep a list rather than shelling out. Once the batch
-   is done, mark them all started in one call:
-
-   ```
-   node bin/wanikani.js start 551149968 603114625
-   ```
-
-   That's the non-interactive counterpart to `lessons --start`, which prompts
-   per item and needs a real terminal — don't run that one. It prints
-   `{results, batch}`; report anything that failed rather than assuming it
-   went through. A 403 means the token is missing `assignments:start`.
+2. One item per message: characters, meaning, reading (kana only), and the
+   mnemonic in your own words rather than read out. Tie it to a radical or
+   kanji they've already had where the mnemonic does. Then ask if they've got
+   it and wait — the question is the last thing in the message.
+3. When the batch is done, mark them all started in one call:
+   `node bin/wanikani.js start 551149968 603114625`. Report anything that
+   failed rather than assuming it went through; a 403 means the token is
+   missing `assignments:start`. (Don't run `lessons --start` — it prompts per
+   item and needs a real terminal.)
 4. Starting is what puts an item into the SRS: Apprentice 1, first review a
-   few hours later (`firstReviewIn` says when). Mention that once at the end
-   — "5 started, first reviews in 4h" — not per item. Anything they'd rather
-   skip simply doesn't go in the `start` call and comes back next time.
+   few hours later. Mention that once at the end — "5 started, first reviews
+   in 4h" — not per item. Anything they'd rather skip just doesn't go in the
+   `start` call.
 
 ## Account check
 
 `node bin/wanikani.js summary [--json]` — level, lessons available, reviews
-available, and time to the next review batch. That's the account; `status` is
-the sitting's own record, above.
+available, time to the next batch. That's the account; `status` is the
+sitting's own record.
+
+---
+
+Every rule above is the residue of a sitting that went wrong. The full
+account of what happened and what it cost is in `FAILURES.md` beside this
+file — read it before changing any of this, not during a session.

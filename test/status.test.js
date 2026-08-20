@@ -24,7 +24,7 @@ test("with nothing on disk it says so, rather than nothing at all", async () => 
   const out = await withTempCacheDir(() => status());
 
   assert.match(out, /No sitting on disk/);
-  assert.match(out, /`queue --limit 10`/);
+  assert.match(out, /`ask` starts one/);
 });
 
 test("a batch part-way through is reported as asked, answered and open", async () => {
@@ -38,7 +38,7 @@ test("a batch part-way through is reported as asked, answered and open", async (
     assert.match(out, /Batch: 3 asked · 1 answered · 2 still open \(2, 3\)/);
     assert.match(out, /On record and not sent: 1 answer, 1 carrying a miss/);
     assert.match(out, /Sent this sitting: 30 submitted, 25 perfect/);
-    assert.match(out, /`prompts` re-asks the 2 still open, then `submit-batch` sends the 1 on record/);
+    assert.match(out, /`ask` re-asks the 2 still open; `answer "<their whole reply>"` grades the first of them/);
   });
 });
 
@@ -49,7 +49,7 @@ test("an answered batch is told to submit, and nothing else", async () => {
 
     const out = await status();
 
-    assert.match(out, /Next: `submit-batch` sends the 3 on record\./);
+    assert.match(out, /Next: `ask` submits the 3 on record and prints the summary\./);
     assert.doesNotMatch(out, /prompts/);
   });
 });
@@ -61,7 +61,7 @@ test("a submitted batch points at the next fetch", async () => {
     const out = await status();
 
     assert.match(out, /On record and not sent: nothing/);
-    assert.match(out, /Next: `queue --limit 10` fetches the next batch/);
+    assert.match(out, /Next: `ask` fetches the next batch/);
   });
 });
 
@@ -81,7 +81,7 @@ test("a sitting past its life says what the next fetch will drop", async () => {
 
     assert.match(out, /idle 3h, past its 30-minute life/);
     assert.match(out, /drops what's on this record \(1 answer\) — those items stay due/);
-    assert.match(out, /Next: `queue --limit 10` starts a fresh sitting\./);
+    assert.match(out, /Next: `ask` starts a fresh sitting\./);
   });
 });
 
@@ -92,8 +92,8 @@ test("every report ends with what the record can and can't have done", async () 
 
     const out = await status();
 
-    assert.match(out, /Nothing reaches WaniKani until `submit-batch`/);
-    assert.match(out, /an item stays due until it's submitted/);
+    assert.match(out, /Nothing reaches WaniKani until the batch is submitted/);
+    assert.match(out, /an item stays due until it is/);
   });
 });
 

@@ -18,6 +18,7 @@ import { statusCommand } from "../lib/commands/status.js";
 import { drillCommand } from "../lib/commands/drill.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
+import { askCommand, answerCommand } from "../lib/commands/session.js";
 import { startCommand } from "../lib/commands/start.js";
 
 // Auto-load the repo's .env (if present) so WANIKANI_API_TOKEN doesn't
@@ -44,6 +45,15 @@ Commands:
   start <id> [<id>...]  Mark lesson assignments as started — the non-interactive
                         counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
+
+  The two that drive a Claude-run session — no ids, nothing to track:
+  ask [--limit N]       Print the question that's waiting: fetches a batch when there
+                        isn't one, re-asks the open item when there is, submits a
+                        finished batch before serving the next
+  answer "<their whole reply>" [--forgive meaning|reading]
+                        Grade that reply against whatever is open, then print the
+                        verdict and the next question. --forgive takes the last miss
+                        back off the record, no id needed
   queue [--limit N] [--answers] [--restart]
                         Due reviews as JSON: the questions and their ids, no answers.
                         Refuses while answers are graded and unsubmitted, since serving a
@@ -81,6 +91,8 @@ Auth:
 // a token. Kept next to HELP, which has to list the same set.
 const COMMANDS = new Set([
   "summary",
+  "ask",
+  "answer",
   "lessons",
   "start",
   "review",
@@ -169,6 +181,26 @@ async function main() {
     case "review": {
       const { values } = parseArgs({ args: rest, options: { limit: { type: "string" } } });
       await reviewCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      break;
+    }
+    case "ask": {
+      const { values } = parseArgs({ args: rest, options: { limit: { type: "string" } } });
+      await askCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      break;
+    }
+    case "answer": {
+      const { values, positionals } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { forgive: { type: "string" } },
+      });
+      if (values.forgive && !["meaning", "reading"].includes(values.forgive)) {
+        throw new Error("--forgive takes 'meaning' or 'reading'");
+      }
+      if (!values.forgive && !positionals[0]) {
+        throw new Error('Usage: wanikani answer "<their whole reply>" [--forgive meaning|reading]');
+      }
+      await answerCommand(client, { reply: positionals[0], forgive: values.forgive });
       break;
     }
     case "queue": {

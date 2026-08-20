@@ -54,7 +54,7 @@ test("status runs without a token, because that's when it gets asked", async () 
     });
 
     assert.match(stdout, /Sitting: 1 still due/);
-    assert.match(stdout, /Nothing reaches WaniKani until `submit-batch`/);
+    assert.match(stdout, /Nothing reaches WaniKani until the batch is submitted/);
   });
 });
 
