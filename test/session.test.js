@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
 import { loadGrades, openItems } from "../lib/queueOrder.js";
+import { follows } from "../lib/commands/grade.js";
 import { withTempCacheDir, captureStdout } from "./helpers.js";
 
 /**
@@ -262,5 +263,138 @@ test("nothing the driver has to hold appears in what ask and answer print", asyn
         "no JSON to read a question out of",
       );
     }
+  });
+});
+
+test("a glyph-less radical arrives as its image URL, through ask and through answer", async () => {
+  const IMAGED = {
+    id: 9,
+    object: "radical",
+    data: {
+      level: 1,
+      characters: null,
+      character_images: [{ content_type: "image/png", url: "https://files.wanikani.com/w2i6pg4t17" }],
+      document_url: "https://www.wanikani.com/radicals/rib-cage",
+      meanings: [{ meaning: "Rib Cage", primary: true, accepted_answer: true }],
+      auxiliary_meanings: [],
+    },
+  };
+  const client = {
+    async getAssignments() {
+      return [{ id: 200, data: { subject_id: 9 } }];
+    },
+    async getSubjectsByIds(ids) {
+      return new Map(ids.map((id) => [id, id === 9 ? IMAGED : null]).filter(([, s]) => s));
+    },
+  };
+
+  await withTempCacheDir(async () => {
+    // Naming it ("Rib Cage image", "5. Radical") is naming the answer, and a
+    // sitting that did the second had the user miss a picture they never saw.
+    const opening = await captureStdout(() => askCommand(client, { limit: 1 }));
+    assert.match(opening, /^1\. https:\/\/files\.wanikani\.com\/w2i6pg4t17$/m);
+    assert.doesNotMatch(opening, /rib.?cage/i);
+  });
+});
+
+test("ask says so when nothing is due, rather than serving an empty batch", async () => {
+  const client = { async getAssignments() { return []; }, async getSubjectsByIds() { return new Map(); } };
+
+  await withTempCacheDir(async () => {
+    const output = await captureStdout(() => askCommand(client, { limit: 10 }));
+    assert.match(output, /Nothing due right now/);
+  });
+});
+
+test("the driver note stays off the session's screen", async () => {
+  await withTempCacheDir(async () => {
+    // It's addressed to whoever is driving, not to the person answering, and
+    // anything on stdout is liable to be read back out to them.
+    const opening = await ask(fakeClient());
+    assert.doesNotMatch(opening, /Driving:/);
+    assert.doesNotMatch(opening, /`answer "<their whole reply>"`/);
+  });
+});
+
+test("a verdict that graded nothing doesn't pull the next question up under it", () => {
+  // `answer` and `grade` share this, so the batch can't advance past an item
+  // whose answer went nowhere — printing a prompt under a `NOT RECORDED`
+  // warning sweeps the warning off the screen with it.
+  assert.equal(follows({ assignmentId: 1 }), true);
+  assert.equal(follows({ assignmentId: 1, open: true }), false, "the item is still theirs");
+  assert.equal(follows({ assignmentId: 1, error: "no subject" }), false);
+  assert.equal(follows({ assignmentId: 1, alreadyAnswered: {} }), false);
+  assert.equal(follows({ assignmentId: null }), false, "nothing was recorded, so nothing follows");
+});
+
+test("an item that can't be shown is stepped over, not silently graded against", async () => {
+  // No glyph and no image, so it has no prompt. `ask` and `answer` used to
+  // pick the open item separately: `ask` printed an error for this one and
+  // `answer` graded the user's reply against it anyway — a miss on an item
+  // they were never shown.
+  const UNSHOWABLE = {
+    id: 7,
+    object: "radical",
+    data: {
+      level: 1,
+      characters: null,
+      character_images: [],
+      document_url: "https://www.wanikani.com/radicals/ghost",
+      meanings: [{ meaning: "Ghost", primary: true, accepted_answer: true }],
+      auxiliary_meanings: [],
+    },
+  };
+  const pair = [UNSHOWABLE, KANJI];
+  const client = {
+    async getAssignments() {
+      return pair.map((subject, index) => ({ id: 300 + index, data: { subject_id: subject.id } }));
+    },
+    async getSubjectsByIds(ids) {
+      return new Map(ids.map((id) => [id, pair.find((s) => s.id === id)]).filter(([, s]) => s));
+    },
+  };
+
+  await withTempCacheDir(async () => {
+    const opening = await captureStdout(() => askCommand(client, { limit: 2 }));
+    assert.match(opening, /親/, "the askable item is what gets asked, wherever the shuffle put it");
+    assert.doesNotMatch(opening, /Ghost/, "and the one with nothing to show is not described");
+
+    await captureStdout(() => answerCommand(client, { reply: "parent, shin" }));
+
+    const graded = Object.entries(await loadGrades());
+    assert.equal(graded.length, 1, "one answer, one grade");
+    const open = await openItems();
+    assert.deepEqual(
+      open.map((item) => item.subjectId),
+      [7],
+      "the unshowable item is still open — nobody could answer it, so nobody did",
+    );
+  });
+});
+
+test("a batch of nothing but unshowable items says so instead of wedging", async () => {
+  const GHOST = {
+    id: 7,
+    object: "radical",
+    data: { level: 1, characters: null, character_images: [], document_url: "u", meanings: [], auxiliary_meanings: [] },
+  };
+  const client = {
+    async getAssignments() {
+      return [{ id: 400, data: { subject_id: 7 } }];
+    },
+    async getSubjectsByIds(ids) {
+      return new Map(ids.map((id) => [id, GHOST]));
+    },
+  };
+
+  await withTempCacheDir(async () => {
+    await captureStdout(() => askCommand(client, { limit: 1 }));
+    const stuck = await captureStdout(() => askCommand(client, { limit: 1 }));
+    assert.match(stuck, /no way to show/);
+    assert.match(stuck, /they stay due/, "the items aren't lost, they just can't be asked here");
+
+    const output = await captureStdout(() => answerCommand(client, { reply: "ghost" }));
+    assert.match(output, /Nothing was graded/);
+    assert.deepEqual(await loadGrades(), {}, "and nothing was");
   });
 });
