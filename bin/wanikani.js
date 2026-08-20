@@ -19,6 +19,7 @@ import { drillCommand } from "../lib/commands/drill.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
+import { updateCommand } from "../lib/commands/update.js";
 import { startCommand } from "../lib/commands/start.js";
 
 // Auto-load the repo's .env (if present) so WANIKANI_API_TOKEN doesn't
@@ -70,6 +71,8 @@ Commands:
                         answered, how much is waiting to be sent, what to call next.
                         Local, so it answers when the API doesn't
   tips                  Everything you can say during a session, all at once
+  update                Pull this repo, wherever you ran the command from, and say whether
+                        the change needs a Claude Code restart or is already live
   grade <subjectId> "<their answer>" [--meaning M] [--reading R] [--forgive meaning|reading] [--json]
                         Grade one answer. Prints the line to say, and records the miss
                         for submit-batch. --forgive takes one back off the record when
@@ -91,6 +94,7 @@ Auth:
 // a token. Kept next to HELP, which has to list the same set.
 const COMMANDS = new Set([
   "summary",
+  "update",
   "ask",
   "answer",
   "lessons",
@@ -153,6 +157,11 @@ async function main() {
   // can't ask what's on the record.
   if (command === "tips") {
     await tipsCommand();
+    return;
+  }
+
+  if (command === "update") {
+    await updateCommand();
     return;
   }
 
