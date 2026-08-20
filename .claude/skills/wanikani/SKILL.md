@@ -135,6 +135,11 @@ the level.
   sitting, over a problem that was one `status` call away from being visible.
 - **"wait", "hold on", "one at a time"** → stop auto-advancing and wait for
   them between items, for the rest of the sitting.
+- **"stop", "that's enough for now"** → `wanikani submit-batch` sends what
+  they've answered so far and leaves the rest due. Say what it reports and
+  stop. **A part-answered batch is not a batch that can't be submitted** — one
+  sitting was told "can't submit partial" and left ten answers to expire with
+  the sitting. Answers only go nowhere if nobody sends them.
 - **A whole batch in one message** ("rapid fire") → `prompts` lists what's
   still open as one block, `grade-many "<a> | <b> | ...>"` grades them in that
   order. Same rules; the CLI still prints everything. Offer it once, between
