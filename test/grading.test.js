@@ -369,3 +369,36 @@ test("the other-reading nudge recognises the reading whatever case it arrives in
     assert.equal(readingVerdict(typed, parent).status, "other-reading", typed);
   }
 });
+
+test("a meaning-only item sheds a volunteered reading across a space, not just punctuation", () => {
+  // 少 was answered "few shou" in a real sitting and marked wrong, while
+  // "few. shou" and "few, shou" both passed. Same answer, same knowledge —
+  // lost to the separator the user happened not to reach for.
+  const few = {
+    meanings: [{ meaning: "Few", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  for (const typed of ["few", "few shou", "few. shou", "few, shou"]) {
+    const { meaning } = splitAnswer(typed, few, false);
+    assert.equal(isMeaningCorrect(meaning, few), true, typed);
+  }
+
+  assert.equal(isMeaningCorrect(splitAnswer("many shou", few, false).meaning, few), false, "a wrong answer is still wrong");
+  assert.equal(isMeaningCorrect(splitAnswer("shou few", few, false).meaning, few), false, "and the meaning still comes first");
+});
+
+test("shedding the last word doesn't cost a meaning that is several words long", () => {
+  // Only one word comes off, and the whole reply is tried before any of it —
+  // so "rib cage" is graded as itself rather than as "rib".
+  const ribCage = {
+    meanings: [{ meaning: "Rib Cage", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  assert.equal(isMeaningCorrect(splitAnswer("rib cage", ribCage, false).meaning, ribCage), true);
+  assert.equal(isMeaningCorrect(splitAnswer("rib cage kotsu", ribCage, false).meaning, ribCage), true);
+  assert.equal(isMeaningCorrect(splitAnswer("rib", ribCage, false).meaning, ribCage), false, "half of it is not it");
+});
