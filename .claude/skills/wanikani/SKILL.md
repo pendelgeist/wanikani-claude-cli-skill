@@ -76,6 +76,12 @@ one is here because it has gone wrong in a real sitting.
    The CLI knows what to do with the line; it does not need tidying, and an
    answer isn't yours to edit.
 
+   The exception is a reply that isn't an answer at all. "tip 育" is a request
+   for a hint, and it went into `answer` verbatim and cost the user the item.
+   Anything with a kanji in it is a question — meanings are English and
+   readings are kana — so send it to `explain` instead. `answer` refuses those
+   now rather than grading them, but the refusal is a backstop, not the rule.
+
 2. **Never type an answer.** Not a guess, not a hint, not "I think this one
    is". One sitting typed its own answer under four prompts in a row, and on
    one item the user answered `bear.` — correctly — while the session passed

@@ -453,3 +453,47 @@ test("ask serves a batch of ten when nobody says otherwise", async () => {
     assert.equal((await openItems()).length, 10, "ten, not everything that happens to be due");
   });
 });
+
+test("a question about an item isn't graded as an answer to it", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const opening = await ask(client);
+    const glyph = glyphOf(opening);
+
+    // "tip 育" went in verbatim — exactly as the hand-over rule says — and 育
+    // went down as a miss on both halves because the user wanted a hint.
+    const refused = await answer(client, `tip ${glyph}`);
+
+    assert.match(refused, /^! That reads as a question/m);
+    assert.match(refused, new RegExp(`explain ${glyph}`), "and points at the command that answers it");
+    assert.deepEqual(await loadGrades(), {}, "nothing recorded");
+    assert.equal((await openItems())[0].position, 1, "and the item is still waiting");
+  });
+});
+
+test("the question it names is the one they asked about, not the one that's open", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const opening = await ask(client);
+    const open = glyphOf(opening);
+
+    // Mid-batch on one item, asking about another: 場 is what they want
+    // explained, whatever is on screen.
+    const refused = await answer(client, "explain 場");
+
+    assert.match(refused, /`explain 場`/);
+    assert.match(refused, new RegExp(`${open} is still open`));
+  });
+});
+
+test("kana answers are untouched, since a reading is kana by definition", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    let output = await ask(client);
+    while (glyphOf(output) !== "心強い") output = await answer(client, RIGHT[glyphOf(output)]);
+
+    // こころづよい is an answer, not a question — only Han script is the tell.
+    const graded = await answer(client, "reassuring こころづよい");
+    assert.match(graded, /^✓$/m);
+  });
+});
