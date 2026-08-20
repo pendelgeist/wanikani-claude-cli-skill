@@ -65,6 +65,29 @@ already done is lost.
 
 Optionally `npm link` to get a `wanikani` command on your `$PATH`.
 
+## Installing the skill
+
+The skill lives in this repo at `.claude/skills/wanikani/`, but Claude Code
+only loads project skills for the project you're *in* — so if you run Claude
+Code from somewhere else, it needs to be installed where it will be found:
+
+```
+npm link                                  # puts `wanikani` on your PATH
+ln -s "$PWD/.claude/skills/wanikani" ~/.claude/skills/wanikani
+```
+
+**Symlink it; don't copy it.** A copy goes stale the moment the repo moves on,
+and silently: the session keeps working, just to last month's instructions. A
+real one ran four releases behind for three weeks, driving sittings with
+commands that had been replaced, and nothing about it looked wrong from the
+outside. With the symlink, `git pull` is the whole update.
+
+The `npm link` is what makes the symlink safe. The skill calls `wanikani …`
+rather than `node bin/wanikani.js …` precisely so it doesn't depend on which
+directory the session started in — which is the thing that used to force
+someone to hand-edit paths into their copy, and a hand-edited copy is one you
+can never re-copy over.
+
 ## Usage (as a Claude Code skill)
 
 Open this repo in Claude Code and ask it to do your WaniKani reviews (or use

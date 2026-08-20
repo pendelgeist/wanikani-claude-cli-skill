@@ -17,10 +17,15 @@ or `/fast` makes the session snappier, then drop it.
 
 ## Running the CLI
 
-`bin/wanikani.js` needs `WANIKANI_API_TOKEN`. Run commands plain, from the
-repo root: `node bin/wanikani.js ask`. The CLI auto-loads `.env`, so nothing
-needs passing in. Run `npm install` first if `node_modules/wanakana` doesn't
-exist.
+Every command below is written `wanikani <command>`, which is what it is once
+the repo has been `npm link`ed — and that is the form to use, because this
+skill is usually installed outside the repo and a relative path wouldn't
+resolve from wherever the session happens to be. If `wanikani` isn't found,
+fall back to `node <path-to-repo>/bin/wanikani.js <command>` and say so once,
+so it can be put on the PATH properly. Either way it needs
+`WANIKANI_API_TOKEN`; the CLI auto-loads the repo's own `.env` whatever
+directory it's run from, so nothing needs passing in. Run `npm install` in the
+repo first if `node_modules/wanakana` doesn't exist.
 
 - **This CLI is the WaniKani client. Don't write another one.** No `curl` at
   the API, no scripts in `/tmp` against `/v2/subjects`. One session did
@@ -39,8 +44,8 @@ exist.
 Two commands, in a loop:
 
 ```
-node bin/wanikani.js ask                              → prints the question
-node bin/wanikani.js answer "<their whole reply>"     → prints the verdict and the next question
+wanikani ask                              → prints the question
+wanikani answer "<their whole reply>"     → prints the verdict and the next question
 ```
 
 `ask` fetches a batch when there isn't one, re-asks the open item when there
@@ -100,7 +105,7 @@ past it wastes the batch.
 When the answer key says wrong and a reasonable reading of a typo says right:
 
 ```
-node bin/wanikani.js answer --forgive meaning     (or --forgive reading)
+wanikani answer --forgive meaning     (or --forgive reading)
 ```
 
 It takes the last verdict back off the record — no id, and it works right up
@@ -110,7 +115,7 @@ the level.
 
 ### What they can ask for mid-batch
 
-- **"more", "why", "mnemonic", a bare "?"** → `node bin/wanikani.js explain
+- **"more", "why", "mnemonic", a bare "?"** → `wanikani explain
   <id|characters>`, then `ask` to put the open question back. **Run it — never
   answer from memory.** "No mnemonic on file" and a recollected paragraph in
   place of `explain 親` are both from real sittings, and both were wrong. The
@@ -119,11 +124,11 @@ the level.
   handing over the answer. Never run it unasked.
 - **Any other question about an item** — "what was that one again?", "how does
   this relate to X?" — goes through `explain` too, for the same reason.
-- **"what can I say?", "help"** → `node bin/wanikani.js tips`. Don't hand-roll
+- **"what can I say?", "help"** → `wanikani tips`. Don't hand-roll
   tips and don't volunteer them; if it isn't in `tips` it belongs in
   `lib/tips.js`, which is a code change and not something to improvise
   between two items.
-- **"did that go through?", "what's left?"** → `node bin/wanikani.js status`.
+- **"did that go through?", "what's left?"** → `wanikani status`.
   It reads the local record — no token, no network — so it answers when
   nothing else does. **Don't theorise about the tool; ask it.** "CLI broken"
   and "use the WaniKani web interface instead" both went to a user in one
@@ -134,7 +139,7 @@ the level.
   still open as one block, `grade-many "<a> | <b> | ...>"` grades them in that
   order. Same rules; the CLI still prints everything. Offer it once, between
   batches, if they're moving fast.
-- **"drill me on what I got wrong"** → `node bin/wanikani.js drill`, then
+- **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
 
 ## Lessons
@@ -142,7 +147,7 @@ the level.
 Teaching, not quizzing — so unlike reviews, everything is meant to be said
 out loud: the characters, the meaning, the reading, the mnemonic.
 
-1. `node bin/wanikani.js lessons --json --limit 5`. Batches of ~5; lessons are
+1. `wanikani lessons --json --limit 5`. Batches of ~5; lessons are
    heavier going than reviews. They arrive in WaniKani's teaching order —
    radicals before the kanji built from them — so take them as given. Empty
    array: say there's nothing to learn and stop.
@@ -151,7 +156,7 @@ out loud: the characters, the meaning, the reading, the mnemonic.
    kanji they've already had where the mnemonic does. Then ask if they've got
    it and wait — the question is the last thing in the message.
 3. When the batch is done, mark them all started in one call:
-   `node bin/wanikani.js start 551149968 603114625`. Report anything that
+   `wanikani start 551149968 603114625`. Report anything that
    failed rather than assuming it went through; a 403 means the token is
    missing `assignments:start`. (Don't run `lessons --start` — it prompts per
    item and needs a real terminal.)
@@ -162,7 +167,7 @@ out loud: the characters, the meaning, the reading, the mnemonic.
 
 ## Account check
 
-`node bin/wanikani.js summary [--json]` — level, lessons available, reviews
+`wanikani summary [--json]` — level, lessons available, reviews
 available, time to the next batch. That's the account; `status` is the
 sitting's own record.
 
