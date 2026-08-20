@@ -6,7 +6,6 @@ import path from "node:path";
 import { WaniKaniClient, resolveToken } from "../lib/client.js";
 import { parseCount } from "../lib/args.js";
 import { summaryCommand } from "../lib/commands/summary.js";
-import { lessonsCommand } from "../lib/commands/lessons.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
 import { explainCommand } from "../lib/commands/explain.js";
@@ -20,7 +19,6 @@ import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
 import { updateCommand } from "../lib/commands/update.js";
-import { startCommand } from "../lib/commands/start.js";
 
 // Auto-load the repo's .env (if present) so WANIKANI_API_TOKEN doesn't
 // require --env-file or a pre-exported shell var. Doesn't override a
@@ -39,12 +37,6 @@ const HELP = `wanikani <command> [options]
 
 Commands:
   summary [--json]      Lessons/reviews available, next review time, and level
-  lessons [--json] [--limit N] [--start]
-                        Available lessons (--json includes mnemonics and assignment ids
-                        for a Claude-driven session; --start prompts to mark each started,
-                        which needs a real terminal)
-  start <id> [<id>...]  Mark lesson assignments as started — the non-interactive
-                        counterpart to lessons --start
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
 
   The two that drive a Claude-run session — no ids, nothing to track:
@@ -97,8 +89,6 @@ const COMMANDS = new Set([
   "update",
   "ask",
   "answer",
-  "lessons",
-  "start",
   "review",
   "queue",
   "drill",
@@ -177,14 +167,6 @@ async function main() {
     case "summary": {
       const { values } = parseArgs({ args: rest, options: { json: { type: "boolean" } } });
       await summaryCommand(client, values);
-      break;
-    }
-    case "lessons": {
-      const { values } = parseArgs({
-        args: rest,
-        options: { start: { type: "boolean" }, limit: { type: "string" }, json: { type: "boolean" } },
-      });
-      await lessonsCommand(client, { ...values, limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
       break;
     }
     case "review": {
@@ -291,15 +273,6 @@ async function main() {
         throw new Error('Usage: wanikani grade-many "<answer> | <answer> | ..."');
       }
       await gradeManyCommand(client, { answers, json: values.json });
-      break;
-    }
-    case "start": {
-      const { positionals } = parseArgs({ args: rest, allowPositionals: true, options: {} });
-      const assignmentIds = positionals.map((id) => parseCount(id, { flag: "<assignmentId>", min: 1 }));
-      if (assignmentIds.length === 0) {
-        throw new Error("Usage: wanikani start <assignmentId> [<assignmentId>...]");
-      }
-      await startCommand(client, { assignmentIds });
       break;
     }
     case "submit": {

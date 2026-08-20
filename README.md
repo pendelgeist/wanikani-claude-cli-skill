@@ -2,9 +2,12 @@
 
 [![test](https://github.com/pendelgeist/wanikani-claude-cli-skill/actions/workflows/test.yml/badge.svg)](https://github.com/pendelgeist/wanikani-claude-cli-skill/actions/workflows/test.yml)
 
-Do your [WaniKani](https://www.wanikani.com/) lessons and reviews from the
-terminal instead of the web app — either as a plain Node CLI, or as a Claude
-Code skill that drives the quiz conversationally.
+Do your [WaniKani](https://www.wanikani.com/) reviews from the terminal
+instead of the web app — either as a plain Node CLI, or as a Claude Code skill
+that drives the quiz conversationally.
+
+**Reviews only.** Lessons are done on wanikani.com; there's no command for them
+here, deliberately (see [Scope](#scope)).
 
 Driven by Claude, a sitting is two commands in a loop, and the CLI prints
 every line of it:
@@ -44,8 +47,8 @@ on wanikani.com — and either `export WANIKANI_API_TOKEN=…` or copy
 `.env.example` to `.env` and paste it in. The CLI reads that `.env` from the
 repo whatever directory you run it in.
 
-Reviews need **`reviews:create`** checked, and `lessons --start`/`start` need
-**`assignments:start`**. Nothing here uses `study_materials:*` or
+Reviews need **`reviews:create`** checked — that's the only write this tool
+does. Nothing here uses `assignments:start`, `study_materials:*` or
 `user:update`. Check it works:
 
 ```
@@ -84,9 +87,7 @@ environment or `.env` precisely so it never lands in a transcript.
 terminal:
 
 ```
-wanikani summary          # level, lessons/reviews due now, next review time
-wanikani lessons          # available lessons + mnemonics
-wanikani lessons --start  # ...and prompt to mark each one started
+wanikani summary          # level, reviews due now, next review time
 wanikani review           # interactive review session
 wanikani review --limit 10
 ```
@@ -145,9 +146,7 @@ website does.
 
 | Command | Purpose |
 | --- | --- |
-| `summary [--json]` | Level, lessons/reviews available, next review time |
-| `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
-| `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
+| `summary [--json]` | Level, reviews available, next review time. Reports the lesson count too, and says where lessons get done |
 | `review [--limit N]` | Full interactive review session |
 | `ask [--limit N]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next. Batches are ten unless you say otherwise |
 | `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
@@ -162,6 +161,20 @@ website does.
 | `update` | Pull this repo from wherever you ran it, and say whether the change is live already or wants a Claude Code restart (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
 | `submit-batch` | Send everything graded this batch, in one call. Works on a part-answered batch too: what's answered goes, the rest stays due — which is what to run when you stop early |
+
+## Scope
+
+Reviews, and the things that support them: `summary`, `explain`, `status`,
+`drill`, `tips`, `update`.
+
+**Lessons aren't here.** `lessons` and `start` existed, were never once used,
+and were removed rather than left to rot — an untested path that writes to
+your WaniKani account is worse than no path at all, and the Claude-driven
+teaching flow behind them had never run either. `summary` still tells you how
+many are waiting; do them on wanikani.com, where they'll also be taught better
+than this could. The token no longer needs `assignments:start`.
+
+If you want them back, they're in the history — `git log -- lib/commands/lessons.js`.
 
 ## Reference
 
@@ -201,5 +214,5 @@ locally (gated on `CLAUDE_CODE_REMOTE`) and safe to re-run.
   API reports on an HTTP 429. Failed GETs are retried with backoff; writes
   (`POST /reviews`) are never replayed, since a request that timed out may
   still have landed.
-- `review`/`lessons --start` do real writes to your WaniKani account (SRS
-  progress, lesson start times) — there's no dry-run mode.
+- `ask` and `review` do real writes to your WaniKani account (SRS progress)
+  — there's no dry-run mode.

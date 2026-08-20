@@ -24,7 +24,6 @@ test("the CLI runs and prints its usage", async () => {
   assert.match(stdout, /^wanikani <command> \[options\]/);
   for (const command of [
     "summary",
-    "lessons",
     "review",
     "queue",
     "prompts",

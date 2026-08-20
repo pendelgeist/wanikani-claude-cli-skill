@@ -73,3 +73,14 @@ test("summary survives a user payload without subscription details", async () =>
   const output = await captureStdout(() => summaryCommand(client));
   assert.match(output, /reviewer — Level 3/);
 });
+
+test("the lesson count says where lessons get done, since it isn't here", async () => {
+  // The count is worth knowing and comes free with the summary; doing them is
+  // deliberately not something this tool offers, so the line has to say so
+  // rather than leaving someone to look for a command that was removed.
+  const withLessons = await captureStdout(() => summaryCommand(fakeClient({ lessons: 5 })));
+  assert.match(withLessons, /Lessons available: 5 — do those on wanikani\.com/);
+
+  const none = await captureStdout(() => summaryCommand(fakeClient({ lessons: 0 })));
+  assert.match(none, /^Lessons available: 0$/m, "and says nothing extra when there are none");
+});
