@@ -309,3 +309,63 @@ test("a meaning-only item's wrong answer stays wrong, however much follows it", 
     assert.equal(isMeaningCorrect(meaning, radical), false, typed);
   }
 });
+
+test("a reading is judged by its sound, not by the script the typing landed in", () => {
+  // wanakana reads capitals as a katakana signal, so `SHIN` became シン and
+  // missed しん. Caps lock, dictation, or a phone that capitalises for you
+  // were enough to lose an item on an answer that was right.
+  const shin = { meanings: [], auxiliary_meanings: [], readings: [{ accepted_answer: true, reading: "しん" }] };
+
+  for (const typed of ["shin", "Shin", "SHIN", "sHiN", "しん", "シン"]) {
+    assert.equal(isReadingCorrect(typed, shin), true, typed);
+  }
+  assert.equal(isReadingCorrect("mi", shin), false, "and a wrong reading is still wrong in any case");
+  assert.equal(isReadingCorrect("SHIM", shin), false);
+});
+
+test("romaji reaches a katakana word's reading, which is the only way anyone types one", () => {
+  // ページ's reading *is* katakana, so the romaji anyone would type converted
+  // to ぺーじ and matched nothing — a false miss on every katakana word.
+  const page = { meanings: [], auxiliary_meanings: [], readings: [{ accepted_answer: true, reading: "ページ" }] };
+
+  for (const typed of ["peeji", "pe-ji", "ページ", "ぺーじ"]) {
+    assert.equal(isReadingCorrect(typed, page), true, typed);
+  }
+  assert.equal(isReadingCorrect("peji", page), false, "a short vowel is still a different word");
+  assert.equal(isReadingCorrect("paaji", page), false);
+});
+
+test("the ways people actually type ん all reach ん", () => {
+  // 神社 was answered "ji'n'jya" and marked wrong. Doubling the n is how every
+  // IME teaches you to type ん; an apostrophe anywhere but after an n is a
+  // habit, not a sound.
+  const jinja = { meanings: [], auxiliary_meanings: [], readings: [{ accepted_answer: true, reading: "じんじゃ" }] };
+
+  for (const typed of ["jinja", "jinjya", "jin'ja", "jinnja", "ji'n'jya"]) {
+    assert.equal(isReadingCorrect(typed, jinja), true, typed);
+  }
+
+  // None of it loosens a real ん inside a word, because a candidate only
+  // counts when it turns out to be one of the item's own readings.
+  const onna = { meanings: [], auxiliary_meanings: [], readings: [{ accepted_answer: true, reading: "おんな" }] };
+  assert.equal(isReadingCorrect("onna", onna), true);
+  assert.equal(isReadingCorrect("ona", onna), false, "one n is a different word");
+  assert.equal(isReadingCorrect("onnya", onna), false);
+});
+
+test("the other-reading nudge recognises the reading whatever case it arrives in", () => {
+  const parent = {
+    meanings: [],
+    auxiliary_meanings: [],
+    readings: [
+      { accepted_answer: true, reading: "しん", type: "onyomi", primary: true },
+      { accepted_answer: false, reading: "おや", type: "kunyomi" },
+    ],
+  };
+
+  // Not a miss — the website shakes and names the type it wants. Getting this
+  // wrong in caps would have recorded a miss instead of asking again.
+  for (const typed of ["oya", "OYA", "オヤ"]) {
+    assert.equal(readingVerdict(typed, parent).status, "other-reading", typed);
+  }
+});
