@@ -6,6 +6,35 @@ Do your [WaniKani](https://www.wanikani.com/) lessons and reviews from the
 terminal instead of the web app — either as a plain Node CLI, or as a Claude
 Code skill that drives the quiz conversationally.
 
+Driven by Claude, a sitting is two commands in a loop, and the CLI prints
+every line of it:
+
+```
+$ wanikani ask
+Meaning and reading together on one line — e.g. "fur, ke" — and I'll grade both.
+Say "more" after an item for its mnemonic and parts, or "what can I say?" for the rest.
+
+1. 力
+
+$ wanikani answer "power ryoku"
+✓
+
+2. 上
+
+$ wanikani answer "above shou"
+✗ reading is じょう (on'yomi) · https://jisho.org/search/%E4%B8%8A%20%23kanji
+(recorded — next item)
+
+3. 出る
+```
+
+You type the answers; Claude passes them through and prints what comes back.
+Grading, the batch, and when to submit are the CLI's, which is the whole
+design — see [Usage as a skill](#usage-as-a-claude-code-skill).
+
+Prefer to drive it yourself? `wanikani review` is a full interactive session
+in the terminal, no Claude involved.
+
 ## Setup
 
 1. Install dependencies:
@@ -23,37 +52,49 @@ Code skill that drives the quiz conversationally.
    | Permission | Needed for |
    | --- | --- |
    | `assignments:start` | `start`, `lessons --start` |
-   | `reviews:create` | `review`, `submit`, `submit-batch` |
+   | `reviews:create` | `ask` (it submits finished batches), `review`, `submit`, `submit-batch` |
 
    Leave `study_materials:*` and `user:update` unchecked — nothing here uses
-   them. If you'll only ever run `summary`/`queue`/`lessons` (no `start`,
-   `--start`, `review`, or `submit`), skip checking anything and generate a
-   read-only token.
+   them. A read-only token with nothing checked is enough for `summary`,
+   `lessons`, `queue`, `explain`, `status` and `tips`, but not for doing
+   reviews: answering records locally, and sending that record needs
+   `reviews:create`.
 
-3. Make the token available to the CLI — either:
+3. Put `wanikani` on your `$PATH`:
+
+   ```
+   npm link
+   ```
+
+   Everything below is written `wanikani …` because that works from any
+   directory, which is what the Claude skill needs. Without it, substitute
+   `node /path/to/this/repo/bin/wanikani.js …` throughout.
+
+4. Make the token available to the CLI — either:
 
    ```
    export WANIKANI_API_TOKEN=...
    ```
 
-   or copy `.env.example` to `.env` and paste the token in — the CLI
-   auto-loads `.env` from the repo root on startup, no flags needed.
+   or copy `.env.example` to `.env` and paste the token in. The CLI loads
+   `.env` from the repo root whatever directory you run it in, so there are no
+   flags to pass and nothing to re-export.
 
-4. Confirm it works:
+5. Confirm it works:
 
    ```
-   node bin/wanikani.js summary
+   wanikani summary
    ```
 
 ## Usage (plain CLI)
 
 ```
-node bin/wanikani.js summary          # level, lessons/reviews due now, next review time
-node bin/wanikani.js lessons          # show available lessons + mnemonics
-node bin/wanikani.js lessons --start  # ...and prompt to mark each one started
-node bin/wanikani.js start 123 456    # mark specific lessons started, no prompting
-node bin/wanikani.js review           # interactive review session
-node bin/wanikani.js review --limit 10
+wanikani summary          # level, lessons/reviews due now, next review time
+wanikani lessons          # show available lessons + mnemonics
+wanikani lessons --start  # ...and prompt to mark each one started
+wanikani start 123 456    # mark specific lessons started, no prompting
+wanikani review           # interactive review session
+wanikani review --limit 10
 ```
 
 `review` quizzes meaning (and reading, for kanji/vocabulary), accepting kana
@@ -63,34 +104,76 @@ asks for what's still missing. Type `:show` to reveal an answer or `:quit` to
 stop early; items already answered are submitted immediately, so nothing
 already done is lost.
 
-Optionally `npm link` to get a `wanikani` command on your `$PATH`.
-
 ## Installing the skill
 
-The skill lives in this repo at `.claude/skills/wanikani/`, but Claude Code
-only loads project skills for the project you're *in* — so if you run Claude
-Code from somewhere else, it needs to be installed where it will be found:
+The skill lives in this repo at `.claude/skills/wanikani/`, and if you run
+Claude Code *in* this repo it's already found. Anywhere else it needs to be
+where Claude Code looks — one symlink, from the repo root:
 
 ```
-npm link                                  # puts `wanikani` on your PATH
 ln -s "$PWD/.claude/skills/wanikani" ~/.claude/skills/wanikani
 ```
-
-Once it's installed, `wanikani update` pulls this repo from wherever you happen
-to be — no `cd` — and says whether what it pulled is live already or wants a
-Claude Code restart.
 
 **Symlink it; don't copy it.** A copy goes stale the moment the repo moves on,
 and silently: the session keeps working, just to last month's instructions. A
 real one ran four releases behind for three weeks, driving sittings with
 commands that had been replaced, and nothing about it looked wrong from the
-outside. With the symlink, `git pull` is the whole update.
+outside. With the symlink there is no second copy to fall behind.
 
-The `npm link` is what makes the symlink safe. The skill calls `wanikani …`
-rather than `node bin/wanikani.js …` precisely so it doesn't depend on which
-directory the session started in — which is the thing that used to force
-someone to hand-edit paths into their copy, and a hand-edited copy is one you
-can never re-copy over.
+The `npm link` from setup is what makes the symlink safe. The skill calls
+`wanikani …` rather than `node bin/wanikani.js …` precisely so it doesn't
+depend on which directory the session started in — which is the thing that
+used to force people to hand-edit absolute paths into their copy, and a
+hand-edited copy is one you can never re-copy over.
+
+Restart Claude Code after linking, then say `/wanikani`.
+
+## Upgrading
+
+If the skill is symlinked and `wanikani` is on your `$PATH` — the install
+above — one command does it:
+
+```
+wanikani update
+```
+
+It pulls this repo from wherever you ran it, names what came in, and ends by
+saying which kind of change it was: **CLI only** is live immediately, and **the
+skill text changed** means restart Claude Code before your next sitting.
+
+### Coming from an older install
+
+Installs from before the symlink was documented have a *copy* of the skill at
+`~/.claude/skills/wanikani/`, usually with absolute paths hand-edited into it
+so it would run from outside the repo — which is what made it a copy rather
+than a link, and what stops it ever being re-copied over.
+
+To tell which you have:
+
+```
+ls -l ~/.claude/skills/wanikani     # an arrow to this repo means you're fine
+grep -c "queue --limit 10" ~/.claude/skills/wanikani/SKILL.md
+```
+
+A match on that second line means you're on a pre-`ask`/`answer` version.
+Migrate once:
+
+```
+cd /path/to/wanikani-claude-cli-skill
+git pull
+npm install
+npm link
+rm -rf ~/.claude/skills/wanikani
+ln -s "$PWD/.claude/skills/wanikani" ~/.claude/skills/wanikani
+```
+
+Then restart Claude Code, and check it took: the first call of a sitting
+should be `wanikani ask`, not `wanikani queue --limit 10`. From then on
+`wanikani update` is the whole story.
+
+Nothing in your WaniKani account needs migrating — the CLI keeps no state
+beyond a cache you can delete (see [Caching](#caching)), and every version of
+this tool submits the same reviews the website does.
 
 ## Usage (as a Claude Code skill)
 
@@ -178,19 +261,25 @@ it never ends up typed into a command (and therefore into a transcript).
 ## How grading works
 
 Both the interactive `review` command and the Claude skill grade through the
-same code — the skill calls `wanikani grade <subjectId> "<their reply>"`,
-which splits the reply into its meaning and reading halves — on any of
-`,` `.` `;` `/` `|` `x` `、` or a plain space, in either order — judges each, and
-returns the counts to record plus the exact line to print:
+same code. `answer` splits the reply into its meaning and reading halves — on
+any of `,` `.` `;` `/` `|` `x` `、` or a plain space, in either order — judges
+each, records the result, and prints the exact line to say:
 
 ```
-$ wanikani grade 3 "parent, oya"
+$ wanikani answer "parent, oya"
 That's a real reading, but WaniKani wants the on'yomi here — try again.
 (same item — still their turn)
 
-$ wanikani grade 3 "parent, mi"
+$ wanikani answer "parent, mi"
 ✗ reading is しん (on'yomi) · https://jisho.org/search/%E8%A6%AA%20%23kanji
+(recorded — next item)
+
+2. 心強い
 ```
+
+(`grade <subjectId> "…"` is the same grading with the item named explicitly.
+It's what `drill` and the rapid-fire path use, and what `answer` calls
+underneath.)
 
 It prints the line to say and nothing else to summarise; `--json` adds the
 full verdict (`parsed`, `recorded`, per-part statuses) for anything that wants
@@ -259,6 +348,27 @@ a model) is actually better at than a table.
   alternate parse is only ever accepted when it turns out to be one of that
   item's readings, so it can't promote a wrong answer, and 親友 answered
   "shinyuu" is someone who knew the word losing a level to punctuation.
+- **Script and letter case never decide a reading.** wanakana reads a capital
+  as a katakana signal, so `SHIN` used to become シン and miss しん — caps
+  lock or dictation was enough to lose an item. Readings are compared by
+  sound now, which also fixes the opposite case: ページ's reading *is*
+  katakana, so "peeji", the only romaji anyone would type for it, matched
+  nothing at all.
+- **The ways people actually type ん all reach ん.** Doubling the n is what
+  every IME teaches, so "jinnja" is じんじゃ; an apostrophe anywhere but
+  directly after an n is a habit rather than a sound, so "ji'n'jya" is too.
+- **A meaning-only item sheds a volunteered reading.** Radicals and kana
+  vocabulary are asked for a meaning alone, but the habit of a sitting is
+  "meaning, reading" on one line and it doesn't switch off for one item in
+  ten. `few shou` on 少 is graded as `few`. Only when what precedes the tail
+  stands as a correct answer on its own, so a spray of guesses is still a
+  spray.
+- **A near miss says so.** Wrong by one edit past the tolerance and the
+  correction gains a line offering the override — `(close — \`answer --forgive
+  meaning\` if that was a typo)`. It only offers; the miss stays on the record
+  until someone decides. A blacklisted meaning is never near, whatever the
+  distance, since those are the ones WaniKani lists to mean "looks right,
+  isn't".
 - **Another of the kanji's readings**: 親 wants しん, but おや and した are real
   readings of it too, and nothing on the prompt says which one is being asked
   for. That's not graded wrong — as on the website, it re-prompts and names
@@ -283,18 +393,19 @@ See `lib/grading.js` (unit tested in `test/grading.test.js`).
 | `lessons [--json] [--limit N] [--start]` | Available lessons; `--json` adds assignment ids and mnemonics for the Claude skill, `--start` prompts to mark each started (needs a TTY) |
 | `start <assignmentId> [<assignmentId>...]` | Mark lesson assignments started — the non-interactive counterpart to `lessons --start` |
 | `review [--limit N]` | Full interactive review session |
-| `ask [--limit N]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next |
+| `ask [--limit N]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next. Batches are ten unless you say otherwise |
 | `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
-| `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | Grade one answer: verdict, the line to print, and the miss recorded for `submit-batch`; `--forgive` takes one back |
+| `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | The same grading with the item named explicitly — what `drill` and rapid-fire use, and what `answer` calls underneath |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
 | `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
 | `status [--json]` | What the current sitting's record holds: how much of the batch is answered, how much is waiting to be sent, and the next call to make (no token needed) |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
+| `update` | Pull this repo from wherever you ran it, and say whether the change is live already or wants a Claude Code restart (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
-| `submit-batch` | Submit everything `grade` recorded this batch, in one call |
+| `submit-batch` | Send everything graded this batch, in one call. Works on a part-answered batch too: what's answered goes, the rest stays due — which is what to run when you stop early |
 
 The CLI hands back finished strings rather than raw data to assemble, and —
 since a session that *can* grade by hand eventually will — it no longer hands
@@ -384,11 +495,12 @@ Assignment, review, and summary data are otherwise always fetched live.
 npm test
 ```
 
-Node's built-in runner, no test framework — there's no linter or formatter
-in the project, so `npm test` is the whole check. Everything is stubbed — the suite
-never touches the WaniKani API, and cache-writing tests are pointed at a temp
-directory — so it runs offline in well under a minute. CI runs it on Node
-20.12 (the floor `engines` declares), 22, and 24.
+Node's built-in runner, no test framework — there's no linter or formatter in
+the project, so `npm test` is the whole check. The WaniKani API is stubbed
+throughout and never called; anything that writes is pointed at a temp
+directory, including the `update` tests, which drive a real `git` against
+throwaway clones. So it runs offline in well under a minute. CI runs it on
+Node 20.12 (the floor `engines` declares), 22, and 24.
 
 ## Claude Code on the web
 
