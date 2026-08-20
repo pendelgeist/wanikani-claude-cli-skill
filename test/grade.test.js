@@ -368,3 +368,28 @@ test("an item mid-question still takes the answer it's waiting for", async () =>
     assert.match(out, /^✓/, "open is the one state a second answer belongs to");
   });
 });
+
+test("the correction offers the override when the answer was close", async () => {
+  // "Hook" is four letters, so it forgives one slip; "hooook" is two. Wrong,
+  // and wrong in the way `--forgive` is for — which had gone unused across six
+  // sittings while it lived only in the skill file.
+  const verdict = await grade({ subjectId: 5, answer: "hooook" });
+
+  assert.equal(verdict.nearMiss, true);
+  assert.equal(verdict.wrongMeaning, 1, "close is not correct — the miss is still on the record");
+});
+
+test("an answer that isn't close is not offered one", async () => {
+  const verdict = await grade({ subjectId: 5, answer: "elephant" });
+
+  assert.equal(verdict.nearMiss, false);
+});
+
+test("the offer is printed under the correction, where it can be seen", async () => {
+  const printed = await withTempCacheDir(() =>
+    captureStdout(() => gradeCommand(client, { subjectId: 5, answer: "hooook" })),
+  );
+
+  assert.match(printed, /^✗ meaning is Hook/m);
+  assert.match(printed, /^\(close — `answer --forgive meaning` if that was a typo\)$/m);
+});

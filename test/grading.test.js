@@ -4,6 +4,7 @@ import {
   requiresReading,
   splitAnswer,
   isMeaningCorrect,
+  isNearMiss,
   isReadingCorrect,
   readingCandidates,
   readingVerdict,
@@ -401,4 +402,48 @@ test("shedding the last word doesn't cost a meaning that is several words long",
   assert.equal(isMeaningCorrect(splitAnswer("rib cage", ribCage, false).meaning, ribCage), true);
   assert.equal(isMeaningCorrect(splitAnswer("rib cage kotsu", ribCage, false).meaning, ribCage), true);
   assert.equal(isMeaningCorrect(splitAnswer("rib", ribCage, false).meaning, ribCage), false, "half of it is not it");
+});
+
+test("a meaning wrong by a hair is flagged as near, and a wrong one isn't", () => {
+  // 酉 was answered "alcholol": "alcohol" is seven letters, so it forgives one
+  // slip and that was two. The table stays as it is — loosening it accepts
+  // answers nobody knew — but the override for this had gone unused across six
+  // sittings, because it lived in the skill file rather than on the screen.
+  const alcohol = {
+    meanings: [{ meaning: "Alcohol", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  assert.equal(isNearMiss("alcholol", alcohol), true);
+  assert.equal(isNearMiss("alcohol", alcohol), false, "a right answer is not a near miss");
+  assert.equal(isNearMiss("beer", alcohol), false, "and neither is a different word");
+  assert.equal(isNearMiss("water", alcohol), false);
+});
+
+test("a blacklisted meaning is never near, however close it looks", () => {
+  // The blacklist is WaniKani saying "this one looks right and isn't".
+  // Offering an override on it would be offering to learn the wrong answer.
+  const below = {
+    meanings: [{ meaning: "Below", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [{ type: "blacklist", meaning: "Under" }],
+    readings: [],
+  };
+
+  assert.equal(isNearMiss("under", below), false);
+});
+
+test("a typo with a volunteered reading after it is still only one mistake", () => {
+  // "alcholol. shu" was charged twice: once for the slip, and once for the
+  // tail, which stopped the parse from shedding — so it never looked near.
+  const alcohol = {
+    meanings: [{ meaning: "Alcohol", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  const { meaning } = splitAnswer("alcholol. shu", alcohol, false);
+  assert.equal(meaning, "alcholol", "the reading comes off even when what's left is misspelt");
+  assert.equal(isMeaningCorrect(meaning, alcohol), false, "still wrong, though");
+  assert.equal(isNearMiss(meaning, alcohol), true, "and now close enough to say so");
 });
