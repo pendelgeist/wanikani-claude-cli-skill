@@ -1,13 +1,13 @@
 ---
 name: wanikani
-description: Run a WaniKani lesson or review session from Claude Code, using the wanikani CLI in this repo to talk to the WaniKani API. Trigger on "/wanikani", "do my wanikani reviews", "wanikani lessons", or similar requests to study kanji via WaniKani.
+description: Run a WaniKani review session from Claude Code, using the wanikani CLI in this repo to talk to the WaniKani API. Trigger on "/wanikani", "do my wanikani reviews", "quiz me on kanji", or similar requests to review kanji via WaniKani. Reviews only — lessons are done on wanikani.com.
 ---
 
 # WaniKani study session
 
 Invoked with nothing more specific ("/wanikani", "do my wanikani reviews"),
-go straight into Reviews below. Don't offer a menu; branch to Lessons or the
-account check only if their own wording asked for one. If plan mode is
+go straight into Reviews below. Don't offer a menu; branch to the account
+check only if their own wording asked for one. If plan mode is
 active, exit it immediately rather than asking: this is ask-answer-repeat,
 not a code change for plan mode to gate.
 
@@ -179,34 +179,25 @@ way the lookup link went unprinted for weeks.
   says: it ends by naming whether the change is live already or wants a Claude
   Code restart, and that's the only part they have to act on.
 
-## Lessons
+## Lessons aren't part of this
 
-Teaching, not quizzing — so unlike reviews, everything is meant to be said
-out loud: the characters, the meaning, the reading, the mnemonic.
+This tool does reviews. There is no `lessons` command and no `start` command —
+they were removed rather than left half-finished, because the teaching flow
+was never once used and an untested path that writes to someone's account is
+worse than no path at all.
 
-1. `wanikani lessons --json --limit 5`. Batches of ~5; lessons are
-   heavier going than reviews. They arrive in WaniKani's teaching order —
-   radicals before the kanji built from them — so take them as given. Empty
-   array: say there's nothing to learn and stop.
-2. One item per message: characters, meaning, reading (kana only), and the
-   mnemonic in your own words rather than read out. Tie it to a radical or
-   kanji they've already had where the mnemonic does. Then ask if they've got
-   it and wait — the question is the last thing in the message.
-3. When the batch is done, mark them all started in one call:
-   `wanikani start 551149968 603114625`. Report anything that
-   failed rather than assuming it went through; a 403 means the token is
-   missing `assignments:start`. (Don't run `lessons --start` — it prompts per
-   item and needs a real terminal.)
-4. Starting is what puts an item into the SRS: Apprentice 1, first review a
-   few hours later. Mention that once at the end — "5 started, first reviews
-   in 4h" — not per item. Anything they'd rather skip just doesn't go in the
-   `start` call.
+Asked to do lessons, say they're done on wanikani.com and offer reviews
+instead. **Don't improvise a lesson.** Teaching from `explain` output, or from
+what you know about an item, is the same thing that has gone wrong every other
+time this skill has filled a gap with prose — and here it would also leave the
+items unstarted, so nothing taught would enter the SRS and the work would be
+invisible to WaniKani.
 
 ## Account check
 
-`wanikani summary [--json]` — level, lessons available, reviews
-available, time to the next batch. That's the account; `status` is the
-sitting's own record.
+`wanikani summary [--json]` — level, reviews available, time to the next
+batch. It reports a lesson count too, and says where lessons get done. That's
+the account; `status` is the sitting's own record.
 
 ---
 

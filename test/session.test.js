@@ -497,3 +497,22 @@ test("kana answers are untouched, since a reading is kana by definition", async 
     assert.match(graded, /^✓$/m);
   });
 });
+
+test("the word it hands back keeps the kana around its kanji", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    await ask(client);
+
+    // Matching the bare Han run suggested `explain 心強`, which is not an item.
+    // Pinned rather than left to the shuffle, which hid this three runs in four.
+    for (const [asked, wanted] of [
+      ["tip 心強い", "心強い"],
+      ["explain お酒", "お酒"],
+      ["what about 何度", "何度"],
+      ["tip 育", "育"],
+    ]) {
+      const refused = await answer(client, asked);
+      assert.match(refused, new RegExp(`\`explain ${wanted}\``), asked);
+    }
+  });
+});
