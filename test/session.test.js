@@ -420,3 +420,36 @@ test("a batch of nothing but unshowable items says so instead of wedging", async
     assert.deepEqual(await loadGrades(), {}, "and nothing was");
   });
 });
+
+test("ask serves a batch of ten when nobody says otherwise", async () => {
+  // `queue` took whatever it was given and the old flow always said
+  // `--limit 10`. `ask` replaced that call without carrying the number over,
+  // and one sitting was served all 67 due reviews as a single batch: ten
+  // answers stranded behind fifty-seven unasked ones, unsendable until every
+  // last one was done, and due to expire with the sitting.
+  const many = Array.from({ length: 25 }, (_, index) => ({
+    id: 500 + index,
+    object: "kanji",
+    data: {
+      level: 1,
+      characters: `字${index}`,
+      document_url: "u",
+      meanings: [{ meaning: `M${index}`, primary: true, accepted_answer: true }],
+      auxiliary_meanings: [],
+      readings: [{ type: "onyomi", primary: true, accepted_answer: true, reading: "しん" }],
+    },
+  }));
+  const client = {
+    async getAssignments() {
+      return many.map((subject, index) => ({ id: 600 + index, data: { subject_id: subject.id } }));
+    },
+    async getSubjectsByIds(ids) {
+      return new Map(ids.map((id) => [id, many.find((s) => s.id === id)]).filter(([, s]) => s));
+    },
+  };
+
+  await withTempCacheDir(async () => {
+    await captureStdout(() => askCommand(client));
+    assert.equal((await openItems()).length, 10, "ten, not everything that happens to be due");
+  });
+});

@@ -137,7 +137,7 @@ function wasGivenStdin() {
 async function main() {
   const [, , command, ...rest] = process.argv;
 
-  if (!command || command === "-h" || command === "--help") {
+  if (!command || command === "-h" || command === "--help" || command === "help") {
     console.log(HELP);
     return;
   }
