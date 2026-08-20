@@ -77,6 +77,22 @@ function fakeClient() {
 const ask = (client) => captureStdout(() => askCommand(client, { limit: 3 }));
 const answer = (client, reply) => captureStdout(() => answerCommand(client, { reply }));
 
+/**
+ * Runs `fn` with the queue's Fisher-Yates shuffle pinned to a no-op, so a
+ * test can say which item landed at position one. Everything else here reads
+ * the printed prompt instead, which is what a person does — but a bug that
+ * only shows up at one position needs that position.
+ */
+async function withShuffleThatKeepsOrder(fn) {
+  const random = Math.random;
+  Math.random = () => 0.999999;
+  try {
+    return await fn();
+  } finally {
+    Math.random = random;
+  }
+}
+
 /** The glyph in a printed prompt — how a person knows what they're answering. */
 const glyphOf = (output) => Object.keys(RIGHT).find((characters) => output.includes(characters));
 
@@ -355,8 +371,12 @@ test("an item that can't be shown is stepped over, not silently graded against",
   };
 
   await withTempCacheDir(async () => {
-    const opening = await captureStdout(() => askCommand(client, { limit: 2 }));
-    assert.match(opening, /親/, "the askable item is what gets asked, wherever the shuffle put it");
+    // Pinned, because this is exactly the case a shuffle hides: with the
+    // unshowable item at position one, `ask` used to print a literal "null"
+    // and CI passed or failed on the coin toss.
+    const opening = await withShuffleThatKeepsOrder(() => captureStdout(() => askCommand(client, { limit: 2 })));
+    assert.match(opening, /^2\. 親$/m, "it steps over position one and asks the item it can show");
+    assert.doesNotMatch(opening, /null/, "a prompt that can't be built is not a prompt to print");
     assert.doesNotMatch(opening, /Ghost/, "and the one with nothing to show is not described");
 
     await captureStdout(() => answerCommand(client, { reply: "parent, shin" }));
@@ -388,9 +408,11 @@ test("a batch of nothing but unshowable items says so instead of wedging", async
   };
 
   await withTempCacheDir(async () => {
-    await captureStdout(() => askCommand(client, { limit: 1 }));
+    // Said on the *first* ask, not after a wasted one: serving a batch and
+    // finding nothing in it that can be shown is one answer, not two.
     const stuck = await captureStdout(() => askCommand(client, { limit: 1 }));
     assert.match(stuck, /no way to show/);
+    assert.doesNotMatch(stuck, /null/);
     assert.match(stuck, /they stay due/, "the items aren't lost, they just can't be asked here");
 
     const output = await captureStdout(() => answerCommand(client, { reply: "ghost" }));
