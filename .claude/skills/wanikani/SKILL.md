@@ -27,6 +27,12 @@ so it can be put on the PATH properly. Either way it needs
 directory it's run from, so nothing needs passing in. Run `npm install` in the
 repo first if `node_modules/wanakana` doesn't exist.
 
+**Run it from wherever you already are.** No `cd` — not into the repo, not
+into the skill directory. The command is on the PATH and the working
+directory has no bearing on any of this; one sitting prefixed every single
+call with a `cd` into the skill folder, which did nothing except reset the
+shell afterwards.
+
 - **This CLI is the WaniKani client. Don't write another one.** No `curl` at
   the API, no scripts in `/tmp` against `/v2/subjects`. One session did
   exactly that to get the answer key, graded ten items in chat from it, and
@@ -112,6 +118,21 @@ It takes the last verdict back off the record — no id, and it works right up
 until `ask` submits the batch. Say so in a short clause ("counting that as a
 typo") and carry on. Forgiving out loud without this call still costs them
 the level.
+
+**`grade` says when an answer was close**, on a line of its own under the
+correction:
+
+```
+(close — `answer --forgive meaning` if that was a typo)
+```
+
+That line is the one place your judgment is worth more than the table's.
+Read what they actually typed: a slip on the right word — `alcholol` for
+Alcohol — is a typo and should be forgiven, and a different word that happens
+to be spelt alike is not. The line only ever *offers*; the miss stays on the
+record until you make that call. It exists because `--forgive` went unused for
+six sittings while it lived in this file, past several plain typos, the same
+way the lookup link went unprinted for weeks.
 
 ### What they can ask for mid-batch
 
