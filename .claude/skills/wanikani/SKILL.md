@@ -176,7 +176,8 @@ way the lookup link went unprinted for weeks.
   batches, if they're moving fast.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
-- **"critical items", "what am I worst at?"** → `wanikani critical`, then
+- **"critical items", "what am I worst at?"** → `wanikani critical-condition`
+  (`critical` is the same command, shorter), then
   `grade` per item, same as a drill — nothing there is due and nothing
   submits. It's the list wanikani.com/critical-items shows, fetched from the
   same records: every item WaniKani has under 75% correct, worst first. That

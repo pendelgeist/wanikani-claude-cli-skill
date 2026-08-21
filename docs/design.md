@@ -91,7 +91,7 @@ Four files live in `~/.cache/wanikani-cli` (override the location with
 - `misses.json` — the last hundred items answered wrong, filed as each batch
   is submitted, newest first. It's what `drill` asks from, and it outlives the
   sitting the mistake was made in because a mistake does.
-- `critical.json` — the subject ids from the last `critical` fetch, and
+- `critical.json` — the subject ids from the last `critical-condition` fetch, and
   nothing else: the list itself comes live from WaniKani every time. It's kept
   only so that `grade` can tell a critical-item drill from an answer that
   belongs to no batch, and so a later session still can. Each fetch replaces

@@ -127,7 +127,7 @@ test("the note says it's a drill, and how many were held back", async () => {
 
     assert.equal(payload.length, 2);
     assert.match(payload[0].critical, /none of these are due and none of them submit/);
-    assert.match(payload[0].critical, /The worst 2 of 3 — `critical --limit 3`/);
+    assert.match(payload[0].critical, /The worst 2 of 3 — `critical-condition --limit 3`/);
     assert.equal(payload[1].critical, undefined, "the note rides the first item only");
   });
 });

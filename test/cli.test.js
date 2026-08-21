@@ -27,7 +27,7 @@ test("the CLI runs and prints its usage", async () => {
     "review",
     "queue",
     "drill",
-    "critical",
+    "critical-condition",
     "prompts",
     "grade",
     "grade-many",
@@ -37,6 +37,21 @@ test("the CLI runs and prints its usage", async () => {
     "submit-batch",
   ]) {
     assert.ok(stdout.includes(`  ${command}`), `${command} is missing from the help`);
+  }
+});
+
+test("critical is the short way to say critical-condition", async () => {
+  // Both reach the client and stop at the missing token, which is as far as a
+  // test with no network gets — and is nothing like "Unknown command".
+  for (const name of ["critical-condition", "critical"]) {
+    await assert.rejects(
+      () => run(process.execPath, [CLI, name], { env: { ...process.env, WANIKANI_API_TOKEN: "" } }),
+      (err) => {
+        assert.match(err.stderr, /No API token found/, `${name} didn't dispatch`);
+        assert.doesNotMatch(err.stderr, /Unknown command/);
+        return true;
+      },
+    );
   }
 });
 

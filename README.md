@@ -153,7 +153,7 @@ website does.
 | `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |
-| `critical [--limit N] [--under P]` | The critical-condition list wanikani.com shows: every item WaniKani has you under 75% correct on, worst first. Same shape and terms as `drill`; `--under` moves the line |
+| `critical-condition [--limit N] [--under P]`<br>(or `critical`) | The critical-condition list wanikani.com shows: every item WaniKani has you under 75% correct on, worst first. Same shape and terms as `drill`; `--under` moves the line |
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | The same grading with the item named explicitly — what `drill` and rapid-fire use, and what `answer` calls underneath |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
@@ -167,7 +167,7 @@ website does.
 ## Scope
 
 Reviews, and the things that support them: `summary`, `explain`, `status`,
-`drill`, `critical`, `tips`, `update`.
+`drill`, `critical-condition`, `tips`, `update`.
 
 **Lessons aren't here.** `lessons` and `start` existed, were never once used,
 and were removed rather than left to rot — an untested path that writes to
