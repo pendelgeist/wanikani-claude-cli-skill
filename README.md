@@ -98,6 +98,39 @@ romaji, and accepts both halves on one line in either order. `:show` reveals
 an answer, `:quit` stops early — anything already answered is submitted as you
 go, so nothing done is lost.
 
+### Drills
+
+Two commands ask questions that aren't reviews. Neither is due, neither
+submits, and nothing either one does reaches your WaniKani account — so they
+cost nothing and can be run mid-sitting or on their own. Say "drill my recent
+mistakes" or "critical items" and Claude picks the right one; on the terminal
+they're `drill` and `critical-condition`.
+
+They differ in what they know:
+
+| | Where the list comes from | What's on it |
+| --- | --- | --- |
+| `drill` | This tool's own record of your sittings | What you got wrong recently — nothing on a fresh install, and nothing you reviewed on the website |
+| `critical-condition` | WaniKani's records, live | Every item it has you under 75% correct on, over your whole history with the item, wherever you reviewed it |
+
+So `critical-condition` is the wider net, and it's the same list
+[wanikani.com/critical-items](https://www.wanikani.com/critical-items) shows:
+
+```
+$ wanikani critical-condition --limit 3
+[
+  { "subjectId": 440, "prompt": "1. 育", "percentageCorrect": 50, ... },
+  { "subjectId": 600, "prompt": "2. 放", "percentageCorrect": 55, ... },
+  { "subjectId": 2801, "prompt": "3. 苦労", "percentageCorrect": 67, ... }
+]
+```
+
+It's ten items unless you say otherwise, and the payload says how many more
+there are. `--under 60` draws the line somewhere tighter than WaniKani's 75%.
+Burned items stay in — an item you burned and still get wrong is exactly what
+the list is for, and nothing schedules it any more. Retired subjects don't:
+they can't come up again, so their percentage is nobody's problem.
+
 ## Upgrading
 
 ```
