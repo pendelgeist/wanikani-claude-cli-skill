@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
 import { loadGrades, openItems } from "../lib/queueOrder.js";
 import { follows } from "../lib/commands/grade.js";
-import { withTempCacheDir, captureStdout } from "./helpers.js";
+import { explainCommand } from "../lib/commands/explain.js";
+import { withTempCacheDir, captureStdout, captureStreams } from "./helpers.js";
 
 /**
  * A whole batch driven the way a session drives it: `ask`, then `answer` with
@@ -514,5 +515,41 @@ test("the word it hands back keeps the kana around its kanji", async () => {
       const refused = await answer(client, asked);
       assert.match(refused, new RegExp(`\`explain ${wanted}\``), asked);
     }
+  });
+});
+
+test("the driver note comes once a sitting, not once a batch", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const askOne = () => captureStreams(() => askCommand(client, { limit: 1 }));
+
+    const first = await askOne();
+    assert.match(first.stderr, /Driving: /, "the first batch of a sitting says how to drive it");
+    assert.match(first.stdout, /Meaning and reading together/, "and the user gets the convention");
+
+    await answer(client, RIGHT[glyphOf(first.stdout)]);
+    await askOne(); // submits the finished batch
+
+    // Sixty-one items came in seven batches in one real sitting, and every one
+    // of them led with this note — which is the part Claude Code shows before
+    // it collapses the rest, so the question arrived behind a "+2 lines".
+    const later = await askOne();
+    assert.doesNotMatch(later.stderr, /Driving: /, "and every batch after it doesn't repeat it");
+    assert.doesNotMatch(later.stdout, /Meaning and reading together/);
+    assert.ok(glyphOf(later.stdout), `the next question, unburied: ${later.stdout}`);
+  });
+});
+
+test("explain with nothing after it means the item that's open", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const opening = await ask(client);
+    const glyph = glyphOf(opening);
+
+    const explained = await captureStdout(() => explainCommand(client, {}));
+    assert.match(explained, new RegExp(`^${glyph} — `, "m"), `asked about ${glyph}, got: ${explained}`);
+
+    // And it left the batch where it was: "more" is a detour, not an answer.
+    assert.ok((await ask(client)).includes(glyph), "the same question is still waiting");
   });
 });

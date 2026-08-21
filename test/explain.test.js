@@ -170,3 +170,14 @@ test("explain says so plainly when nothing matches", async () => {
   assert.match(output, /Nothing found for "💥"/);
   assert.match(output, /subjectId/, "and says what would have worked");
 });
+
+test("a bare explain with no batch on record says so rather than throwing", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const output = await captureStdout(() => explainCommand(client, {}));
+
+    assert.match(output, /Nothing is open/);
+    assert.match(output, /explain 親/, "and shows the form that would have worked");
+    assert.equal(client.slugCalls, 0, "and asks the API nothing");
+  });
+});

@@ -142,13 +142,16 @@ way the lookup link went unprinted for weeks.
 
 ### What they can ask for mid-batch
 
-- **"more", "why", "mnemonic", a bare "?"** → `wanikani explain
-  <id|characters>`, then `ask` to put the open question back. **Run it — never
-  answer from memory.** "No mnemonic on file" and a recollected paragraph in
-  place of `explain 親` are both from real sittings, and both were wrong. The
-  user typing the command themselves (`explain 転送`) is not an exception. It
-  means the item just *graded*, not the one now open — that one would be
-  handing over the answer. Never run it unasked.
+- **"more", "why", "mnemonic", a bare "?"** → `wanikani explain`, then `ask` to
+  put the open question back. **Run it — never answer from memory.** "No
+  mnemonic on file" and a recollected paragraph in place of `explain 親` are
+  both from real sittings, and both were wrong. Never run it unasked.
+
+  Bare, with nothing after it, is the item that's *open* — the one `ask` just
+  printed. That's what they mean while a question is on screen, and it saves
+  copying the character across. **Asked straight after a verdict, they mean the
+  item that just graded instead** — name it, `explain 放`, off the correction
+  line. Bare there would explain the next item and hand over its answer.
 - **Any other question about an item** — "what was that one again?", "how does
   this relate to X?" — goes through `explain` too, for the same reason.
 - **"what can I say?", "help"** → `wanikani tips`. Don't hand-roll
