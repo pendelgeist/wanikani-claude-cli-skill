@@ -56,9 +56,10 @@ Commands:
                         queue. A drill: nothing here is due and nothing submits
   prompts               Every question in the current batch that's still unanswered,
                         as one block to print — the rapid-fire list
-  explain <id|characters> [--json]
+  explain [<id|characters>] [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
-                        what it's built from. The item-info screen, on request
+                        what it's built from. The item-info screen, on request.
+                        With nothing after it, the item that's open
   status [--json]       What the current sitting's record holds — how much of the batch is
                         answered, how much is waiting to be sent, what to call next.
                         Local, so it answers when the API doesn't
@@ -229,8 +230,10 @@ async function main() {
         allowPositionals: true,
         options: { json: { type: "boolean" } },
       });
+      // No argument means the item that's open — see explain.js. Only an
+      // explicit empty string is a mistake worth refusing.
       const target = positionals[0];
-      if (!target) throw new Error("Usage: wanikani explain <subjectId|characters> [--json]");
+      if (target === "") throw new Error("Usage: wanikani explain [<subjectId|characters>] [--json]");
       await explainCommand(client, { target, json: values.json });
       break;
     }

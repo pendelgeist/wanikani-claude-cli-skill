@@ -155,7 +155,7 @@ website does.
 | `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | The same grading with the item named explicitly — what `drill` and rapid-fire use, and what `answer` calls underneath |
 | `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
-| `explain <id\|characters> [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from |
+| `explain [<id\|characters>] [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from. Bare, it's the item that's open |
 | `status [--json]` | What the current sitting's record holds: how much of the batch is answered, how much is waiting to be sent, and the next call to make (no token needed) |
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `update` | Pull this repo from wherever you ran it, and say whether the change is live already or wants a Claude Code restart (no token needed) |
