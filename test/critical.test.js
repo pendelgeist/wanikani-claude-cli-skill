@@ -210,3 +210,16 @@ test("an item the subjects endpoint can't resolve takes neither the note nor a n
     assert.match(payload[0].critical, /none of these are due/, "the terms still ride the first item shown");
   });
 });
+
+test("a missed drill item doesn't say 'recorded' one line above 'nothing recorded'", async () => {
+  await withTempCacheDir(async () => {
+    await captureStdout(() => criticalCommand(clientWith()));
+
+    const out = (await captureStdout(() => gradeCommand(clientWith(), { subjectId: 3, answer: "guardian" }))).trimEnd();
+
+    assert.deepEqual(out.split("\n").slice(1), [
+      "(next item)",
+      "(drill — nothing recorded, nothing submitted)",
+    ]);
+  });
+});
