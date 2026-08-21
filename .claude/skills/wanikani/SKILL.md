@@ -147,17 +147,24 @@ way the lookup link went unprinted for weeks.
   mnemonic on file" and a recollected paragraph in place of `explain 親` are
   both from real sittings, and both were wrong. Never run it unasked.
 
-  Bare, with nothing after it, is the item that's *open* — the one `ask` just
-  printed. That's what they mean while a question is on screen, and it saves
-  copying the character across. **Asked straight after a verdict, they mean the
-  item that just graded instead** — name it, `explain 放`, off the correction
-  line. Bare there would explain the next item and hand over its answer.
+  Bare, with nothing after it, is **the item that just graded** — the CLI
+  resolves it off the record, so nothing needs copying across and there is no
+  longer a right and a wrong way to type it. It refuses an item the batch is
+  still waiting on, named or bare: that entry is the answer to the question on
+  screen, which is why the website locks item info until you've answered too.
+  So `explain` is for after a verdict, not during a question — and if they ask
+  mid-question, run it anyway and print the refusal rather than paraphrasing
+  what it would have said.
 - **Any other question about an item** — "what was that one again?", "how does
   this relate to X?" — goes through `explain` too, for the same reason.
 - **"what can I say?", "help"** → `wanikani tips`. Don't hand-roll
   tips and don't volunteer them; if it isn't in `tips` it belongs in
   `lib/tips.js`, which is a code change and not something to improvise
-  between two items.
+  between two items. **A reply you can't classify is not a prompt for a menu**
+  — one sitting met "resolve" with a four-item list of options it wrote
+  itself, ending in a question of its own composition. Rule 1 covers it: a
+  reply with no kanji in it is an answer, however unlikely, and goes in
+  verbatim. `tips` covers the rest.
 - **"did that go through?", "what's left?"** → `wanikani status`.
   It reads the local record — no token, no network — so it answers when
   nothing else does. **Don't theorise about the tool; ask it.** "CLI broken"

@@ -540,16 +540,40 @@ test("the driver note comes once a sitting, not once a batch", async () => {
   });
 });
 
-test("explain with nothing after it means the item that's open", async () => {
+test("a bare explain refuses to hand over the answer to the question on screen", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient();
     const opening = await ask(client);
     const glyph = glyphOf(opening);
 
     const explained = await captureStdout(() => explainCommand(client, {}));
-    assert.match(explained, new RegExp(`^${glyph} — `, "m"), `asked about ${glyph}, got: ${explained}`);
 
-    // And it left the batch where it was: "more" is a detour, not an answer.
+    assert.match(explained, /^! /, `should have refused, got: ${explained}`);
+    assert.doesNotMatch(explained, new RegExp(`^${glyph} — `, "m"), "no entry for the open item");
+    // And it left the batch where it was: asking is a detour, not an answer.
     assert.ok((await ask(client)).includes(glyph), "the same question is still waiting");
+  });
+});
+
+test("naming the open item doesn't get round that", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const glyph = glyphOf(await ask(client));
+
+    const explained = await captureStdout(() => explainCommand(client, { target: glyph }));
+
+    assert.match(explained, new RegExp(`^! ${glyph} is still open`), `got: ${explained}`);
+  });
+});
+
+test("once it's answered, a bare explain is that item", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const glyph = glyphOf(await ask(client));
+    await answer(client, RIGHT[glyph]);
+
+    const explained = await captureStdout(() => explainCommand(client, {}));
+
+    assert.match(explained, new RegExp(`^${glyph} — `, "m"), `asked about ${glyph}, got: ${explained}`);
   });
 });

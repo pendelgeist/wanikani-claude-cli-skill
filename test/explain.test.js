@@ -176,7 +176,7 @@ test("a bare explain with no batch on record says so rather than throwing", asyn
     const client = fakeClient();
     const output = await captureStdout(() => explainCommand(client, {}));
 
-    assert.match(output, /Nothing is open/);
+    assert.match(output, /Nothing has been answered yet/);
     assert.match(output, /explain 親/, "and shows the form that would have worked");
     assert.equal(client.slugCalls, 0, "and asks the API nothing");
   });

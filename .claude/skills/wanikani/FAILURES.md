@@ -44,6 +44,15 @@ answer.
 **Never submitting.** See above, twice.
 → `ask` submits a finished batch on the way to the next one.
 
+**Explaining the question on screen.** 欠く was graded, `ask` printed 成 under
+the correction, and the user said "explain". Bare `explain` meant "the open
+item", so out came `Meaning: Become` and `Reading: せい` — the answer to the
+question then on screen. 成 was re-asked, answered with nonsense, and recorded
+as a miss on both halves with its own answer four lines above it. SKILL.md had
+warned about this exact case in prose, in the same bullet, and prose lost.
+→ Bare `explain` is the item that just *settled*, and no item the batch is
+still waiting on gets explained at all — named or bare.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
@@ -90,6 +99,13 @@ refuses a second answer, but the refusal is a backstop, not the rule.
 ba.` and `Hint: suu.` — both handed over the answer, both were typed back and
 marked correct. `Need on'yomi — try じ (ji)?` is the same move in a politer
 shape and went the same way.
+
+**Writing the tip sheet by hand.** A reply of "resolve" — no kanji in it, so
+an answer by rule 1 — was met with `Not a review command.` and a four-line
+menu of options the session composed itself, closing with `What's 放?`, a
+question of its own making. Three things wrong in five lines: a reply not
+graded, tips invented instead of run, and the message slot filled. `tips` was
+one call away and lists fourteen things, none of them that menu.
 
 ## The message slot
 
