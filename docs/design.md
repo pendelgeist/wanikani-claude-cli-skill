@@ -70,8 +70,8 @@ is what code is reliable at.
 
 ## Caching
 
-Two files live in `~/.cache/wanikani-cli` (override the location with
-`WANIKANI_CACHE_DIR`; deleting either one is always safe):
+Four files live in `~/.cache/wanikani-cli` (override the location with
+`WANIKANI_CACHE_DIR`; deleting any of them is always safe):
 
 - `subjects.json` — subject content (characters, meanings, readings,
   mnemonics), written the first time each subject is fetched. WaniKani's own
@@ -88,5 +88,14 @@ Two files live in `~/.cache/wanikani-cli` (override the location with
   anything left mid-question — an unanswered re-prompt is not submitted as a
   clean pass. The order expires after 30 minutes, and is re-fetched whenever it
   runs dry.
+- `misses.json` — the last hundred items answered wrong, filed as each batch
+  is submitted, newest first. It's what `drill` asks from, and it outlives the
+  sitting the mistake was made in because a mistake does.
+- `critical.json` — the subject ids from the last `critical-condition` fetch, and
+  nothing else: the list itself comes live from WaniKani every time. It's kept
+  only so that `grade` can tell a critical-item drill from an answer that
+  belongs to no batch, and so a later session still can. Each fetch replaces
+  it outright, which is how an item that climbs back over the line stops being
+  treated as a drill.
 
 Assignment, review, and summary data are otherwise always fetched live.

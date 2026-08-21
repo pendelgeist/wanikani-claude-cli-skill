@@ -176,6 +176,16 @@ way the lookup link went unprinted for weeks.
   batches, if they're moving fast.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
+- **"critical items", "what am I worst at?"** → `wanikani critical-condition`
+  (`critical` is the same command, shorter), then
+  `grade` per item, same as a drill — nothing there is due and nothing
+  submits. It's the list wanikani.com/critical-items shows, fetched from the
+  same records: every item WaniKani has under 75% correct, worst first. That
+  makes it the wider net of the two — `drill` only knows the misses this tool
+  watched happen, so on a fresh install it's empty and it never includes
+  anything reviewed on the website. Ten by default; the payload says how many
+  more there are and `--limit N` fetches them. `--under N` moves the line if
+  they ask for a tighter one.
 - **"update wanikani", "pull the latest"** → `wanikani update`. It pulls the
   repo it lives in, so it works from any directory and needs no path from
   anyone — don't go looking for the checkout or ask where it is. Print what it

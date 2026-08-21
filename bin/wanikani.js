@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { WaniKaniClient, resolveToken } from "../lib/client.js";
-import { parseCount } from "../lib/args.js";
+import { parseCount, parsePercentage } from "../lib/args.js";
 import { summaryCommand } from "../lib/commands/summary.js";
 import { reviewCommand } from "../lib/commands/review.js";
 import { queueCommand } from "../lib/commands/queue.js";
@@ -15,6 +15,7 @@ import { promptsCommand } from "../lib/commands/prompts.js";
 import { tipsCommand } from "../lib/commands/tips.js";
 import { statusCommand } from "../lib/commands/status.js";
 import { drillCommand } from "../lib/commands/drill.js";
+import { criticalCommand } from "../lib/commands/critical.js";
 import { submitCommand } from "../lib/commands/submit.js";
 import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
@@ -54,6 +55,11 @@ Commands:
                         --answers adds the key back, for debugging this CLI
   drill [--limit N]     The items answered wrong recently, as questions — same shape as
                         queue. A drill: nothing here is due and nothing submits
+  critical-condition [--limit N] [--under P]        (or just: critical)
+                        WaniKani's own critical-condition list — every item it has you
+                        under 75% correct on, worst first. Same shape as drill, and the
+                        same terms: nothing is due and nothing submits. --under moves the
+                        line
   prompts               Every question in the current batch that's still unanswered,
                         as one block to print — the rapid-fire list
   explain [<id|characters>] [--json]
@@ -93,6 +99,10 @@ const COMMANDS = new Set([
   "review",
   "queue",
   "drill",
+  "critical-condition",
+  // The name on wanikani.com is "critical condition"; nobody should have to
+  // type all of it to get the list.
+  "critical",
   "prompts",
   "explain",
   "status",
@@ -217,6 +227,18 @@ async function main() {
     case "drill": {
       const { values } = parseArgs({ args: rest, options: { limit: { type: "string" } } });
       await drillCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) ?? 10 });
+      break;
+    }
+    case "critical-condition":
+    case "critical": {
+      const { values } = parseArgs({
+        args: rest,
+        options: { limit: { type: "string" }, under: { type: "string" } },
+      });
+      await criticalCommand(client, {
+        limit: parseCount(values.limit, { flag: "--limit", min: 1 }) ?? 10,
+        under: parsePercentage(values.under),
+      });
       break;
     }
     case "prompts": {
