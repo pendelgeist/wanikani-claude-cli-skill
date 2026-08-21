@@ -26,6 +26,8 @@ test("the CLI runs and prints its usage", async () => {
     "summary",
     "review",
     "queue",
+    "drill",
+    "critical",
     "prompts",
     "grade",
     "grade-many",
