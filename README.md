@@ -60,7 +60,8 @@ still open.
   write this tool does.
 - **Claude Code**, if you want the conversational half. The CLI works on its
   own without it (`wanikani review`).
-- A POSIX shell for the install lines below; on Windows, WSL.
+- A POSIX shell for the install lines below — macOS, Linux, or WSL on
+  Windows, which is what it's developed on.
 
 ## Install
 
