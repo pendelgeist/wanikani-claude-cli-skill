@@ -308,7 +308,11 @@ npm test
 ```
 
 Node's built-in runner, no test framework — there's no linter or formatter in
-the project, so `npm test` is the whole check. The WaniKani API is stubbed
+the project, so `npm test` is the whole check. It covers `CHANGELOG.md` too:
+its sections have to be real dates, newest first, one per day. The other half
+of that — a PR that changes `lib/`, `bin/` or the skill has to add an entry —
+needs the diff, so it's a [workflow](.github/workflows/changelog.yml) rather
+than a test. The WaniKani API is stubbed
 throughout and never called; anything that writes is pointed at a temp
 directory, including the `update` tests, which drive a real `git` against
 throwaway clones. So it runs offline in well under a minute. CI runs it on
