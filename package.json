@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Do WaniKani lessons and reviews from the terminal, or as a Claude Code skill.",
+  "description": "Do WaniKani reviews from the terminal, or as a Claude Code skill.",
+  "license": "MIT",
   "bin": {
     "wanikani": "./bin/wanikani.js"
   },
