@@ -5,6 +5,7 @@ import {
   splitAnswer,
   isMeaningCorrect,
   isNearMiss,
+  nearMissMeaning,
   isReadingCorrect,
   readingCandidates,
   readingVerdict,
@@ -419,6 +420,26 @@ test("a meaning wrong by a hair is flagged as near, and a wrong one isn't", () =
   assert.equal(isNearMiss("alcohol", alcohol), false, "a right answer is not a near miss");
   assert.equal(isNearMiss("beer", alcohol), false, "and neither is a different word");
   assert.equal(isNearMiss("water", alcohol), false);
+});
+
+test("the near-miss names the meaning it was close to, in WaniKani's own words", () => {
+  // 伝える answered "to transfer": three edits from "To Transmit", one past the
+  // tolerance, so it flags — and it is a different word, not a slip on that
+  // one. The sitting that met the flag forgave it anyway, which credited a
+  // level the website wouldn't have. The judgment is a comparison; the line
+  // has to carry the word being compared against.
+  const convey = {
+    meanings: [
+      { meaning: "To Convey", primary: true, accepted_answer: true },
+      { meaning: "To Transmit", primary: false, accepted_answer: true },
+    ],
+    auxiliary_meanings: [],
+    readings: [],
+  };
+
+  assert.equal(nearMissMeaning("to transfer", convey), "To Transmit", "the nearest one, not the primary");
+  assert.equal(nearMissMeaning("to convey", convey), null, "a right answer is not a near miss");
+  assert.equal(nearMissMeaning("to eat", convey), null);
 });
 
 test("a blacklisted meaning is never near, however close it looks", () => {

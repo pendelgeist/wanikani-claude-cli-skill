@@ -126,19 +126,23 @@ typo") and carry on. Forgiving out loud without this call still costs them
 the level.
 
 **`grade` says when an answer was close**, on a line of its own under the
-correction:
+correction, naming what it was close to:
 
 ```
-(close — `answer --forgive meaning` if that was a typo)
+(close to "Alcohol" — a typo on that word is `answer --forgive meaning`; a different word isn't)
 ```
 
-That line is the one place your judgment is worth more than the table's.
-Read what they actually typed: a slip on the right word — `alcholol` for
-Alcohol — is a typo and should be forgiven, and a different word that happens
-to be spelt alike is not. The line only ever *offers*; the miss stays on the
-record until you make that call. It exists because `--forgive` went unused for
-six sittings while it lived in this file, past several plain typos, the same
-way the lookup link went unprinted for weeks.
+That line is the one place your judgment is worth more than the table's, and
+it is a comparison, not a cue. Put the two words side by side: a slip on the
+named one — `alcholol` for Alcohol — is a typo and should be forgiven; a
+different word that happens to be spelt alike is not, however near the flag
+says it landed. `to transfer` on 伝える was flagged (three edits from "To
+Transmit") and forgiven as a typo, and it isn't one — that hands over a level
+WaniKani wouldn't have given, which is the one way this tool can put someone's
+record out of step with the site it submits to. The line only ever *offers*;
+the miss stays on the record until you make that call. It exists because
+`--forgive` went unused for six sittings while it lived in this file, past
+several plain typos, the same way the lookup link went unprinted for weeks.
 
 ### What they can ask for mid-batch
 
@@ -147,13 +151,25 @@ way the lookup link went unprinted for weeks.
   mnemonic on file" and a recollected paragraph in place of `explain 親` are
   both from real sittings, and both were wrong. Never run it unasked.
 
+  **The block is the answer — print it.** Running the command and then
+  summarising it in your own words is the same failure with an extra step,
+  because what gets added is what WaniKani didn't say. Asked the difference
+  between 場 and 所, one sitting ran both, printed neither, and wrote
+  "場所 = only physical location" underneath — a usage rule from nowhere, and
+  wrong, and the user had to correct it. `explain` carries meanings, readings,
+  parts and mnemonics; it does not carry how two words differ in use, so
+  neither do you. Two items compared is two blocks, and anything you write
+  between them has to be a sentence you could point at in one of them.
+
   Bare, with nothing after it, is the item that's *open* — the one `ask` just
   printed. That's what they mean while a question is on screen, and it saves
   copying the character across. **Asked straight after a verdict, they mean the
   item that just graded instead** — name it, `explain 放`, off the correction
   line. Bare there would explain the next item and hand over its answer.
 - **Any other question about an item** — "what was that one again?", "how does
-  this relate to X?" — goes through `explain` too, for the same reason.
+  this relate to X?" — goes through `explain` too, for the same reason, and
+  ends the same way: the block, printed. If what they asked isn't in it, say
+  that rather than filling the gap.
 - **"what can I say?", "help"** → `wanikani tips`. Don't hand-roll
   tips and don't volunteer them; if it isn't in `tips` it belongs in
   `lib/tips.js`, which is a code change and not something to improvise

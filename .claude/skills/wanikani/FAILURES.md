@@ -44,6 +44,16 @@ answer.
 **Never submitting.** See above, twice.
 → `ask` submits a finished batch on the way to the next one.
 
+**The question printed into the fold.** `ask` opened a sitting with the answer
+convention, then the driver note, then the question — and Claude Code shows a
+command's first lines and collapses the rest, so what reached the screen was
+two notes and a "+2 lines". Two sittings in one day opened that way. The first
+item of one of them came back answered with a different item's answer, from
+someone who had never seen the prompt, and went down as a miss on both halves.
+→ The question is the first thing `ask` prints; the notes go under it. (The
+same hazard had already been half-fixed once, by cutting the driver note down
+to once a sitting — the half left was the order within that one call.)
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
@@ -78,6 +88,28 @@ the links every time. Later, `explain 転送` was typed by the *user* and still
 answered with a two-line gloss composed on the spot. A side question in the
 same sitting ("compare 転 and roll") was answered from memory and cited the
 wrong batch.
+
+**Running `explain` and then writing over it.** Asked the difference between
+場 and 所, a sitting ran both — and printed neither, summarising each into a
+line of its own and adding "場所 = only physical location. 所 = place OR point
+in time OR condition" underneath. The usage rule is in none of what came back;
+`explain` carries meanings, readings, parts and mnemonics, not how two words
+differ in use. The user read it, disbelieved it, and asked for the correction
+themselves. Two blocks were on hand and neither reached the screen: the
+command was run, which is the part that was hard to get right, and then the
+output was treated as notes.
+
+**Forgiving a different word.** 伝える answered "to transfer" came back wrong
+and flagged as close — three edits from "To Transmit", one past the tolerance.
+The sitting read the flag as the verdict, said "close — forgive as typo", and
+`--forgive meaning` handed back the level. "Transfer" is not a misspelling of
+"transmit"; it is a different word, and the record now says the user knew an
+item the website would have marked wrong. This is the one direction the tool
+can hurt someone quietly: every other failure here loses a right answer, and
+this one keeps a wrong one.
+→ The flag names the meaning it was close to, so the comparison is on the
+screen rather than in the reader's head, and says outright that a different
+word isn't a typo. It still only offers.
 
 **Offering a retry.** `Retry?` after nearly every wrong answer of one
 sitting. The correction contains the answer, so the retry is a hand-over:
