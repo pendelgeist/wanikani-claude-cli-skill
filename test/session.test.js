@@ -106,6 +106,16 @@ test("ask starts a batch and prints the question, and answer needs no id to grad
     const glyph = glyphOf(opening);
     assert.ok(glyph, `a question with an item in it, got: ${opening}`);
     assert.match(opening, new RegExp(`^1\\. ${glyph}$`, "m"), "numbered, and nothing else on the line");
+    // And the question is the *first* thing in it. Claude Code shows the
+    // opening lines of a command's output and folds the rest, so a note
+    // printed above the question is a note on screen and a question in the
+    // fold: two sittings in one day opened that way, and the first item of one
+    // was answered — wrongly, with another item's answer — by someone who had
+    // never seen it.
+    assert.ok(
+      opening.indexOf(glyph) < opening.indexOf("Meaning and reading together"),
+      `the question goes above the note, got: ${opening}`,
+    );
 
     const verdict = await answer(client, RIGHT[glyph]);
     assert.match(verdict, /^✓$/m);

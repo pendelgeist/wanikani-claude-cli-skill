@@ -375,14 +375,14 @@ test("the correction offers the override when the answer was close", async () =>
   // sittings while it lived only in the skill file.
   const verdict = await grade({ subjectId: 5, answer: "hooook" });
 
-  assert.equal(verdict.nearMiss, true);
+  assert.equal(verdict.nearMiss, "Hook", "and it names what it was close to, not just that it was");
   assert.equal(verdict.wrongMeaning, 1, "close is not correct — the miss is still on the record");
 });
 
 test("an answer that isn't close is not offered one", async () => {
   const verdict = await grade({ subjectId: 5, answer: "elephant" });
 
-  assert.equal(verdict.nearMiss, false);
+  assert.equal(verdict.nearMiss, null);
 });
 
 test("the offer is printed under the correction, where it can be seen", async () => {
@@ -391,5 +391,9 @@ test("the offer is printed under the correction, where it can be seen", async ()
   );
 
   assert.match(printed, /^✗ meaning is Hook/m);
-  assert.match(printed, /^\(close — `answer --forgive meaning` if that was a typo\)$/m);
+  // Naming the word is the point: the one sitting that reached for the
+  // override reached for it on 伝える answered "to transfer" — flagged, and a
+  // different word — and forgave it as a typo. The comparison has to be on
+  // the screen, not in the reader's head.
+  assert.match(printed, /^\(close to "Hook" — a typo on that word is `answer --forgive meaning`; a different word isn't\)$/m);
 });

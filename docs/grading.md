@@ -105,9 +105,14 @@ a model) is actually better at than a table.
   ten. `few shou` on 少 is graded as `few`. Only when what precedes the tail
   stands as a correct answer on its own, so a spray of guesses is still a
   spray.
-- **A near miss says so.** Wrong by one edit past the tolerance and the
-  correction gains a line offering the override — `(close — \`answer --forgive
-  meaning\` if that was a typo)`. It only offers; the miss stays on the record
+- **A near miss says so, and says what it was near.** Wrong by one edit past
+  the tolerance and the correction gains a line offering the override —
+  `(close to "Alcohol" — a typo on that word is \`answer --forgive meaning\`; a
+  different word isn't)`. It names the accepted meaning it came closest to
+  because the judgment being asked for is a comparison: 伝える answered "to
+  transfer" is three edits from "To Transmit", near enough to flag and not a
+  typo, and it was forgiven on the flag alone — which credits a level the
+  website wouldn't have given. It only offers; the miss stays on the record
   until someone decides. A blacklisted meaning is never near, whatever the
   distance, since those are the ones WaniKani lists to mean "looks right,
   isn't".
