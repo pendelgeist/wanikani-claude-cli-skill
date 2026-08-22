@@ -321,6 +321,12 @@ remote environment, which begins from a fresh clone with no `node_modules` —
 without it the CLI can't run and `npm test` fails at import. It's a no-op
 locally (gated on `CLAUDE_CODE_REMOTE`) and safe to re-run.
 
+## License
+
+[MIT](LICENSE). Not affiliated with or endorsed by Tofugu / WaniKani; it's a
+third-party tool built on the public API, and it can stop working whenever
+that API changes.
+
 ## Notes
 
 - Talks directly to `https://api.wanikani.com/v2`; see WaniKani's [API
@@ -329,4 +335,3 @@ locally (gated on `CLAUDE_CODE_REMOTE`) and safe to re-run.
   reports on an HTTP 429. Failed GETs are retried with backoff; writes
   (`POST /reviews`) are never replayed, since a request that timed out may
   still have landed.
-- Not affiliated with or endorsed by Tofugu / WaniKani.
