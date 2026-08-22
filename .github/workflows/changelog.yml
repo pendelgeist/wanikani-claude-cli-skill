@@ -1,0 +1,60 @@
+name: changelog
+
+# The shape of CHANGELOG.md is checked by `npm test` (test/changelog.test.js),
+# which needs nothing but the file. This is the half that needs the diff: a PR
+# that changes what the tool does has to say so in the changelog, or the entry
+# gets written weeks later from a commit log, which is how a changelog turns
+# into a list of subject lines.
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  entry:
+    runs-on: ubuntu-latest
+    name: a behaviour change says so
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Both ends of the PR, so the diff below has something to compare.
+          fetch-depth: 0
+
+      - name: Require a changelog entry
+        env:
+          # Through the environment, never interpolated into the script: a PR
+          # body is written by whoever opened the PR, and `${{ }}` would paste
+          # it into the shell verbatim.
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$BASE" "$HEAD")
+
+          # What counts as behaviour: the CLI, and the instructions Claude runs
+          # on. A README pass, a test, or a workflow like this one changes
+          # nothing for anyone doing reviews, so neither owes an entry.
+          behaviour=$(printf '%s\n' "$changed" | grep -E '^(lib/|bin/|\.claude/skills/)' || true)
+          if [ -z "$behaviour" ]; then
+            echo "Nothing under lib/, bin/ or .claude/skills/ changed — no entry needed."
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed" | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md updated."
+            exit 0
+          fi
+
+          # The escape hatch, for a behaviour change nobody doing reviews could
+          # notice — a refactor, a test-only fix to a path that already worked.
+          if printf '%s' "${BODY:-}" | grep -qF '[no changelog]'; then
+            echo "Opted out with [no changelog] in the PR body."
+            exit 0
+          fi
+
+          echo "Changed without a changelog entry:"
+          printf '  %s\n' $behaviour
+          echo
+          echo "::error file=CHANGELOG.md::This PR changes what the tool does, so CHANGELOG.md needs a line saying what changed for whoever is doing the reviews. Add it under today's date — to the section that's already there if one is, since the shape check refuses two sections for one day. If it genuinely changes nothing anyone would notice, put [no changelog] in the PR body."
+          exit 1
