@@ -54,6 +54,31 @@ someone who had never seen the prompt, and went down as a miss on both halves.
 same hazard had already been half-fixed once, by cutting the driver note down
 to once a sitting — the half left was the order within that one call.)
 
+**Punctuation counted as sound.** A meaning has had the full stops trimmed off
+either end of it since the start; a reading never did, and it goes through a
+romaji-to-kana converter that reads `.` as 。. So a reply typed `.sei` reached
+the answer key as 。せい. One sitting typed a leading full stop on most of its
+replies — harmless wherever a meaning came first, because the separator ate it
+— and lost 青 and 間 to it on the two occasions the reply was a bare reading
+after a re-prompt. Both were right, both went down as misses, and both
+corrections then revealed the answer.
+→ Readings are trimmed like meanings. The hyphen stays: it is how ー is typed.
+
+**A count that fell out of the line as falsy.** `remaining: 0` printed nothing
+rather than "none left", so the batch that cleared the queue said only what it
+had submitted. The driver wrote the missing part itself — "All reviews
+cleared. Queue reset." — and `summary` a turn later said sixteen were waiting.
+A vacuum where a number belongs is filled with prose, every time.
+→ The remaining count is always in the line. `null` (not known) still isn't.
+
+**A running total reset by a refetch.** A sitting that emptied its fetched list
+and pulled the reviews unlocked since was written back to disk as a new one,
+so "79 done this sitting, 56 perfect" was followed by a batch reported as ten.
+Nothing was mis-submitted; the user was just watching a counter that silently
+went back to the start.
+→ Totals, carried misses and the rapid-fire flag survive a mid-sitting
+refetch.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
