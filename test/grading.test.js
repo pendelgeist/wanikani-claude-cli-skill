@@ -132,6 +132,31 @@ test("isReadingCorrect accepts either IME spelling of づ", () => {
   assert.equal(isReadingCorrect("kokorodzuyoi", kokorozuyoi), true);
 });
 
+test("isReadingCorrect ignores punctuation someone's typing put round a reading", () => {
+  // wanakana turns a leading "." into 。, so ".sei" reached the answer key as
+  // 。せい and matched nothing. 青 answered `.sei` and 間 answered `.kan` were
+  // both marked wrong in one sitting — right readings, recorded as misses.
+  for (const typed of [".ichi", ". ichi", "ichi.", " ichi ", "。いち", "いち。", "!ichi?"]) {
+    assert.equal(isReadingCorrect(typed, kanjiOne), true, typed);
+  }
+});
+
+test("isReadingCorrect keeps the hyphen, which is how ー gets typed", () => {
+  const page = {
+    characters: "ページ",
+    meanings: [{ meaning: "Page", primary: true, accepted_answer: true }],
+    readings: [{ primary: true, accepted_answer: true, reading: "ページ" }],
+  };
+  assert.equal(isReadingCorrect("pe-ji", page), true);
+  assert.equal(isReadingCorrect("ichi-", kanjiOne), false, "a trailing ー is a sound, not punctuation");
+});
+
+test("splitAnswer still finds the reading when the reply is punctuated", () => {
+  // The habit that broke the grader is a full stop in front of the reply.
+  assert.deepEqual(splitAnswer(".one. ichi", kanjiOne, true), { meaning: ".one", reading: "ichi" });
+  assert.deepEqual(splitAnswer("。いち", kanjiOne, true), { meaning: null, reading: "。いち" });
+});
+
 test("isReadingCorrect rejects non-accepted (but real) readings", () => {
   // Not the accepted answer — though it isn't scored as a miss either; that
   // distinction belongs to readingVerdict, below.

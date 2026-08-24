@@ -10,6 +10,30 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-08-24
+
+- **A full stop in front of a reading no longer loses the item.** Romaji goes
+  through a kana converter, and that converter reads `.` as 。 — so `.sei`
+  arrived at the answer key as 。せい and matched nothing. In one sitting 青
+  answered `.sei` and 間 answered `.kan` were both marked wrong for readings
+  the user had right, and the corrections then handed over the answers.
+  Punctuation at either end of a reading is now trimmed the way it has always
+  been trimmed off a meaning. The hyphen is left alone, because that one is a
+  sound: `pe-ji` is still ページ.
+- **An emptied queue says so.** The batch that cleared the last reviews ended
+  on `8 done, 7 perfect · 6 leveled up, 1 slipped back` and no word on what
+  was left, because zero was falling out of the line as falsy. The driver
+  filled the gap in prose — "All reviews cleared. Queue reset." — and
+  `summary`, one turn later, said sixteen reviews were waiting. The line now
+  ends `· none left`.
+- **A sitting that runs out of items keeps its running total.** Clearing the
+  fetched list and picking up the reviews that came due since is the same
+  sitting continuing, but the refetch was starting a fresh record: a sitting
+  that had just reported "79 done this sitting, 56 perfect" reported the next
+  batch as ten. The totals, the misses carried from earlier in the sitting,
+  and whether rapid fire has been offered all survive the refetch now. A
+  sitting that has actually expired still starts from zero.
+
 ## 2026-08-22
 
 - **`ask` prints the question first.** A sitting used to open with the

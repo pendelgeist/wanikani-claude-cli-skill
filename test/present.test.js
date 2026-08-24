@@ -182,10 +182,18 @@ test("batchSummaryLine names what changed status", () => {
 
 test("batchSummaryLine drops segments that would say nothing", () => {
   assert.equal(batchSummaryLine({ submitted: 10, perfect: 10 }), "10 done, 10 perfect");
+});
+
+test("batchSummaryLine says so when the queue is empty", () => {
   assert.equal(
     batchSummaryLine({ submitted: 3, perfect: 3, remaining: 0 }),
+    "3 done, 3 perfect · none left",
+    "an emptied queue is the count most worth stating",
+  );
+  assert.equal(
+    batchSummaryLine({ submitted: 3, perfect: 3, remaining: null }),
     "3 done, 3 perfect",
-    "nothing left is not worth a segment",
+    "an unknown remainder still says nothing, rather than guessing at zero",
   );
 });
 

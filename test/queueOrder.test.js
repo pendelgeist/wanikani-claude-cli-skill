@@ -199,6 +199,36 @@ test("without a batch handed out there is nothing to call open", async () => {
   });
 });
 
+test("a sitting that runs out of items keeps its running totals over the refetch", async () => {
+  await withTempCacheDir(async () => {
+    const { addSessionTotals, loadSitting } = await import("../lib/queueOrder.js");
+    const client = fakeClient(2);
+
+    const batch = await getReviewQueue(client, { limit: 2 });
+    await addSessionTotals({ submitted: 2, perfect: 1 });
+    await markSubmitted(batch.map((item) => item.assignmentId));
+
+    // The list is empty but the sitting is minutes old — more reviews came due
+    // while they were working, and this is the same sitting picking them up.
+    // The totals used to be reset by the refetch, so a sitting that had
+    // reported "79 done this sitting" reported the very next batch as ten.
+    await getReviewQueue(client, { limit: 2 });
+
+    assert.deepEqual((await loadSitting()).totals, { submitted: 2, perfect: 1 });
+  });
+});
+
+test("a sitting that has expired starts its totals over", async () => {
+  await withTempCacheDir(async () => {
+    const { loadSitting } = await import("../lib/queueOrder.js");
+    await idleFor(45, { items: [], totals: { submitted: 40, perfect: 30 } });
+
+    await getReviewQueue(fakeClient(2), { limit: 2 });
+
+    assert.deepEqual((await loadSitting()).totals, { submitted: 0, perfect: 0 }, "a new sitting counts from zero");
+  });
+});
+
 test("countRemainingReviews uses the cached order, then asks the API once it is empty", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient(3);
