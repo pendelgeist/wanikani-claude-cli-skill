@@ -86,8 +86,13 @@ Four files live in `~/.cache/wanikani-cli` (override the location with
   re-fetching every due assignment. Submitting removes items from it;
   anything answered but not submitted stays put and comes back around, as does
   anything left mid-question — an unanswered re-prompt is not submitted as a
-  clean pass. The order expires after 30 minutes, and is re-fetched whenever it
-  runs dry.
+  clean pass. The list ages out after 30 minutes idle, and is re-fetched
+  whenever it runs dry — but the sitting's running totals are the file's other
+  half and have a longer life: a break for the next hour's reviews to unlock
+  is a fetch of fresh items, not a new sitting, and the counter on screen
+  carries across it. Three hours idle is where the sitting itself ends and the
+  next one starts from zero. What a break does *not* carry is a miss waiting
+  to be submitted; see `resumedFrom` in `lib/reviewQueue.js`.
 - `misses.json` — the last hundred items answered wrong, filed as each batch
   is submitted, newest first. It's what `drill` asks from, and it outlives the
   sitting the mistake was made in because a mistake does.

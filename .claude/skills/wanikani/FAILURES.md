@@ -79,6 +79,33 @@ went back to the start.
 → Totals, carried misses and the rapid-fire flag survive a mid-sitting
 refetch.
 
+**A sitting reset by a break.** The fetched list ages out after thirty minutes
+idle so that reviews unlocking on the hour get picked up; the running totals
+were aging out with it. Forty items in, the user waited for the next hour's
+reviews and came back to "10 done, 8 perfect" with no sitting line under it
+and the opening how-to printed at them a second time. Nothing was mis-graded.
+What it cost was the count they were watching — and the driver, left to do the
+arithmetic the file exists to stop it doing, closed the sitting with "60
+reviewed, 46 perfect" against a real 70 and 53.
+→ The list and the sitting have separate lives: thirty minutes for one, three
+hours for the other. A miss waiting to be submitted still doesn't cross the
+break.
+
+**A count that went up with nothing said.** "17 left" at the end of one batch,
+"20 left" at the end of the next, an hour apart. Both were right — thirteen
+reviews had unlocked in between — but a number moving the wrong way with no
+explanation on screen is the shape of every "CLI broken" report in the section
+below.
+→ The fetch that picks them up says how many arrived.
+
+**An offer that was always there.** `answer --forgive meaning|reading` closed
+every batch whether or not the last verdict was a miss: five of seven batches
+in one sitting invited the user to overrule a ✓. `--forgive` had already spent
+six sittings unused as prose in SKILL.md, which is why it was moved next to
+the verdict; boilerplate is the same fate by a different route.
+→ It appears when there's a miss to overrule, and names the half that was
+missed.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded

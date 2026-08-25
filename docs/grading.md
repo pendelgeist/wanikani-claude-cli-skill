@@ -47,10 +47,13 @@ new answer is graded on its merits, and the earlier miss is submitted with it
 replayed a lost sitting out of its own chat log, corrections included, sent
 thirty items in as perfect scores and burned four of them.
 `grade <id> --forgive meaning` takes a miss back when the answer key was
-overruled. That record lives with the queue order, which ages out after 30
-minutes *idle* — a sitting that's still being worked stays alive however long
-it runs, and one abandoned overnight submits nothing and says so, with its
-items still due.
+overruled. That record lives with the queue order, whose list of items ages
+out after 30 minutes *idle* — a sitting that's still being worked stays alive
+however long it runs, and one abandoned overnight submits nothing and says so,
+with its items still due. Fetching a fresh list is not the same as starting a
+fresh sitting: the totals on screen carry across a break of up to three hours,
+while an unsent miss does not, for the same reason an abandoned batch isn't
+submitted an hour later.
 
 The queue order also remembers which items the last `queue` handed out and in
 what order, which is what makes "the batch" something the CLI knows rather than

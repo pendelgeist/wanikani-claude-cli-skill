@@ -163,6 +163,72 @@ test("a finished batch is submitted by the next ask, with nobody deciding to", a
   });
 });
 
+test("a sitting picked up after a break carries on rather than starting over", async () => {
+  await withTempCacheDir(async () => {
+    const { writeJsonCache } = await import("../lib/cacheStore.js");
+    const client = fakeClient();
+
+    // Three answered and submitted, then away for the next hour's reviews to
+    // unlock. The list ages out at thirty minutes and is refetched — but the
+    // sitting is the same sitting, and it used to come back as a brand new
+    // one: the counter at zero and the opening how-to printed at someone who
+    // had been at it for forty items.
+    let output = await ask(client);
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
+    await ask(client);
+    const sitting = await (await import("../lib/queueOrder.js")).loadSitting();
+    const idle = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    await writeJsonCache("queue-order.json", { ...sitting, touchedAt: idle });
+
+    const resumed = await ask(client);
+
+    assert.doesNotMatch(resumed, /Meaning and reading together/, `already been told: ${resumed}`);
+    // Three, because the fake serves the same three back — what matters is
+    // that the count is said at all, at the moment the number moves.
+    assert.match(resumed, /3 more reviews have come due/, "and told why what's left went up");
+    // The counter picks up where it left off rather than at zero.
+    output = resumed;
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
+    assert.match(await ask(client), /6 done this sitting, 6 perfect/);
+  });
+});
+
+test("a batch that ended on a right answer is not offered an undo for it", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+
+    let output = await ask(client);
+    for (let position = 1; position <= 3; position += 1) {
+      output = await answer(client, RIGHT[glyphOf(output)]);
+    }
+
+    assert.match(output, /that's the batch/);
+    // Five batches out of seven in one sitting closed on a correct answer
+    // with an invitation to forgive it underneath. An offer that is there
+    // whether or not it applies is read as boilerplate — which is what it was
+    // moved out of SKILL.md to stop being.
+    assert.doesNotMatch(output, /forgive/, `no undo for a ✓, got: ${output}`);
+  });
+});
+
+test("a batch that ended on a miss is offered the undo for the half that was missed", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+
+    let output = await ask(client);
+    for (let position = 1; position <= 2; position += 1) {
+      output = await answer(client, RIGHT[glyphOf(output)]);
+    }
+    // A wrong meaning with the reading right, so only one half is overrulable
+    // — and naming both would be the same guess the offer is meant to replace.
+    const reading = RIGHT[glyphOf(output)].split(", ")[1];
+    const last = await answer(client, reading ? `sickle, ${reading}` : "sickle");
+
+    assert.match(last, /answer --forgive meaning/);
+    assert.doesNotMatch(last, /forgive meaning\|reading/, `one half, not both: ${last}`);
+  });
+});
+
 test("the last item of a batch can still be forgiven, because the batch hasn't gone yet", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient();
