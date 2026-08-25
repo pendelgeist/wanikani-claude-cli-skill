@@ -85,6 +85,27 @@ test("a sitting past its life says what the next fetch will drop", async () => {
   });
 });
 
+test("a sitting idle for a break says the totals carry, because they do", async () => {
+  await withTempCacheDir(async () => {
+    const idle = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    await saveQueueOrder(BATCH, { totals: { submitted: 40, perfect: 30 } });
+    const { readFile, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const file = join(process.env.WANIKANI_CACHE_DIR, "queue-order.json");
+    const raw = JSON.parse(await readFile(file, "utf8"));
+    await writeFile(file, JSON.stringify({ ...raw, touchedAt: idle }));
+
+    const out = await status();
+
+    // Two lives, one file: the list is stale and the scoreboard isn't. This
+    // is where someone goes to find out which, so it has to say.
+    assert.match(out, /idle 45m, past its 30-minute life/);
+    assert.match(out, /The running totals below carry over/);
+    assert.match(out, /Sent this sitting: 40 submitted, 30 perfect/);
+    assert.match(out, /Next: `ask` fetches a fresh list and carries on this sitting's totals\./);
+  });
+});
+
 test("every report ends with what the record can and can't have done", async () => {
   await withTempCacheDir(async () => {
     await saveQueueOrder(BATCH, { served: [1, 2, 3] });

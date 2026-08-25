@@ -10,6 +10,30 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-08-25
+
+- **A break in the middle of a sitting is no longer a new sitting.** Forty
+  items in, the user stepped away for the next hour's reviews to unlock and
+  came back to a scoreboard reading zero: the fetched list ages out after
+  thirty minutes, and the running totals were being reset along with it. The
+  sitting reported "40 done this sitting, 31 perfect", then "10 done, 8
+  perfect" with no sitting line at all, and the tally at the end was short by
+  ten items and seven perfect scores. The list and the sitting have separate
+  lives now — fresh items after thirty minutes idle, the same sitting for up
+  to three hours — so the counter carries across a break and the opening
+  how-to isn't printed at someone who has been at it all morning. A miss
+  answered but never submitted still doesn't survive the break, for the same
+  reason an abandoned batch isn't submitted an hour later.
+- **Reviews that unlock mid-sitting say so.** The same sitting ended one batch
+  on "17 left" and the next on "20 left" — both right, an hour apart, with
+  thirteen reviews having come due in between. The fetch that picks them up
+  now says how many arrived, under the question, once.
+- **The end of a batch stops offering to undo a right answer.** Every batch
+  closed with `answer --forgive meaning|reading` under it whether or not the
+  last verdict was a miss — five times out of seven in one sitting, under a
+  ✓. The offer now appears only when there is something to overrule, and
+  names the half that was actually missed.
+
 ## 2026-08-24
 
 - **A full stop in front of a reading no longer loses the item.** Romaji goes

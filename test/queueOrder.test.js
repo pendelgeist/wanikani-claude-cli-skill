@@ -218,14 +218,74 @@ test("a sitting that runs out of items keeps its running totals over the refetch
   });
 });
 
-test("a sitting that has expired starts its totals over", async () => {
+test("a break long enough to want fresh items is not long enough to be a new sitting", async () => {
   await withTempCacheDir(async () => {
     const { loadSitting } = await import("../lib/queueOrder.js");
-    await idleFor(45, { items: [], totals: { submitted: 40, perfect: 30 } });
+    // Forty items in, the user steps away for the next hour's reviews to
+    // unlock. The list ages out at thirty minutes so those get picked up —
+    // and the scoreboard used to go with it: they came back to "10 done, 8
+    // perfect" with no sitting line at all, and the tally at the end was
+    // short by ten items.
+    await idleFor(45, { items: [{ assignmentId: 900, subjectId: 2 }], totals: { submitted: 40, perfect: 30 } });
+
+    await getReviewQueue(fakeClient(2), { limit: 2 });
+
+    assert.deepEqual((await loadSitting()).totals, { submitted: 40, perfect: 30 }, "the counter carries");
+  });
+});
+
+test("a sitting that has really expired starts its totals over", async () => {
+  await withTempCacheDir(async () => {
+    const { loadSitting } = await import("../lib/queueOrder.js");
+    await idleFor(4 * 60, { items: [], totals: { submitted: 40, perfect: 30 } });
 
     await getReviewQueue(fakeClient(2), { limit: 2 });
 
     assert.deepEqual((await loadSitting()).totals, { submitted: 0, perfect: 0 }, "a new sitting counts from zero");
+  });
+});
+
+test("a miss waiting to be submitted does not survive the break the totals do", async () => {
+  await withTempCacheDir(async () => {
+    const { loadPriorGrades, loadSitting } = await import("../lib/queueOrder.js");
+    // The carried miss belongs to an item asked, missed and asked again
+    // without ever being sent. Half an hour later with the user elsewhere,
+    // the next attempt at it is a fresh one — the same caution `beginBatch`
+    // takes about `grades`, which was demoting items an hour after the fact.
+    await idleFor(45, {
+      items: [],
+      totals: { submitted: 4, perfect: 3 },
+      priorGrades: { 900: { wrongMeaning: 1, wrongReading: 0 } },
+    });
+
+    await getReviewQueue(fakeClient(2), { limit: 2 });
+
+    assert.deepEqual((await loadSitting()).totals, { submitted: 4, perfect: 3 });
+    assert.deepEqual(await loadPriorGrades(), {}, "the unsent miss does not");
+  });
+});
+
+test("reviews that came due mid-sitting are counted, and counted once", async () => {
+  await withTempCacheDir(async () => {
+    const { takeNewlyDue } = await import("../lib/queueOrder.js");
+    // One left on the old list; the fetch finds three. Two of them are new,
+    // which is the whole reason "what's left" can go up rather than down.
+    await idleFor(45, { items: [{ assignmentId: 100, subjectId: 200 }], totals: { submitted: 2, perfect: 2 } });
+
+    await getReviewQueue(fakeClient(3), { limit: 3 });
+
+    assert.equal(await takeNewlyDue(), 2);
+    assert.equal(await takeNewlyDue(), 0, "read once — it belongs to the batch it arrived with");
+  });
+});
+
+test("the first fetch of a sitting has nothing to have come due since", async () => {
+  await withTempCacheDir(async () => {
+    const { takeNewlyDue } = await import("../lib/queueOrder.js");
+
+    await getReviewQueue(fakeClient(3), { limit: 3 });
+
+    assert.equal(await takeNewlyDue(), 0, "three due at the start is not three that arrived");
   });
 });
 
