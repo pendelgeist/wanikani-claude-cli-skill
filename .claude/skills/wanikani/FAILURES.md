@@ -130,6 +130,27 @@ sitting's list runs dry and the count comes live off the API instead.
 left of the fetched list, and the summary line says "all of them come due
 since the last fetch" when it's the former.
 
+**A whole queue announced as newly arrived.** A sitting resumed an hour later
+opened on "47 more reviews have come due since this sitting started", printed
+under its very first question, with forty-seven due and sixteen of them
+actually new. The count was a set difference against the fetched list — and
+the previous batch's submit had emptied that list, so every item came back
+unseen. An empty list isn't an unusual state to measure against; it is the
+state every sitting is left in by its final submit, and therefore the state
+every resumed sitting measures from. The note exists to explain a number going
+the wrong way, and it had become a number of its own to disbelieve.
+→ The baseline is the list while there is one, and the count the sitting last
+*reported* once there isn't. With neither, it says nothing.
+
+**A percentage worked out in prose.** Three sittings running closed on one:
+"47 total (77% perfect)", "94 total (72% perfect)", each divided out of two
+numbers already on the line. All three were right, which is the only reason
+this is a footnote rather than an entry in the section below — the same
+arithmetic, done the same way over a sitting whose counter had reset, produced
+"60 reviewed, 46 perfect" against a real 70 and 53.
+→ The sitting's segment carries its own percentage. The batch's doesn't: a
+share of ten is noise, and it was never the figure being derived.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded

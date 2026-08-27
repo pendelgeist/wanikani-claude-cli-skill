@@ -127,10 +127,12 @@ one is here because it has gone wrong in a real sitting.
    **The batch summary is finished text like the rest of it.** One sitting
    echoed a summary line with `匚 slipped to Apprentice 4` quietly dropped out
    of the middle, and closed on "All reviews cleared from earlier batches.
-   Session done. 47 total (77% perfect)" — a percentage nobody asked for,
-   printed directly under a line that said 31 left. If a number looks wrong,
-   `summary` and `status` will say; arithmetic in prose is how every miscount
-   in this file started.
+   Session done. 47 total (77% perfect)" — printed directly under a line that
+   said 31 left. Three sittings running ended on a percentage of their own;
+   the line carries one now (`94 done this sitting, 68 perfect (72%)`), so
+   there is nothing left to divide. If a number looks wrong, `summary` and
+   `status` will say. Arithmetic in prose is how every miscount in this file
+   started.
 
 4. **A glyph-less radical's prompt is an image URL. Print the URL**, whole and
    clickable, with the `(radical)` the CLI puts after it. `7. Rib Cage image`

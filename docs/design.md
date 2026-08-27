@@ -66,8 +66,11 @@ end:
   (`explain 親` explains both the kanji and the word, since it can't know
   which you meant). `--json` gives the fields instead of the block.
 - `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
-  127 left` — naming what crossed an SRS tier, carrying a running session
-  total, and dropping segments that would say nothing. If an item failed to
+  30 done this sitting, 25 perfect (83%) · 127 left` — naming what crossed an
+  SRS tier, carrying a running session total with the share of it that was
+  perfect, and dropping segments that would say nothing. The percentage rides
+  the sitting and not the batch, because the sitting's is the one that kept
+  being worked out by hand at the end of a session. If an item failed to
   submit, the line gains a second line saying what becomes of it: a retryable
   failure stays in the queue for a later batch, one WaniKani rejected
   outright (usually already reviewed elsewhere) doesn't come back.
@@ -103,7 +106,10 @@ Four files live in `~/.cache/wanikani-cli` (override the location with
   is a fetch of fresh items, not a new sitting, and the counter on screen
   carries across it. Three hours idle is where the sitting itself ends and the
   next one starts from zero. What a break does *not* carry is a miss waiting
-  to be submitted; see `resumedFrom` in `lib/reviewQueue.js`.
+  to be submitted; see `resumedFrom` in `lib/reviewQueue.js`. The file also
+  keeps the last count of what's left that was *reported* to the user, which
+  is what a refetch measures arrivals against once the fetched list is empty
+  and has nothing left to say about what's due.
 - `misses.json` — the last hundred items answered wrong, filed as each batch
   is submitted, newest first. It's what `drill` asks from, and it outlives the
   sitting the mistake was made in because a mistake does.

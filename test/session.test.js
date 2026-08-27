@@ -58,14 +58,48 @@ const RADICAL = {
 const SUBJECTS = [KANJI, VOCAB, RADICAL];
 const RIGHT = { 親: "parent, shin", 心強い: "reassuring, kokoroduyoi", 亅: "hook" };
 
+/**
+ * A subject for an assignment past the fixed three, for the tests that model
+ * reviews unlocking mid-sitting. Distinct subjects rather than the same three
+ * again: two assignments sharing a subject is a different situation, and not
+ * the one those tests are about.
+ */
+const extraSubject = (id) => ({
+  id,
+  object: "kanji",
+  data: {
+    level: 1,
+    characters: `字${id}`,
+    document_url: `https://www.wanikani.com/kanji/${id}`,
+    meanings: [{ meaning: "Extra", primary: true, accepted_answer: true }],
+    auxiliary_meanings: [],
+    readings: [{ type: "onyomi", primary: true, accepted_answer: true, reading: "いち" }],
+  },
+});
+
+/** The right answer for whatever prompt came back, extras included. */
+const rightFor = (glyph) => RIGHT[glyph] ?? "extra, ichi";
+
 function fakeClient() {
   const client = {
     submitted: [],
+    // How many assignments are due. A test that models reviews unlocking
+    // while the sitting runs raises it; ids past the first three re-use a
+    // subject, which is the right shape — the subject is the question, the
+    // assignment is the thing that comes due.
+    due: SUBJECTS.length,
     async getAssignments() {
-      return SUBJECTS.map((subject, index) => ({ id: 100 + index, data: { subject_id: subject.id } }));
+      return Array.from({ length: client.due }, (_, index) => ({
+        id: 100 + index,
+        data: { subject_id: index < SUBJECTS.length ? SUBJECTS[index].id : 900 + index },
+      }));
     },
     async getSubjectsByIds(ids) {
-      return new Map(ids.map((id) => [id, SUBJECTS.find((s) => s.id === id)]).filter(([, s]) => s));
+      return new Map(
+        ids
+          .map((id) => [id, SUBJECTS.find((s) => s.id === id) ?? (id >= 900 ? extraSubject(id) : null)])
+          .filter(([, s]) => s),
+      );
     },
     async submitReview(review) {
       client.submitted.push(review);
@@ -150,7 +184,7 @@ test("a finished batch is submitted by the next ask, with nobody deciding to", a
 
     let output = await ask(client);
     for (let position = 1; position <= 3; position += 1) {
-      output = await answer(client, RIGHT[glyphOf(output)]);
+      output = await answer(client, rightFor(glyphOf(output)));
     }
 
     // Not on the last answer: a miss there has to stay overrulable, and
@@ -178,7 +212,41 @@ test("a sitting picked up after a break carries on rather than starting over", a
     // one: the counter at zero and the opening how-to printed at someone who
     // had been at it for forty items.
     let output = await ask(client);
-    for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, rightFor(glyphOf(output)));
+    await ask(client);
+    const sitting = await (await import("../lib/queueOrder.js")).loadSitting();
+    const idle = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    await writeJsonCache("queue-order.json", { ...sitting, touchedAt: idle });
+
+    // Two unlocked over the break — which is the reason to refetch at all.
+    client.due = 5;
+
+    const resumed = await ask(client);
+
+    assert.doesNotMatch(resumed, /Meaning and reading together/, `already been told: ${resumed}`);
+    // Two, not five: the sitting submitted everything it had fetched, so its
+    // list is empty and says nothing about what is due. What it knows is the
+    // count it last reported, and the difference is what arrived.
+    assert.match(resumed, /2 more reviews have come due/, "and told why what's left went up");
+    // The counter picks up where it left off rather than at zero.
+    output = resumed;
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, rightFor(glyphOf(output)));
+    assert.match(await ask(client), /6 done this sitting, 6 perfect/);
+  });
+});
+
+test("a resumed sitting says nothing about arrivals when nothing arrived", async () => {
+  await withTempCacheDir(async () => {
+    const { writeJsonCache } = await import("../lib/cacheStore.js");
+    const client = fakeClient();
+
+    // The same break, with the queue exactly as it was left. A sitting picked
+    // up an hour later opened on "47 more reviews have come due since this
+    // sitting started" over its own first question, with forty-seven due and
+    // none of them new: its list was empty, so every item it fetched looked
+    // like an arrival.
+    let output = await ask(client);
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, rightFor(glyphOf(output)));
     await ask(client);
     const sitting = await (await import("../lib/queueOrder.js")).loadSitting();
     const idle = new Date(Date.now() - 45 * 60 * 1000).toISOString();
@@ -186,14 +254,8 @@ test("a sitting picked up after a break carries on rather than starting over", a
 
     const resumed = await ask(client);
 
-    assert.doesNotMatch(resumed, /Meaning and reading together/, `already been told: ${resumed}`);
-    // Three, because the fake serves the same three back — what matters is
-    // that the count is said at all, at the moment the number moves.
-    assert.match(resumed, /3 more reviews have come due/, "and told why what's left went up");
-    // The counter picks up where it left off rather than at zero.
-    output = resumed;
-    for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
-    assert.match(await ask(client), /6 done this sitting, 6 perfect/);
+    assert.doesNotMatch(resumed, /come due/, `nothing arrived, so there is nothing to say: ${resumed}`);
+    assert.ok(glyphOf(resumed), `and the question still gets asked: ${resumed}`);
   });
 });
 
@@ -203,7 +265,7 @@ test("a batch that ended on a right answer is not offered an undo for it", async
 
     let output = await ask(client);
     for (let position = 1; position <= 3; position += 1) {
-      output = await answer(client, RIGHT[glyphOf(output)]);
+      output = await answer(client, rightFor(glyphOf(output)));
     }
 
     assert.match(output, /that's the batch/);
@@ -221,7 +283,7 @@ test("a batch that ended on a miss is offered the undo for the half that was mis
 
     let output = await ask(client);
     for (let position = 1; position <= 2; position += 1) {
-      output = await answer(client, RIGHT[glyphOf(output)]);
+      output = await answer(client, rightFor(glyphOf(output)));
     }
     // A wrong meaning with the reading right, so only one half is overrulable
     // — and naming both would be the same guess the offer is meant to replace.
@@ -239,7 +301,7 @@ test("the last item of a batch can still be forgiven, because the batch hasn't g
 
     let output = await ask(client);
     for (let position = 1; position <= 2; position += 1) {
-      output = await answer(client, RIGHT[glyphOf(output)]);
+      output = await answer(client, rightFor(glyphOf(output)));
     }
     // Miss the tenth item — the case an auto-submit on the last answer would
     // have made permanent between one call and the next.
@@ -263,7 +325,7 @@ test("a re-prompt leaves the item open, and the next answer lands on the same it
 
     // Walk to 親 whatever position the shuffle gave it, answering the rest right.
     let output = await ask(client);
-    while (glyphOf(output) !== "親") output = await answer(client, RIGHT[glyphOf(output)]);
+    while (glyphOf(output) !== "親") output = await answer(client, rightFor(glyphOf(output)));
 
     // おや is a real reading of 親 — the website shakes and asks again.
     const nudged = await answer(client, "parent, oya");
@@ -303,7 +365,7 @@ test("ask says a mid-question item is waiting on its reading, not on a fresh ans
     const client = fakeClient();
 
     let output = await ask(client);
-    while (glyphOf(output) !== "親") output = await answer(client, RIGHT[glyphOf(output)]);
+    while (glyphOf(output) !== "親") output = await answer(client, rightFor(glyphOf(output)));
     await answer(client, "parent, oya");
 
     const waiting = await ask(client);
@@ -329,7 +391,7 @@ test("--forgive takes back the item just graded, without being told which", asyn
 
     let output = await ask(client);
     while (glyphOf(output) !== "心強い")
-      output = await answer(client, RIGHT[glyphOf(output)]);
+      output = await answer(client, rightFor(glyphOf(output)));
 
     const missed = await answer(client, "encouraging, kokoroduyoi");
     assert.match(missed, /^✗ /m);
@@ -575,7 +637,7 @@ test("kana answers are untouched, since a reading is kana by definition", async 
   await withTempCacheDir(async () => {
     const client = fakeClient();
     let output = await ask(client);
-    while (glyphOf(output) !== "心強い") output = await answer(client, RIGHT[glyphOf(output)]);
+    while (glyphOf(output) !== "心強い") output = await answer(client, rightFor(glyphOf(output)));
 
     // こころづよい is an answer, not a question — only Han script is the tell.
     const graded = await answer(client, "reassuring こころづよい");

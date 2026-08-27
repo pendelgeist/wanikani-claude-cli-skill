@@ -12,6 +12,28 @@ the other end, with what each one cost before it was fixed.
 
 ## 2026-08-27
 
+- **A resumed sitting stops announcing its whole queue as newly arrived.** A
+  sitting picked up an hour later opened on "47 more reviews have come due
+  since this sitting started" — printed under its very first question, with
+  forty-seven due and sixteen of them actually new. The count was measured
+  against the fetched list, which the previous batch's submit had emptied, so
+  every item looked like an arrival. That empty list is the shape *every*
+  sitting is left in by its last submit, so it was the shape every resumed
+  sitting started from. The baseline is now the count the sitting last
+  reported — thirty-one, in that case — and with no baseline at all it says
+  nothing rather than claiming everything.
+- **The sitting's score carries its percentage.** Three sittings in a row
+  closed on one composed in prose from the two numbers already on the line:
+  "47 total (77% perfect)", "94 total (72% perfect)". Right each time; the
+  same arithmetic on an earlier sitting produced "60 reviewed, 46 perfect"
+  against a real 70 and 53. The line reads `94 done this sitting, 68 perfect
+  (72%)` now, and there is nothing left to work out. The batch's own share
+  stays off — a percentage of ten is noise.
+- **A correction names each reading type once.** 軽 accepts both かる and かろ,
+  and its correction read `reading is かる (kun'yomi) / かろ (kun'yomi)` — the
+  same thing twice, on the one line that exists to be read carefully. Now
+  `reading is かる / かろ (kun'yomi)`. Two types is still two labels, and a
+  vocabulary word's readings still come back as bare kana.
 - **Every question says which kind of subject it is.** 末 came up twice in one
   sitting — once as the vocabulary word (すえ), once as the kanji (まつ) — and
   both times the prompt read `末` and nothing else. The user gave each one the

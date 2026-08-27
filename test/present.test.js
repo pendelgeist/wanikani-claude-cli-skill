@@ -114,6 +114,34 @@ test("correctionsFor reveals kana verbatim, never romaji", () => {
   assert.doesNotMatch(answer, /[A-Za-z]/, "romaji in a correction is the bug this exists to prevent");
 });
 
+test("a correction names each reading type once, not once per reading", () => {
+  // 軽 accepts かる and かろ, both kun'yomi, and the line read "reading is かる
+  // (kun'yomi) / かろ (kun'yomi)".
+  const light = {
+    characters: "軽",
+    subjectType: "kanji",
+    documentUrl: "https://www.wanikani.com/kanji/軽",
+    meanings: [{ meaning: "Lightweight", primary: true, accepted_answer: true }],
+    readings: [
+      { type: "kunyomi", primary: true, accepted_answer: true, reading: "かる" },
+      { type: "kunyomi", primary: false, accepted_answer: true, reading: "かろ" },
+      { type: "onyomi", primary: false, accepted_answer: false, reading: "けい" },
+    ],
+  };
+
+  assert.match(correctionsFor(light).reading, /^reading is かる \/ かろ \(kun'yomi\) · /);
+
+  // Two types is still two labels — the grouping is per type, not a trim.
+  const tries = { ...light, characters: "試", readings: [
+    { type: "onyomi", primary: true, accepted_answer: true, reading: "し" },
+    { type: "kunyomi", primary: false, accepted_answer: true, reading: "ため" },
+  ] };
+  assert.match(correctionsFor(tries).reading, /^reading is し \(on'yomi\), ため \(kun'yomi\) · /);
+
+  // A vocabulary word's readings carry no type and stay bare kana.
+  assert.match(correctionsFor(VOCAB).reading, /^reading is こころづよい · /);
+});
+
 test("correctionsFor lists every accepted answer and no rejected one", () => {
   const { meaning, reading } = correctionsFor(VOCAB);
   assert.match(meaning, /^meaning is Reassuring \/ Heartening ·/);
@@ -273,7 +301,26 @@ test("batchSummaryLine adds the session total only once it exceeds the batch", (
   assert.doesNotMatch(first, /this session/, "on batch one the session total is the batch total");
 
   const later = batchSummaryLine({ submitted: 10, perfect: 8, sessionSubmitted: 30, sessionPerfect: 25 });
-  assert.match(later, /30 done this sitting, 25 perfect/);
+  assert.match(later, /30 done this sitting, 25 perfect \(83%\)/);
+});
+
+test("the sitting's score carries the percentage, so nobody has to work it out", () => {
+  // Three sittings running closed on a percentage composed in prose from the
+  // two numbers already on the line. The arithmetic was right each time; the
+  // same arithmetic on an earlier sitting produced "60 reviewed, 46 perfect"
+  // against a real 70 and 53.
+  assert.match(
+    batchSummaryLine({ submitted: 7, perfect: 5, sessionSubmitted: 94, sessionPerfect: 68 }),
+    /94 done this sitting, 68 perfect \(72%\)/,
+  );
+  // The batch's own share stays off — a percentage of ten is noise, and it is
+  // not the figure that kept being derived.
+  assert.doesNotMatch(batchSummaryLine({ submitted: 10, perfect: 8, remaining: 4 }), /%/);
+  // Nothing to divide by, and nothing known to divide.
+  assert.match(
+    batchSummaryLine({ submitted: 3, perfect: 3, sessionSubmitted: 10, sessionPerfect: null }),
+    /10 done this sitting ·|10 done this sitting$/,
+  );
 });
 
 test("batchSummaryLine surfaces submit failures", () => {

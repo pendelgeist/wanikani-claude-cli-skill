@@ -279,6 +279,40 @@ test("reviews that came due mid-sitting are counted, and counted once", async ()
   });
 });
 
+test("a sitting that finished its list doesn't call the whole next fetch new", async () => {
+  await withTempCacheDir(async () => {
+    const { takeNewlyDue } = await import("../lib/queueOrder.js");
+    // The shape a sitting is left in when its last batch submits: the list is
+    // empty, and the only record of what was still due is the count it last
+    // reported. A sitting resumed from here fetched forty-seven and announced
+    // all forty-seven as newly due, on the opening question of the sitting,
+    // when thirty-one of them had been waiting the whole time.
+    await idleFor(45, {
+      items: [],
+      totals: { submitted: 47, perfect: 36 },
+      lastRemaining: 31,
+    });
+
+    await getReviewQueue(fakeClient(47), { limit: 10 });
+
+    assert.equal(await takeNewlyDue(), 16, "forty-seven due against thirty-one known is sixteen that arrived");
+  });
+});
+
+test("an emptied list with no count behind it claims nothing", async () => {
+  await withTempCacheDir(async () => {
+    const { takeNewlyDue } = await import("../lib/queueOrder.js");
+    // Same shape, but nothing was ever reported — an older sitting on disk,
+    // or one that never got as far as a submit. Saying nothing beats saying
+    // that every review due is a review that just arrived.
+    await idleFor(45, { items: [], totals: { submitted: 4, perfect: 4 } });
+
+    await getReviewQueue(fakeClient(20), { limit: 10 });
+
+    assert.equal(await takeNewlyDue(), 0);
+  });
+});
+
 test("the first fetch of a sitting has nothing to have come due since", async () => {
   await withTempCacheDir(async () => {
     const { takeNewlyDue } = await import("../lib/queueOrder.js");
