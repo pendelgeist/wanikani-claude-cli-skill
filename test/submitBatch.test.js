@@ -158,6 +158,45 @@ test("submitBatchCommand reports how many reviews are left", async () => {
   });
 });
 
+test("a count that goes up when the list runs dry says why", async () => {
+  await withTempCacheDir(async () => {
+    // Everything fetched gets submitted, and the API has more than the
+    // sitting ever saw — reviews that came due while it ran. That is the one
+    // way this number moves the wrong way between two batches, and it did:
+    // "7 left" at the end of one batch, "31 left" seven items later. Nothing
+    // said so, and the driver wrote "all reviews cleared from earlier
+    // batches, session done" underneath the thirty-one.
+    await graded([
+      [1, {}],
+      [2, {}],
+    ]);
+
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 })));
+    const { remaining, summaryLine } = JSON.parse(output);
+
+    assert.equal(remaining, 31);
+    assert.match(summaryLine, /31 left — all of them come due since the last fetch/);
+  });
+});
+
+test("a count that simply went down says nothing extra about it", async () => {
+  await withTempCacheDir(async () => {
+    await graded(
+      [
+        [1, {}],
+        [2, {}],
+      ],
+      [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
+    );
+
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 })));
+    const { remaining, summaryLine } = JSON.parse(output);
+
+    assert.equal(remaining, 1, "one left in the fetched list, so no need to ask the API");
+    assert.match(summaryLine, /1 left$/);
+  });
+});
+
 test("submitBatchCommand keeps going after a per-item failure", async () => {
   await withTempCacheDir(async () => {
     await graded([[1, {}], [2, {}], [3, {}]]);

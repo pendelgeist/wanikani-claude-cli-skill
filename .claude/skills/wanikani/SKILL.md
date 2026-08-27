@@ -38,8 +38,15 @@ shell afterwards.
   exactly that to get the answer key, graded ten items in chat from it, and
   ended the batch with nothing submittable. If something you need genuinely
   isn't here, that's a change to `lib/`, proposed to the user.
-- **No `2>/dev/null`, no `| jq`.** stderr is where a refusal explains itself,
-  and `jq` throws away the shape of what came back.
+- **Nothing between the command and the screen.** No `2>/dev/null`, no `| jq`,
+  no `| head`. stderr is where a refusal explains itself, `jq` throws away the
+  shape of what came back, and one sitting put `| head -50` on an `answer`
+  whose entire output is three lines.
+- **One command per call, and never `answer && ask`.** Chaining those two
+  printed every question twice — once as `answer`'s next prompt, once as `ask`
+  re-asking the same open item — and on the last item of a batch it submitted
+  and served the next one in the same breath, straight past the beat where the
+  user says whether to carry on.
 - **Never put the token value in a command.** It gets echoed into the visible
   tool call and from there into transcripts. Don't ask for it in chat either;
   the errors carry their own remedy — "No API token found" already says to
@@ -63,6 +70,11 @@ sitting survives a new conversation walking into the middle of it.
 So the whole loop is: `ask`, print it, wait. They reply, `answer` with what
 they typed, print it, wait. When the output says the batch is done, `ask`
 again — that submits it and prints the summary. Then ask whether to continue.
+
+Every prompt names the kind of subject it is — `9. 末 (kanji)`, `3. 末
+(vocabulary)` — because that glyph is two questions with two different
+readings, and a sitting that met both of them fifteen minutes apart lost both.
+The label is part of the question, so it goes on screen with the rest of it.
 
 ### The five rules
 
@@ -89,19 +101,43 @@ one is here because it has gone wrong in a real sitting.
    right. Recognising an item is not permission to fill it in. **If they have
    typed a reply, that reply is the only thing that goes into `answer`.**
 
+   **And a pause is not a reply.** A later sitting answered two of its own
+   prompts with nothing typed under either — 学歴 came back right, and 好 went
+   in as "like. suki" against a こう that was the user's to get wrong. The gap
+   before that second one was a session left open overnight. Waiting is the
+   job: an unanswered prompt stays unanswered however long it sits there, and
+   the turn doesn't come back round until they type.
+
 3. **Add nothing to what the CLI printed.** The verdict, the correction, the
    next prompt, the summary — all finished text, on the screen already. Don't
    restate it, don't shorten it, don't gloss the kana. Every compression so
-   far has lost the same two things: `✗ (rib cage)` and `✗ (meaning: release,
-   reading: hou)` dropped the lookup link and put the reading back into
-   romaji. The kana is the answer; the romaji is noise. That holds for
-   anything you write in your own words too — the only romaji in a session is
-   what the *user* types.
+   far has lost the same two things: `✗ (rib cage)`, `✗ (meaning: release,
+   reading: hou)` and `✗ meaning/reading wrong` dropped the lookup link and
+   put the reading back into romaji, and the last of those named neither half.
+   The kana is the answer; the romaji is noise. That holds for anything you
+   write in your own words too — the only romaji in a session is what the
+   *user* types.
+
+   **Nothing about an item that hasn't been asked yet, either.** One sitting
+   wrote `3-17: day after tomorrow, battle, good, help, need, etc.` under a
+   verdict — a look down the rest of the batch, in English, which is to say
+   the answers. The next question was 明後日 and the user answered "day after
+   tomorrow". What is on screen and when is `ask`'s to decide.
+
+   **The batch summary is finished text like the rest of it.** One sitting
+   echoed a summary line with `匚 slipped to Apprentice 4` quietly dropped out
+   of the middle, and closed on "All reviews cleared from earlier batches.
+   Session done. 47 total (77% perfect)" — a percentage nobody asked for,
+   printed directly under a line that said 31 left. If a number looks wrong,
+   `summary` and `status` will say; arithmetic in prose is how every miscount
+   in this file started.
 
 4. **A glyph-less radical's prompt is an image URL. Print the URL**, whole and
-   clickable. `7. Rib Cage image` names the radical, which is the answer;
-   `5. Radical` doesn't name it but doesn't show it either, and the user
-   answered a picture they never saw.
+   clickable, with the `(radical)` the CLI puts after it. `7. Rib Cage image`
+   names the radical, which is the answer; `5. Radical` doesn't name it but
+   doesn't show it either, and the user answered a picture they never saw. The
+   difference is the URL: describing the image replaces it, and the label sits
+   beside it.
 
 5. **A miss ends the item.** The correction contains the answer, so there is
    no retry to offer — the miss is already recorded and WaniKani doesn't offer
@@ -186,10 +222,14 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   stop. **A part-answered batch is not a batch that can't be submitted** — one
   sitting was told "can't submit partial" and left ten answers to expire with
   the sitting. Answers only go nowhere if nobody sends them.
-- **A whole batch in one message** ("rapid fire") → `prompts` lists what's
-  still open as one block, `grade-many "<a> | <b> | ...>"` grades them in that
-  order. Same rules; the CLI still prints everything. Offer it once, between
-  batches, if they're moving fast.
+- **A whole batch in one message** ("rapid fire") → `ask` for the batch,
+  `prompts` for what's still open as one block, `grade-many "<a> | <b> | ..."`
+  for their reply, then `ask` to submit and serve the next. Same rules; the
+  CLI still prints everything. Offer it once, between batches, if they're
+  moving fast — and **if they ask for it, run those commands.** One sitting
+  opened on "batch rapid fire", made up a convention of its own to print at
+  them (`answer "a1 | a2 | a3"`), never called `prompts` or `grade-many`, and
+  took all forty-seven items one at a time.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
 - **"critical items", "what am I worst at?"** → `wanikani critical-condition`

@@ -10,6 +10,26 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-08-27
+
+- **Every question says which kind of subject it is.** 末 came up twice in one
+  sitting — once as the vocabulary word (すえ), once as the kanji (まつ) — and
+  both times the prompt read `末` and nothing else. The user gave each one the
+  other's reading and lost both, with nothing on screen either time to say
+  which was being asked. Prompts now read `9. 末 (kanji)` and `3. 末
+  (vocabulary)`, the way WaniKani's own review screen colours the banner by
+  type and labels the question. On a radical it also says that no reading is
+  wanted. This is the one place a bare glyph was not a whole question.
+- **A count that goes up says why.** One batch closed on "7 left" and the next,
+  seven items later, on "31 left" — both right, with thirty-one reviews having
+  come due while the sitting ran. Reviews arriving on a *fetch* have said so
+  since Monday; this is the same jump surfacing at the submit, when the
+  sitting's fetched list runs dry and the count comes live off the API. The
+  line now reads "31 left — all of them come due since the last fetch", which
+  is the sentence the driver otherwise writes itself, wrongly: "All reviews
+  cleared from earlier batches. Session done." went out directly underneath
+  the thirty-one.
+
 ## 2026-08-25
 
 - **A break in the middle of a sitting is no longer a new sitting.** Forty

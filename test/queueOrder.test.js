@@ -294,19 +294,33 @@ test("countRemainingReviews uses the cached order, then asks the API once it is 
     const client = fakeClient(3);
 
     const batch = await getReviewQueue(client, { limit: 2 });
-    assert.equal(await countRemainingReviews(client), 3);
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false });
     assert.equal(client.assignmentCalls, 1, "a cached order should answer for free");
 
     await markSubmitted(batch.map((item) => item.assignmentId));
-    assert.equal(await countRemainingReviews(client), 1);
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 1, unfetched: false });
 
     const rest = await getReviewQueue(client, { limit: 10 });
     await markSubmitted(rest.map((item) => item.assignmentId));
 
     // Order exhausted — this one has to go and look, which is also how
-    // reviews unlocked mid-session get noticed.
-    assert.equal(await countRemainingReviews(client), 3);
+    // reviews unlocked mid-session get noticed. Everything it finds is by
+    // definition newer than the fetch that emptied the list, and `unfetched`
+    // is what lets the batch summary say so instead of leaving "7 left" and
+    // "31 left" seven items apart to be explained in prose.
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: true });
     assert.equal(client.assignmentCalls, 2);
+  });
+});
+
+test("a count with no sitting behind it doesn't claim anything came due", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient(3);
+
+    // Nothing fetched, so there is no fetch for these to be newer than. The
+    // same holds for a sitting that aged out: its unsubmitted items would be
+    // counted here, and calling them newly due would be a guess.
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false });
   });
 });
 
@@ -320,11 +334,11 @@ test("queue items arrive with a prompt and correction lines already composed", a
 
     assert.deepEqual(
       items.map((item) => item.prompt),
-      items.map((item, index) => `${index + 1}. ${item.characters}`),
-      "numbered in the order they'll be asked, characters only",
+      items.map((item, index) => `${index + 1}. ${item.characters} (${item.subjectType})`),
+      "numbered in the order they'll be asked, characters and the kind of subject",
     );
     for (const item of items) {
-      assert.doesNotMatch(item.prompt, /[A-Za-z(]/, "no gloss, no label");
+      assert.doesNotMatch(item.prompt.replace(/ \([a-z ]+\)$/, ""), /[A-Za-z]/, "no gloss past the type");
       assert.match(item.corrections.reading, /^reading is [^A-Za-z]+ · https:/);
       assert.match(item.corrections.reading, /https:\/\/jisho\.org\/\S+$/, "the link rides on the line");
     }

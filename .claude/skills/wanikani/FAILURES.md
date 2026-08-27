@@ -106,6 +106,30 @@ the verdict; boilerplate is the same fate by a different route.
 → It appears when there's a miss to overrule, and names the half that was
 missed.
 
+**The same glyph asked twice as two different questions.** 末 came up in one
+sitting as the vocabulary word and, fifteen minutes later, as the kanji. Both
+prompts read `末` and nothing else. The user answered `end. matsu` to the
+first — まつ is the kanji's reading, すえ is the word's — and then, handed the
+kanji, answered `end suu`. Two misses on an item they half knew, and nothing
+on screen either time to say which of the two was being asked. The website
+never shows a bare glyph for exactly this reason: it colours the banner by
+type and labels the question "Kanji Reading" or "Vocabulary Reading".
+→ Every prompt names its subject type. On a radical it also says that no
+reading is wanted.
+
+**A remainder that jumped at the submit.** One batch ended "40 done this
+sitting, 30 perfect · 7 left"; seven items later the next ended "47 done this
+sitting, 36 perfect · 31 left". Both counts were right — thirty-one reviews
+had come due while the sitting ran — and nothing said so. The driver resolved
+it the way a number with no explanation is always resolved, in prose and
+wrongly: "All reviews cleared from earlier batches. Session done." went out
+directly under the thirty-one. The fetch already announced reviews that
+arrived while it was fetching; this jump surfaces at the *submit*, when the
+sitting's list runs dry and the count comes live off the API instead.
+→ `countRemainingReviews` says whether the number is a fresh count or what's
+left of the fetched list, and the summary line says "all of them come due
+since the last fetch" when it's the former.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
@@ -113,7 +137,12 @@ inside a single message, so 当たり went in as a perfect score for a question
 nobody was asked. A later sitting typed its own answer under four prompts in
 a row (`complete, sei` under 成, `wave` under 㠯, `effort, dou` under 働) —
 and on 㠯 the user answered `bear.`, correctly, while `grade 8777 "wave"`
-went out carrying the session's guess. A right answer recorded as a miss.
+went out carrying the session's guess. A right answer recorded as a miss. A
+third sitting did it twice more, both times after a long gap with nothing
+typed: `academic history. gakureki` under 学歴 — right, and still not theirs —
+and `like. suki` under 好, which wanted こう and went down as a miss. The
+second gap was a session left open overnight. Whatever else a pause is, it
+isn't a turn coming back round.
 
 **Editing the reply on the way in.** `page. pe-ji` → `page, peji`: a
 different word, and the hyphen was load-bearing. `.conventient. ben` →
@@ -175,6 +204,29 @@ ba.` and `Hint: suu.` — both handed over the answer, both were typed back and
 marked correct. `Need on'yomi — try じ (ji)?` is the same move in a politer
 shape and went the same way.
 
+**Reading ahead down the batch.** Under a verdict, one sitting wrote
+`3-17: day after tomorrow, battle, good, help, need, etc.` — fifteen items not
+yet asked, glossed in English, which for a review is the answer key. The next
+question was 明後日 and the user answered "day after tomorrow". Nothing was
+mis-recorded; what it cost was the item, and every item after it in that list.
+The same sitting had put `| head -50` on the `answer` call that produced the
+verdict, on output three lines long.
+
+**Chaining `answer` with `ask`.** Halfway through a sitting the calls became
+`answer "…" && ask`, and stayed that way. `ask` re-asks the open item, which is
+right on its own and duplicated every prompt when it followed a grade — `7. 級`
+twice, `9. 末` twice. On the last item of a batch it did worse: `answer` closed
+the batch and `ask` submitted it and served the next one in the same call,
+skipping the point where the user says whether to carry on. They said "yes" to
+a batch that had already started.
+
+**Improvising rapid fire instead of running it.** A sitting that opened on
+"batch rapid fire" answered by printing a convention of its own — `Rapid-fire:
+answer "a1 | a2 | a3" (pipe-separated)` — and then asked all forty-seven items
+one at a time. `prompts` and `grade-many` exist, they were in the skill file,
+and neither was called. What the user asked for was not refused, which would
+at least have been visible; it was acknowledged and quietly not done.
+
 ## The message slot
 
 Worth its own section, because four releases went into it and three of them
@@ -210,3 +262,10 @@ It can still drop a link, which is rule 3.
   `status` call away.
 - A batch summary that described none of what had happened, reported after
   three batches of which zero were submitted.
+- "All reviews cleared from earlier batches. Session done. 47 total (77%
+  perfect)" — written directly under a summary line that said 31 left. The
+  first sentence was false, the second was a percentage nobody had asked for,
+  and the same sitting had already echoed a summary line with `匚 slipped to
+  Apprentice 4` dropped out of the middle of it.
+- `✗ meaning/reading wrong`, in place of a correction that names the meaning,
+  the reading and the lookup link. It doesn't say which half was missed.

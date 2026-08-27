@@ -11,16 +11,27 @@ what it cost first.
 
 The CLI hands back finished strings rather than raw data to assemble, and —
 since a session that *can* grade by hand eventually will — it no longer hands
-over the answers at all. `queue` gives each item a `prompt` (`"1. 心強い"`, or
-the image URL for a radical with no glyph) and the ids to act on it;
-`grade` holds the key and returns the line to print. The prompt is a fragment
+over the answers at all. `queue` gives each item a `prompt` (`"1. 心強い
+(vocabulary)"`, or the image URL and the same label for a radical with no
+glyph) and the ids to act on it; `grade` holds the key and returns the line to
+print. The prompt is a fragment
 and not a finished question on purpose: for one release it ended in
 `— meaning & reading?`, and the sitting that met a complete question answered
 it — the answer typed under four prompts in a row, and on one item the user's
 correct reply passed over in favour of the guess. `grade` prints the verdict
 and the next prompt itself, so a Claude-driven sitting has nothing to say
-between items at all. With `--answers`, for
-debugging, the old shape comes back: `corrections` — `meaning`, `reading` and
+between items at all.
+
+The type on the end of the prompt is the one part of it that isn't a
+formatting decision. A glyph alone is sometimes not a question: 末 is すえ as a
+word and まつ as a kanji, and a sitting that met both fifteen minutes apart
+answered each with the other's reading and lost both. WaniKani never shows a
+bare glyph either — its review screen colours by type and labels the question
+"Kanji Reading" or "Vocabulary Reading" — so the label is a missing half of
+the question rather than a hint, and it is the only Latin text a prompt
+carries.
+
+With `--answers`, for debugging, the old shape comes back: `corrections` — `meaning`, `reading` and
 `both`, one finished line each, kana copied straight from the answer key, the
 reading labelled with its type for a kanji, and a lookup link welded onto the
 end:
