@@ -24,7 +24,7 @@ You type the answers; Claude runs the two commands and prints what they say.
 
 ```
 $ wanikani ask
-1. 力
+1. 力 (kanji)
 
 Meaning and reading together on one line — e.g. "fur, ke" — and I'll grade both.
 Say "more" after an item for its mnemonic and parts, or "what can I say?" for the rest.
@@ -32,13 +32,13 @@ Say "more" after an item for its mnemonic and parts, or "what can I say?" for th
 $ wanikani answer "power ryoku"
 ✓
 
-2. 上
+2. 上 (kanji)
 
 $ wanikani answer "above shou"
 ✗ reading is じょう (on'yomi) · https://jisho.org/search/%E4%B8%8A%20%23kanji
 (recorded — next item)
 
-3. 出る
+3. 出る (vocabulary)
 ```
 
 Ten items later the batch submits itself and says what it did:
@@ -47,6 +47,10 @@ Ten items later the batch submits itself and says what it did:
 $ wanikani ask
 10 done, 8 perfect · 上 → Guru · 52 left
 ```
+
+Every question says which kind of subject it is, the way WaniKani's own review
+screen does — 末 the kanji is read まつ and 末 the word is read すえ, and a bare
+glyph doesn't say which one is being asked.
 
 Mid-batch you can ask for anything WaniKani knows about the item in front of
 you — its mnemonic, what it's built from, why the reading isn't the one you
@@ -167,9 +171,9 @@ So `critical-condition` is the wider net, and it's the same list
 ```bash
 $ wanikani critical-condition --limit 3
 [
-  { "subjectId": 440, "prompt": "1. 育", "percentageCorrect": 50, ... },
-  { "subjectId": 600, "prompt": "2. 放", "percentageCorrect": 55, ... },
-  { "subjectId": 2801, "prompt": "3. 苦労", "percentageCorrect": 67, ... }
+  { "subjectId": 440, "prompt": "1. 育 (kanji)", "percentageCorrect": 50, ... },
+  { "subjectId": 600, "prompt": "2. 放 (kanji)", "percentageCorrect": 55, ... },
+  { "subjectId": 2801, "prompt": "3. 苦労 (vocabulary)", "percentageCorrect": 67, ... }
 ]
 ```
 

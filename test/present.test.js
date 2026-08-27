@@ -46,30 +46,57 @@ const RADICAL = {
 
 const RADICAL_WITH_GLYPH = { ...RADICAL, characters: "亅", characterImageUrl: null };
 
-test("promptFor is the number and the characters, nothing else", () => {
-  assert.equal(promptFor(VOCAB, 3), "3. 心強い");
-  assert.equal(promptFor(VOCAB, null), "心強い");
+test("promptFor is the number, the characters and the kind of thing being asked", () => {
+  assert.equal(promptFor(VOCAB, 3), "3. 心強い (vocabulary)");
+  assert.equal(promptFor(VOCAB, null), "心強い (vocabulary)");
+});
+
+test("the same glyph asked as two different subjects reads as two different questions", () => {
+  // 末 came up twice in one sitting — the vocabulary word (すえ) and the kanji
+  // (まつ) — and both prompts read `末` and nothing else. The user gave each
+  // one the other's reading and lost both. The type is the half of the
+  // question that was missing, and it is what WaniKani's own review screen
+  // colours the banner for.
+  const asVocab = { ...VOCAB, characters: "末" };
+  const asKanji = { ...KANJI, characters: "末" };
+  assert.notEqual(promptFor(asVocab, 3), promptFor(asKanji, 9).replace(/^9/, "3"));
+  assert.match(promptFor(asKanji, 9), /kanji/);
+  assert.match(promptFor(asVocab, 3), /vocabulary/);
 });
 
 test("promptFor asks no question of its own, on any item type", () => {
   // The tail lived here for one release. A prompt that arrived as a finished
   // question got answered by the session that was supposed to be asking it —
   // four items in five — so the prompt is a fragment again, and there is
-  // nothing here for a reader to mistake for a question addressed to them.
+  // nothing here for a reader to mistake for a question addressed to them. A
+  // type label is not a question: no verb, no "?", and nothing asked for.
   for (const item of [VOCAB, KANJI, RADICAL_WITH_GLYPH, { ...VOCAB, subjectType: "kana_vocabulary" }]) {
     assert.doesNotMatch(promptFor(item, 1), /meaning|reading|\?/i);
   }
 });
 
 test("promptFor never carries the meaning that is being asked for", () => {
-  const prompt = promptFor(VOCAB, 1);
-  assert.doesNotMatch(prompt, /[A-Za-z(]/, "a Latin letter or bracket here would be the answer");
+  for (const item of [VOCAB, KANJI, RADICAL_WITH_GLYPH]) {
+    const prompt = promptFor(item, 1);
+    for (const { meaning } of item.meanings) {
+      assert.doesNotMatch(prompt, new RegExp(meaning, "i"), `${meaning} in the prompt is the answer`);
+    }
+    for (const { reading } of item.readings ?? []) {
+      assert.ok(!prompt.includes(reading), `${reading} in the prompt is the answer`);
+    }
+    // The only Latin in any of them is the type.
+    assert.doesNotMatch(prompt.replace(/ \([a-z ]+\)$/, ""), /[A-Za-z]/);
+  }
 });
 
-test("promptFor shows a glyph-less radical as a bare image URL, never a description", () => {
+test("promptFor shows a glyph-less radical as an image URL and a type, never a description", () => {
   // Markdown image syntax doesn't render in a terminal, and an un-rendered
   // one invites naming the radical instead — "Rib Cage image" is the answer.
-  assert.equal(promptFor(RADICAL, 2), "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png");
+  // "(radical)" names the kind, which is what the picture already is.
+  assert.equal(
+    promptFor(RADICAL, 2),
+    "2. https://files.wanikani.com/x9pgnj8ehc46t60vzn6ovqow0zvz.png (radical)",
+  );
   assert.doesNotMatch(promptFor(RADICAL, 2), /Hook/i);
   assert.doesNotMatch(promptFor(RADICAL, 2), /!\[/);
 });
@@ -197,6 +224,24 @@ test("batchSummaryLine says so when the queue is empty", () => {
   );
 });
 
+test("batchSummaryLine explains a remainder that went up rather than down", () => {
+  assert.equal(
+    batchSummaryLine({ submitted: 7, perfect: 6, remaining: 31, remainingNewlyDue: true }),
+    "7 done, 6 perfect · 31 left — all of them come due since the last fetch",
+    "a number moving the wrong way with nothing said is how a working tool gets called broken",
+  );
+  assert.equal(
+    batchSummaryLine({ submitted: 7, perfect: 6, remaining: 31 }),
+    "7 done, 6 perfect · 31 left",
+    "the clause only rides a count that actually needs it",
+  );
+  assert.equal(
+    batchSummaryLine({ submitted: 7, perfect: 7, remaining: 0, remainingNewlyDue: true }),
+    "7 done, 7 perfect · none left",
+    "nothing left is nothing to explain",
+  );
+});
+
 test("batchSummaryLine switches to counts once naming becomes a list", () => {
   const highlights = [
     { characters: "一", tierChange: "promoted", endingSrsStage: 5 },
@@ -262,7 +307,11 @@ test("a stacked batch is prompts and the how-to line, and no questions of its ow
     { ...RADICAL_WITH_GLYPH, position: 2 },
   ]);
 
-  assert.match(block, /^1\. 親$/m, "ten copies of the tail down the left is the noise it was left off to avoid");
-  assert.match(block, /^2\. 亅$/m);
+  assert.match(
+    block,
+    /^1\. 親 \(kanji\)$/m,
+    "ten copies of the tail down the left is the noise it was left off to avoid",
+  );
+  assert.match(block, /^2\. 亅 \(radical\)$/m);
   assert.match(block, /meaning and reading together on each/, "the convention line asks for all of them at once");
 });

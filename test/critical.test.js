@@ -108,7 +108,7 @@ test("worst first, whatever order they arrived in", async () => {
     );
     assert.deepEqual(
       payload.map((item) => item.prompt),
-      ["1. 親", "2. 苦労", "3. 亅"],
+      ["1. 親 (kanji)", "2. 苦労 (vocabulary)", "3. 亅 (radical)"],
     );
   });
 });
@@ -204,7 +204,7 @@ test("an item the subjects endpoint can't resolve takes neither the note nor a n
 
     assert.deepEqual(
       payload.map((item) => item.prompt),
-      ["1. 親", "2. 苦労"],
+      ["1. 親 (kanji)", "2. 苦労 (vocabulary)"],
       "numbered by what's actually on screen",
     );
     assert.match(payload[0].critical, /none of these are due/, "the terms still ride the first item shown");

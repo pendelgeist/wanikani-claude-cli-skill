@@ -94,11 +94,12 @@ test("the rapid list is every open prompt and no answers", async () => {
     positionOf: batch.positionOf,
   }));
 
-  assert.match(block, new RegExp(`^${positionOf(11)}\\. 親$`, "m"));
-  assert.match(block, new RegExp(`^${positionOf(12)}\\. 心強い$`, "m"));
+  assert.match(block, new RegExp(`^${positionOf(11)}\\. 親 \\(kanji\\)$`, "m"));
+  assert.match(block, new RegExp(`^${positionOf(12)}\\. 心強い \\(vocabulary\\)$`, "m"));
   // A glyph-less radical is its image URL, same as its one-at-a-time prompt:
-  // naming it ("Hook radical") is naming the answer.
-  assert.match(block, new RegExp(`^${positionOf(13)}\\. https://img/hook\\.png$`, "m"));
+  // naming it ("Hook radical") is naming the answer. The kind of thing it is
+  // isn't its name — that's the label every other prompt carries too.
+  assert.match(block, new RegExp(`^${positionOf(13)}\\. https://img/hook\\.png \\(radical\\)$`, "m"));
   assert.doesNotMatch(block, /Parent|Reassuring|Hook|しん|こころづよい/);
 });
 

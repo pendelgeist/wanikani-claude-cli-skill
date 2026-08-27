@@ -105,7 +105,11 @@ test("ask starts a batch and prints the question, and answer needs no id to grad
     assert.match(opening, /Meaning and reading together on one line/, "the convention, once");
     const glyph = glyphOf(opening);
     assert.ok(glyph, `a question with an item in it, got: ${opening}`);
-    assert.match(opening, new RegExp(`^1\\. ${glyph}$`, "m"), "numbered, and nothing else on the line");
+    assert.match(
+      opening,
+      new RegExp(`^1\\. ${glyph} \\((radical|kanji|vocabulary)\\)$`, "m"),
+      "numbered, the glyph, the kind of subject, and nothing else on the line",
+    );
     // And the question is the *first* thing in it. Claude Code shows the
     // opening lines of a command's output and folds the rest, so a note
     // printed above the question is a note on screen and a question in the
@@ -285,7 +289,11 @@ test("ask re-asks the open item rather than serving a new one", async () => {
     const glyph = glyphOf(opening);
 
     const again = await ask(client);
-    assert.match(again, new RegExp(`^1\\. ${glyph}$`, "m"), "the same question, at the same number");
+    assert.match(
+      again,
+      new RegExp(`^1\\. ${glyph} \\((radical|kanji|vocabulary)\\)$`, "m"),
+      "the same question, at the same number",
+    );
     assert.doesNotMatch(again, /Meaning and reading together/, "the convention is said once a sitting");
   });
 });
@@ -385,7 +393,7 @@ test("a glyph-less radical arrives as its image URL, through ask and through ans
     // Naming it ("Rib Cage image", "5. Radical") is naming the answer, and a
     // sitting that did the second had the user miss a picture they never saw.
     const opening = await captureStdout(() => askCommand(client, { limit: 1 }));
-    assert.match(opening, /^1\. https:\/\/files\.wanikani\.com\/w2i6pg4t17$/m);
+    assert.match(opening, /^1\. https:\/\/files\.wanikani\.com\/w2i6pg4t17 \(radical\)$/m);
     assert.doesNotMatch(opening, /rib.?cage/i);
   });
 });
@@ -452,7 +460,7 @@ test("an item that can't be shown is stepped over, not silently graded against",
     // unshowable item at position one, `ask` used to print a literal "null"
     // and CI passed or failed on the coin toss.
     const opening = await withShuffleThatKeepsOrder(() => captureStdout(() => askCommand(client, { limit: 2 })));
-    assert.match(opening, /^2\. 親$/m, "it steps over position one and asks the item it can show");
+    assert.match(opening, /^2\. 親 \(kanji\)$/m, "it steps over position one and asks the item it can show");
     assert.doesNotMatch(opening, /null/, "a prompt that can't be built is not a prompt to print");
     assert.doesNotMatch(opening, /Ghost/, "and the one with nothing to show is not described");
 
