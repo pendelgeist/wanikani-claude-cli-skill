@@ -46,7 +46,7 @@ test("submitBatchCommand submits what was graded and reports per-item results", 
     ]);
     const client = fakeClient();
 
-    const output = await captureStdout(() => submitBatchCommand(client));
+    const output = await captureStdout(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(client.submitted, [
       { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 1 },
@@ -65,11 +65,43 @@ test("submitBatchCommand submits what was graded and reports per-item results", 
   });
 });
 
+test("by default it prints the line and nothing else", async () => {
+  // The payload is a hundred and fifty lines for a batch of ten, and Claude
+  // Code shows the first three of them. So the end of a batch reached the
+  // screen as `{`, `"summaryLine": …`, `"results": [` — the sentence written
+  // for the user, folded behind a JSON dump the user had to expand by hand.
+  await withTempCacheDir(async () => {
+    await graded([
+      [1, { wrongReading: 1 }],
+      [2, {}],
+    ]);
+
+    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+
+    assert.equal(output.trimEnd().split("\n").length, 1, "one line, so nothing is folded away");
+    assert.match(output, /^2 done, 1 perfect/);
+    assert.doesNotMatch(output, /[{}"]/, "no payload, no quoting, nothing to expand");
+  });
+});
+
+test("the ignored-heredoc warning survives into the printed line", async () => {
+  await withTempCacheDir(async () => {
+    await graded([[1, {}]]);
+
+    const output = await captureStdout(() =>
+      submitBatchCommand(fakeClient(), { ignoredStdin: true }),
+    );
+
+    assert.match(output, /^1 done, 1 perfect/);
+    assert.match(output, /\n! The piped-in list was ignored/, "under the line, marked as a problem");
+  });
+});
+
 test("submitBatchCommand reports the SRS movement worth calling out", async () => {
   const submitWith = async (stages) =>
     withTempCacheDir(async () => {
       await graded([[1, {}]]);
-      return JSON.parse(await captureStdout(() => submitBatchCommand(fakeClient({ stages }))));
+      return JSON.parse(await captureStdout(() => submitBatchCommand(fakeClient({ stages }), { json: true })));
     });
 
   const promotion = await submitWith({ starting: 4, ending: 5 });
@@ -113,7 +145,7 @@ test("submitBatchCommand prints a ready-to-use summary line", async () => {
     });
 
     const output = await captureStdout(() =>
-      submitBatchCommand(fakeClient({ stages: { starting: 8, ending: 9 } })),
+      submitBatchCommand(fakeClient({ stages: { starting: 8, ending: 9 } }), { json: true }),
     );
 
     const { summaryLine } = JSON.parse(output);
@@ -133,11 +165,11 @@ test("the summary line carries a session total once past the first batch", async
       ],
     );
 
-    const first = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const first = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
     assert.doesNotMatch(JSON.parse(first).summaryLine, /this session/);
 
     await recordGrade(2, {});
-    const second = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const second = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
     assert.match(JSON.parse(second).summaryLine, /2 done this sitting, 2 perfect/);
   });
 });
@@ -152,7 +184,7 @@ test("submitBatchCommand reports how many reviews are left", async () => {
       [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
     );
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
 
     assert.equal(JSON.parse(output).remaining, 1);
   });
@@ -171,7 +203,7 @@ test("a count that goes up when the list runs dry says why", async () => {
       [2, {}],
     ]);
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 })));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 }), { json: true }));
     const { remaining, summaryLine } = JSON.parse(output);
 
     assert.equal(remaining, 31);
@@ -189,7 +221,7 @@ test("a count that simply went down says nothing extra about it", async () => {
       [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
     );
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 })));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 }), { json: true }));
     const { remaining, summaryLine } = JSON.parse(output);
 
     assert.equal(remaining, 1, "one left in the fetched list, so no need to ask the API");
@@ -202,7 +234,7 @@ test("submitBatchCommand keeps going after a per-item failure", async () => {
     await graded([[1, {}], [2, {}], [3, {}]]);
     const client = fakeClient({ failOn: [2] });
 
-    const output = await captureStdout(() => submitBatchCommand(client));
+    const output = await captureStdout(() => submitBatchCommand(client, { json: true }));
 
     const { results, batch } = JSON.parse(output);
     assert.equal(results.length, 3);
@@ -223,7 +255,7 @@ test("an item that failed for a passing reason stays queued for another try", as
     ]);
     const client = fakeClient({ failOn: [2], failure: apiError("503 Service Unavailable", 503) });
 
-    const output = await captureStdout(() => submitBatchCommand(client));
+    const output = await captureStdout(() => submitBatchCommand(client, { json: true }));
 
     assert.equal(JSON.parse(output).results[1].retryable, true);
     assert.deepEqual((await loadQueueOrder()).items, [{ assignmentId: 2, subjectId: 11 }]);
@@ -242,7 +274,7 @@ test("an item rejected outright is dropped instead of being re-quizzed forever",
     // from the website, say) — retrying can only fail the same way.
     const client = fakeClient({ failOn: [2], failure: apiError("422 Unprocessable Entity", 422) });
 
-    const output = await captureStdout(() => submitBatchCommand(client));
+    const output = await captureStdout(() => submitBatchCommand(client, { json: true }));
 
     assert.equal(JSON.parse(output).results[1].retryable, false);
     assert.deepEqual((await loadQueueOrder()).items, []);
@@ -254,7 +286,7 @@ test("nothing on record is said plainly, and names what records it", async () =>
   await withTempCacheDir(async () => {
     await saveQueueOrder([{ assignmentId: 1, subjectId: 11 }]);
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
 
     const { summaryLine, batch } = JSON.parse(output);
     assert.match(summaryLine, /Nothing submitted — no grades on record/);
@@ -283,7 +315,7 @@ test("the batch says how much of it never got answered", async () => {
     ]);
     await recordGrade(1, {});
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
 
     const { summaryLine } = JSON.parse(output);
     assert.match(summaryLine, /^1 done, 1 perfect · 2 left unanswered — still due/);
@@ -302,7 +334,7 @@ test("an item still mid-question isn't submitted as a clean pass", async () => {
     await recordGrade(2, { awaiting: "reading" });
     const client = fakeClient();
 
-    const output = await captureStdout(() => submitBatchCommand(client));
+    const output = await captureStdout(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(client.submitted, [
       { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
@@ -317,7 +349,7 @@ test("a batch that only got as far as a re-prompt says that, not \"nothing grade
     await servedBatch([{ assignmentId: 1, subjectId: 11 }]);
     await recordGrade(1, { awaiting: "reading" });
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient()));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
 
     const { summaryLine } = JSON.parse(output);
     assert.match(summaryLine, /still open/);
@@ -335,7 +367,7 @@ test("a miss from earlier in the sitting is submitted with the answer that repla
     const client = fakeClient();
 
     const { summaryLine, batch, results } = JSON.parse(
-      await captureStdout(() => submitBatchCommand(client)),
+      await captureStdout(() => submitBatchCommand(client, { json: true })),
     );
 
     assert.deepEqual(client.submitted, [
@@ -356,7 +388,7 @@ test("a clean attempt leaves nothing behind to carry", async () => {
     await recordGrade(1, { wrongReading: 1 });
 
     const client = fakeClient();
-    const { batch } = JSON.parse(await captureStdout(() => submitBatchCommand(client)));
+    const { batch } = JSON.parse(await captureStdout(() => submitBatchCommand(client, { json: true })));
 
     assert.deepEqual(client.submitted, [
       { assignmentId: 1, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 1 },
@@ -374,7 +406,7 @@ test("a piped-in list is called out in the payload, not only on stderr", async (
     await graded([[1, {}]]);
 
     const output = await captureStdout(() =>
-      submitBatchCommand(fakeClient(), { ignoredStdin: true }),
+      submitBatchCommand(fakeClient(), { ignoredStdin: true, json: true }),
     );
 
     const { ignoredStdin, batch } = JSON.parse(output);

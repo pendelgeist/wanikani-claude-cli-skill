@@ -163,7 +163,8 @@ test("submit-batch --graded returns without waiting on a stdin that never comes"
   await withWarmCache(async (wk) => {
     const { stdout } = await wk("submit-batch", "--graded");
 
-    assert.match(JSON.parse(stdout).summaryLine, /Nothing submitted — no grades on record/);
+    assert.match(stdout, /Nothing submitted — no grades on record/);
+    assert.doesNotMatch(stdout, /^\{/, "the line itself, not a payload to go digging in");
   });
 });
 
@@ -185,7 +186,8 @@ test("a batch of counts fed in by hand is refused out loud, not in silence", asy
 
       assert.equal(status, 0, stderr);
       assert.match(stderr, /Ignoring the piped-in list/);
-      assert.match(JSON.parse(stdout).summaryLine, /Nothing submitted/, "and it still does its own job");
+      assert.match(stdout, /Nothing submitted/, "and it still does its own job");
+      assert.match(stdout, /! The piped-in list was ignored/, "on stdout too, where it gets read");
     } finally {
       closeSync(fd);
     }

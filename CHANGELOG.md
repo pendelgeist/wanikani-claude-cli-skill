@@ -10,6 +10,26 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-15
+
+- **The end of a batch is a line, not a JSON dump.** `submit-batch` printed its
+  whole payload — a hundred and fifty lines for a batch of ten — and Claude
+  Code shows the first few lines of a command's output and folds the rest
+  behind "ctrl+o to expand". So every batch ended on screen as `{`,
+  `"summaryLine": …`, `"results": [`, with the sentence actually written for
+  you somewhere inside the fold. It now prints that sentence and nothing else.
+  The payload hasn't gone anywhere — `submit-batch --json` still gives
+  `results`, `batch` and `remaining` — but nothing in a session needs it, since
+  `ask` submits in-process and the SRS movement worth naming is already in the
+  line.
+- **A batch grading gets printed, not tallied.** `grade-many` prints one
+  verdict per item, so ten items is three on screen and seven in the fold — and
+  the seven are corrections, which is the part worth having. One sitting wrote
+  `4/10, items 1, 2, 3, 7, 9, 10 wrong` underneath instead: the tally was
+  right, and not one of the six answers was on screen. The skill now says that
+  output longer than a few lines gets copied into the reply whole, which is the
+  one place repeating the CLI rather than paraphrasing it is the instruction.
+
 ## 2026-08-27
 
 - **Every question says which kind of subject it is.** 末 came up twice in one

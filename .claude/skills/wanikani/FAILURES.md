@@ -54,6 +54,28 @@ someone who had never seen the prompt, and went down as a miss on both halves.
 same hazard had already been half-fixed once, by cutting the driver note down
 to once a sitting — the half left was the order within that one call.)
 
+**The batch results printed into the fold.** Same hazard as the question
+above, at the other end of a batch. `submit-batch` printed its whole payload
+— a hundred and fifty lines for a batch of ten — so what reached the screen
+was `{`, `"summaryLine": …`, `"results": [`, and the sentence written for the
+user was something to go digging for behind "ctrl+o to expand". The user's
+own words: "I want to be able to always see the results from batch runs, the
+ctrl+o doesn't always catch it right, and I shouldn't have to type that
+anyways."
+→ `submit-batch` prints the line and nothing else. `--json` still gives the
+payload, for debugging this CLI.
+
+**The fold summarised instead of printed.** `grade-many` prints one verdict
+per item, which for a batch of ten is three verdicts on screen and seven
+behind a `+7 lines`. A sitting wrote `4/10, items 1, 2, 3, 7, 9, 10 wrong`
+underneath — six misses named and not one of their answers, while the
+corrections for 転がる, 咅, 消 and 息 sat unread in the fold. The tally was
+right; it was also the entire review, minus the review.
+→ Rule 3: output longer than a few lines gets copied into the reply, whole.
+This one is not fixable in the CLI — the corrections are as short as they can
+be and there are still ten of them — so it is the rare case where repeating
+the tool's output is the instruction rather than the failure.
+
 **Punctuation counted as sound.** A meaning has had the full stops trimmed off
 either end of it since the start; a reading never did, and it goes through a
 romaji-to-kana converter that reads `.` as 。. So a reply typed `.sei` reached
