@@ -111,7 +111,7 @@ test("a batch goes queue → grade → submit-batch --graded with nothing carrie
     const radical = await gradeJson(client, { subjectId: 5, answer: "hook" });
     assert.equal(radical.say, null);
 
-    const submitted = await json(() => submitBatchCommand(client));
+    const submitted = await json(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(
       client.submitted.map((review) => [
@@ -142,7 +142,7 @@ test("an overruled miss is submitted as forgiven, not as recorded", async () => 
     assert.equal(typo.meaning, "incorrect");
     await gradeJson(client, { subjectId: 3, forgive: "meaning" });
 
-    await json(() => submitBatchCommand(client));
+    await json(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(client.submitted[0], {
       assignmentId: 100,
@@ -159,7 +159,7 @@ test("submitting nothing recorded says so instead of reporting an empty batch", 
 
     // The sitting aged out, or nothing was graded: either way "0 done, 0
     // perfect" would read like a batch that went through.
-    const out = await json(() => submitBatchCommand(client));
+    const out = await json(() => submitBatchCommand(client, { json: true }));
 
     assert.match(out.summaryLine, /Nothing submitted — no grades on record/);
     assert.match(out.summaryLine, /stay due/);
@@ -178,7 +178,7 @@ test("an item that failed to submit keeps its counts for the retry", async () =>
       throw err;
     };
 
-    const out = await json(() => submitBatchCommand(client));
+    const out = await json(() => submitBatchCommand(client, { json: true }));
 
     assert.equal(out.results[0].retryable, true);
     assert.deepEqual(
@@ -204,7 +204,7 @@ test("answering the two halves in two turns is one item, not two misses", async 
     assert.deepEqual([answered.meaning, answered.reading], [null, "correct"]);
     assert.equal(answered.say, null);
 
-    await json(() => submitBatchCommand(client));
+    await json(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(client.submitted, [
       { assignmentId: 100, incorrectMeaningAnswers: 0, incorrectReadingAnswers: 0 },
@@ -270,7 +270,7 @@ test("asking an item again discards what an earlier attempt recorded for it", as
     await json(() => queueCommand(client, { limit: 3, restart: true }));
 
     assert.deepEqual(await loadGrades(), {}, "the re-ask supersedes the abandoned attempt");
-    const out = await json(() => submitBatchCommand(client));
+    const out = await json(() => submitBatchCommand(client, { json: true }));
     assert.match(out.summaryLine, /Nothing submitted/);
     assert.deepEqual(client.submitted, [], "nothing goes in that this sitting didn't grade");
   });
@@ -306,7 +306,7 @@ test("a re-ask changes what they're asked, not how well they did", async () => {
 
     await json(() => queueCommand(client, { limit: 3, restart: true }));
     const second = await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
-    const out = await json(() => submitBatchCommand(client));
+    const out = await json(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual([second.meaning, second.reading], ["correct", "correct"], "graded on its merits");
     assert.deepEqual(
@@ -325,7 +325,7 @@ test("a carried miss is spent by the submission that used it", async () => {
     await gradeJson(client, { subjectId: 3, answer: "wrong, mi" });
     await json(() => queueCommand(client, { limit: 3, restart: true }));
     await gradeJson(client, { subjectId: 3, answer: "parent, shin" });
-    await json(() => submitBatchCommand(client));
+    await json(() => submitBatchCommand(client, { json: true }));
 
     assert.deepEqual(await loadPriorGrades(), {}, "it doesn't haunt the next batch too");
   });
@@ -345,7 +345,7 @@ test("an item answered once doesn't get graded a second time", async () => {
     assert.ok(second.alreadyAnswered, "no verdict on an answer to a settled item");
     assert.match(second.say, /--forgive meaning/);
     assert.deepEqual(await loadGrades(), { 100: { wrongMeaning: 1, wrongReading: 1 } });
-    await json(() => submitBatchCommand(client));
+    await json(() => submitBatchCommand(client, { json: true }));
     assert.deepEqual(client.submitted, [
       { assignmentId: 100, incorrectMeaningAnswers: 1, incorrectReadingAnswers: 1 },
     ]);

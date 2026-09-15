@@ -277,7 +277,7 @@ terminal, for drills, and for the questions that come up mid-batch.
 | `tips` | Everything you can say during a session, all at once (no token needed) |
 | `update` | Pull this repo from wherever you ran it, and say whether the change is live already or wants a Claude Code restart (no token needed) |
 | `submit <assignmentId> [--wrong-meaning N] [--wrong-reading N]` | Submit one graded review |
-| `submit-batch` | Send everything graded this batch, in one call. Works on a part-answered batch too: what's answered goes, the rest stays due — which is what to run when you stop early |
+| `submit-batch [--json]` | Send everything graded this batch, in one call, and print the end-of-batch line. Works on a part-answered batch too: what's answered goes, the rest stays due — which is what to run when you stop early. `--json` gives the per-item payload, for debugging this CLI |
 
 ## Scope
 

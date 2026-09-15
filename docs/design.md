@@ -65,16 +65,20 @@ end:
   It takes the `subjectId` from a queue item or the characters themselves
   (`explain 親` explains both the kanji and the word, since it can't know
   which you meant). `--json` gives the fields instead of the block.
-- `submit-batch` gives a `summaryLine` — `10 done, 8 perfect · 心強い → Guru ·
+- `submit-batch` prints one line — `10 done, 8 perfect · 心強い → Guru ·
   127 left` — naming what crossed an SRS tier, carrying a running session
   total, and dropping segments that would say nothing. If an item failed to
   submit, the line gains a second line saying what becomes of it: a retryable
   failure stays in the queue for a later batch, one WaniKani rejected
-  outright (usually already reviewed elsewhere) doesn't come back.
+  outright (usually already reviewed elsewhere) doesn't come back. The line is
+  all it prints, because Claude Code folds a command's output past the first
+  few lines: the payload this used to dump is a hundred and fifty lines for a
+  batch of ten, and the sentence written for the user arrived on screen as
+  `{`, `"summaryLine": …`, `"results": [`. `--json` still gives the payload.
 
 The raw fields are still there for grading (`meanings`, `readings`,
-`auxiliaryMeanings`) and for anything that wants to say more than the line
-does (`results`, `batch`, `remaining`). Composing these in code rather than
+`auxiliaryMeanings`) and, behind `--json`, for anything that wants to say more
+than the line does (`results`, `batch`, `remaining`). Composing these in code rather than
 describing them in the skill is deliberate: a prompt that grew a gloss and a
 correction that came back in romaji were both formatting bugs, and formatting
 is what code is reliable at.

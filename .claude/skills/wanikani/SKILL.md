@@ -108,15 +108,30 @@ one is here because it has gone wrong in a real sitting.
    job: an unanswered prompt stays unanswered however long it sits there, and
    the turn doesn't come back round until they type.
 
-3. **Add nothing to what the CLI printed.** The verdict, the correction, the
-   next prompt, the summary — all finished text, on the screen already. Don't
-   restate it, don't shorten it, don't gloss the kana. Every compression so
+3. **Add nothing to what the CLI printed, and take nothing out of it.** The
+   verdict, the correction, the next prompt, the summary — all finished text.
+   Don't rewrite it, don't shorten it, don't gloss the kana. Every compression so
    far has lost the same two things: `✗ (rib cage)`, `✗ (meaning: release,
    reading: hou)` and `✗ meaning/reading wrong` dropped the lookup link and
    put the reading back into romaji, and the last of those named neither half.
    The kana is the answer; the romaji is noise. That holds for anything you
    write in your own words too — the only romaji in a session is what the
    *user* types.
+
+   **Past the first few lines, "already on the screen" stops being true.**
+   Claude Code shows the head of a command's output and folds the rest behind
+   "ctrl+o to expand", so a ten-item `grade-many` reaches the screen as three
+   verdicts and a `+7 lines`. The seven in the fold are the corrections — the
+   part of a review worth having. Nobody should have to expand a fold to find
+   out what they got wrong, and nobody should have to *notice* there is one.
+   So: **anything longer than about three lines, copy into your reply, whole
+   and in order** — every line `grade-many` printed, characters, ✓/✗,
+   corrections and links intact. Copying is not the restating this rule
+   forbids; the ban is on writing your own version, and copying is how
+   everything stays visible without one. One sitting wrote `4/10, items 1, 2,
+   3, 7, 9, 10 wrong` under a folded batch instead: six misses named, not one
+   of the six answers, and 転がる, 咅, 消 and 息 went past unseen. A one-item
+   `answer` is two or three lines and needs none of this.
 
    **Nothing about an item that hasn't been asked yet, either.** One sitting
    wrote `3-17: day after tomorrow, battle, good, help, need, etc.` under a
@@ -224,8 +239,10 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   the sitting. Answers only go nowhere if nobody sends them.
 - **A whole batch in one message** ("rapid fire") → `ask` for the batch,
   `prompts` for what's still open as one block, `grade-many "<a> | <b> | ..."`
-  for their reply, then `ask` to submit and serve the next. Same rules; the
-  CLI still prints everything. Offer it once, between batches, if they're
+  for their reply, then `ask` to submit and serve the next. Same rules — and
+  this is the path where the fold in rule 3 bites, both ways: the list of
+  questions and the list of verdicts are ten lines each, and both get copied
+  out of the tool output into the reply, in full. Offer it once, between batches, if they're
   moving fast — and **if they ask for it, run those commands.** One sitting
   opened on "batch rapid fire", made up a convention of its own to print at
   them (`answer "a1 | a2 | a3"`), never called `prompts` or `grade-many`, and

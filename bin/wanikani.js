@@ -82,8 +82,9 @@ Commands:
                         parts than there are open items rather than misaligning them
   submit <id> [--wrong-meaning N] [--wrong-reading N]
                         Submit a graded review for one assignment (used by Claude-driven sessions)
-  submit-batch          Submit everything the grade command recorded this batch,
-                        in one call
+  submit-batch [--json] Submit everything the grade command recorded this batch,
+                        in one call. Prints the end-of-batch line; --json gives
+                        the per-item payload, for debugging this CLI
 
 Auth:
   Set WANIKANI_API_TOKEN in your environment (Settings → API Tokens on wanikani.com).
@@ -324,7 +325,10 @@ async function main() {
       // --graded is the only mode there is now; accepted so the habit of
       // typing it isn't an error, and so is a piped-in list, which is ignored
       // rather than obeyed — the record is the source of the counts.
-      parseArgs({ args: rest, options: { graded: { type: "boolean" } } });
+      const { values } = parseArgs({
+        args: rest,
+        options: { graded: { type: "boolean" }, json: { type: "boolean" } },
+      });
       const pipedIn = wasGivenStdin();
       if (pipedIn) {
         // Silently ignoring it read as accepting it: one session piped a
@@ -336,7 +340,7 @@ async function main() {
             "recorded, so an answer missing from the record needs grading, not adding by hand.",
         );
       }
-      await submitBatchCommand(client, { ignoredStdin: pipedIn });
+      await submitBatchCommand(client, { ignoredStdin: pipedIn, json: values.json });
       break;
     }
     default:
