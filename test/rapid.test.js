@@ -271,3 +271,44 @@ test("the leftovers don't spend the how-to that belongs to a full list", async (
   assert.doesNotMatch(leftovers, /separated by "\|"/);
   assert.match(nextList, /separated by "\|"/);
 });
+
+test("a skipped item is refused rather than shifting the whole batch onto the wrong questions", async () => {
+  // The user answers items 2 and 3 and leaves item 1 out without blanking it.
+  // Graded by position, answer 1 goes against item 1 and answer 2 against
+  // item 2 — two misses on two items they got right, and the third left open.
+  const { out, grades, order } = await inABatch(async ({ order }) => {
+    const answers = [RIGHT[order[1]], RIGHT[order[2]]].join(" | ");
+    return { out: await captureStdout(() => gradeManyCommand(client, { answers })), grades: await loadGrades(), order };
+  });
+
+  assert.match(out, /^! 2 answers for 3 open items, and they don't line up with the questions/m);
+  assert.match(out, /Item 1 looks passed over/, `names the item that went missing: ${out}`);
+  assert.deepEqual(grades, {}, "nothing recorded — that is the whole point of checking first");
+
+  // And the batch comes back with it, so the re-send doesn't need scrolling
+  // for. Every open item, numbered as it was asked.
+  for (const [position, subjectId] of order.entries()) {
+    const characters = { 11: "親", 12: "心強い", 13: "https://img/hook.png" }[subjectId];
+    assert.match(out, new RegExp(`^${position + 1}\\. ${characters.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} `, "m"));
+  }
+});
+
+test("blanking the skipped slot grades the rest against the right questions", async () => {
+  // The remedy the refusal names, and it has to work: an empty slot leaves
+  // that item open and puts every later answer back under its own question.
+  const { out, grades, positionOf, order } = await inABatch(async ({ order, positionOf }) => {
+    const answers = ["", RIGHT[order[1]], RIGHT[order[2]]].join(" | ");
+    return {
+      out: await captureStdout(() => gradeManyCommand(client, { answers })),
+      grades: await loadGrades(),
+      positionOf,
+      order,
+    };
+  });
+
+  assert.doesNotMatch(out, /don't line up/);
+  assert.equal(Object.keys(grades).length, 2, "the two that were answered, and not the blank");
+  assert.equal(Object.values(grades).filter((g) => g.wrongMeaning === 0 && g.wrongReading === 0).length, 2);
+  // And the skipped one is still being asked.
+  assert.match(out, new RegExp(`^Still open: ${positionOf(order[0])} —`, "m"));
+});
