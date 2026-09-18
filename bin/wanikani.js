@@ -41,9 +41,12 @@ Commands:
   review [--limit N]    Interactive review session (grades meaning/reading, submits results)
 
   The two that drive a Claude-run session — no ids, nothing to track:
-  ask [--limit N]       Print the question that's waiting: fetches a batch when there
+  ask [--limit N] [--all]
+                        Print the question that's waiting: fetches a batch when there
                         isn't one, re-asks the open item when there is, submits a
-                        finished batch before serving the next
+                        finished batch before serving the next. --all prints every
+                        open question instead of the first — the rapid-fire list,
+                        so a batch answered in one message takes one call, not two
   answer "<their whole reply>" [--forgive meaning|reading]
                         Grade that reply against whatever is open, then print the
                         verdict and the next question. --forgive takes the last miss
@@ -61,7 +64,8 @@ Commands:
                         same terms: nothing is due and nothing submits. --under moves the
                         line
   prompts               Every question in the current batch that's still unanswered,
-                        as one block to print — the rapid-fire list
+                        as one block to print. \`ask --all\` and \`grade-many\` print the
+                        same list themselves; this is it on its own
   explain [<id|characters>] [--json]
                         Everything WaniKani teaches about one item — mnemonics, hints,
                         what it's built from. The item-info screen, on request.
@@ -187,8 +191,14 @@ async function main() {
       break;
     }
     case "ask": {
-      const { values } = parseArgs({ args: rest, options: { limit: { type: "string" } } });
-      await askCommand(client, { limit: parseCount(values.limit, { flag: "--limit", min: 1 }) });
+      const { values } = parseArgs({
+        args: rest,
+        options: { limit: { type: "string" }, all: { type: "boolean" } },
+      });
+      await askCommand(client, {
+        limit: parseCount(values.limit, { flag: "--limit", min: 1 }),
+        all: values.all,
+      });
       break;
     }
     case "answer": {

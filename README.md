@@ -264,14 +264,14 @@ terminal, for drills, and for the questions that come up mid-batch.
 | --- | --- |
 | `summary [--json]` | Level, reviews available, next review time. Reports the lesson count too, and says where lessons get done |
 | `review [--limit N]` | Full interactive review session |
-| `ask [--limit N]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next. Batches are ten unless you say otherwise |
+| `ask [--limit N] [--all]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next. Batches are ten unless you say otherwise. `--all` prints every open question instead of the first — the rapid-fire list, so a batch answered in one message takes one call |
 | `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |
 | `critical-condition [--limit N] [--under P]`<br>(or `critical`) | The critical-condition list wanikani.com shows: every item WaniKani has you under 75% correct on, worst first. Same shape and terms as `drill`; `--under` moves the line |
-| `prompts` | The still-unanswered questions in the current batch, as one block to print — the rapid-fire list |
+| `prompts` | The still-unanswered questions in the current batch, as one block to print. `ask --all` and `grade-many` print the same list themselves; this is it on its own |
 | `grade <subjectId> "<answer>" [--meaning M] [--reading R] [--forgive meaning\|reading]` | The same grading with the item named explicitly — what `drill` and rapid-fire use, and what `answer` calls underneath |
-| `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order `prompts` listed it. Blanks stay open; more answers than open items is refused rather than misaligned |
+| `grade-many "<a> \| <b> \| ..."` | Grade a batch answered in one message, in the order it was listed. Blanks stay open; more answers than open items is refused rather than misaligned. Whatever the round leaves open is re-asked underneath the verdicts |
 | `explain [<id\|characters>] [--json]` | Everything WaniKani teaches about one item — mnemonics, hints, what it's built from. Bare, it's the item that's open |
 | `status [--json]` | What the current sitting's record holds: how much of the batch is answered, how much is waiting to be sent, and the next call to make (no token needed) |
 | `tips` | Everything you can say during a session, all at once (no token needed) |

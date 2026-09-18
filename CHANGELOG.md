@@ -10,6 +10,34 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-18
+
+- **A rapid-fire batch is two calls now, not three.** `ask --all` prints every
+  open question as one block — the list `prompts` gives — so answering a whole
+  batch in one message is `ask --all`, `grade-many`, `ask --all`, the same
+  two-command loop as going one at a time. Plain `ask` still prints just the
+  question that's waiting, which is why the old way needed `prompts` after it;
+  what that actually bought, on every batch of a forty-item sitting, was
+  question one printed twice and a round trip to do it.
+- **A round that leaves items open re-asks them.** `grade-many` used to end
+  "Still open: 2 — still their turn (`prompts` re-asks what's left)", which is
+  a second call to find out what item 2 was. It prints the questions itself
+  now, under the verdicts. The how-to for answering a list stays off that
+  short list: it's said once a sitting and it belongs under a full one.
+- **The end of a batch says whose turn it is.** Under the summary, while
+  reviews remain, `ask` now prints "Next batch whenever you're ready." That
+  beat used to be filled in prose, differently every time: one sitting closed
+  eight consecutive batches with eight questions of its own, four of them
+  offering to stop to someone who had said "continue" every single time, and
+  signed off with a "(61% accuracy)" that nobody had printed and that isn't
+  what `perfect` counts. The line is finished text like the summary above it —
+  nothing goes after it.
+- **`explain` between batches no longer starts one.** Asked to explain three
+  items at the beat after a summary, a sitting printed the blocks and then
+  served ten fresh reviews nobody had asked for. `ask` after `explain` puts an
+  *open* question back; between batches there isn't one, and the skill now
+  says so.
+
 ## 2026-09-15
 
 - **The end of a batch is a line, not a JSON dump.** `submit-batch` printed its

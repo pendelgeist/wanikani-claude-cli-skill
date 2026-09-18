@@ -234,3 +234,40 @@ test("splitting a reply keeps the halves of an answer together", () => {
   assert.deepEqual(splitReplies("a | b |"), ["a", "b"]);
   assert.deepEqual(splitReplies("a\nb\n\nc"), ["a", "b", "c"]);
 });
+
+test("a round that leaves items open re-asks them rather than naming a command", async () => {
+  // The common shape: an other-reading nudge doesn't settle the item, so the
+  // batch comes back one short. The tail used to say "Still open: 2" and name
+  // `prompts` as the way to find out what item 2 was — a round trip to learn
+  // something this call already knew, paid three times in one real sitting.
+  const { out, positionOf } = await inABatch(async ({ order, positionOf }) => {
+    const answers = order.map((subjectId) => (subjectId === 11 ? "parent, oya" : RIGHT[subjectId])).join(" | ");
+    return { out: await captureStdout(() => gradeManyCommand(client, { answers })), positionOf };
+  });
+
+  const position = positionOf(11);
+  assert.match(out, new RegExp(`^Still open: ${position} — still their turn:$`, "m"));
+  assert.match(out, new RegExp(`^${position}\\. 親 \\(kanji\\)$`, "m"), "the question itself, under the header");
+  assert.ok(
+    out.lastIndexOf(`${position}. 親 (kanji)`) > out.indexOf("Still open:"),
+    `the re-ask goes under the header, got: ${out}`,
+  );
+  // And no answers on the way past — the re-ask is the same fragment `ask`
+  // prints, not the correction the item hasn't earned.
+  assert.doesNotMatch(out, /しん|Parent/);
+});
+
+test("the leftovers don't spend the how-to that belongs to a full list", async () => {
+  // It's said once a sitting. Burning it under the two items left over from a
+  // round is how the next opening list ends up without it.
+  const { leftovers, nextList } = await inABatch(async ({ order }) => {
+    const answers = order.map((subjectId) => (subjectId === 11 ? "parent, oya" : RIGHT[subjectId])).join(" | ");
+    return {
+      leftovers: await captureStdout(() => gradeManyCommand(client, { answers })),
+      nextList: await captureStdout(() => promptsCommand(client)),
+    };
+  });
+
+  assert.doesNotMatch(leftovers, /separated by "\|"/);
+  assert.match(nextList, /separated by "\|"/);
+});

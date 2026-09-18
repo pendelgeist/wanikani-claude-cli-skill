@@ -637,3 +637,80 @@ test("explain with nothing after it means the item that's open", async () => {
     assert.ok((await ask(client)).includes(glyph), "the same question is still waiting");
   });
 });
+
+test("ask --all prints the whole open batch, so a rapid round takes one call", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+
+    // The rapid-fire path used to be `ask` and then `prompts` — the first
+    // printing question one, the second printing all of them. One real
+    // sitting paid that round trip on every one of eight batches, and read
+    // item one twice for it.
+    const block = await captureStdout(() => askCommand(client, { limit: 3, all: true }));
+
+    for (const [position, glyph] of [...Object.keys(RIGHT).entries()]) {
+      assert.ok(block.includes(glyph), `every item in the batch, got: ${block}`);
+      assert.match(block, new RegExp(`^${position + 1}\\. `, "m"), "numbered the way grade-many counts");
+    }
+    assert.match(block, /separated by "\|"/, "with the how-to for answering them as a list");
+    // And not the one-at-a-time convention on top of it: two ways to answer,
+    // said in the same breath, over a list of ten.
+    assert.doesNotMatch(block, /Meaning and reading together on one line/);
+  });
+});
+
+test("ask --all re-serves the batch rather than fetching past it", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+
+    const first = await captureStdout(() => askCommand(client, { limit: 3, all: true }));
+    const again = await captureStdout(() => askCommand(client, { limit: 3, all: true }));
+
+    assert.equal(again.replace(/\n.*separated by "\|".*/, ""), first.replace(/\n.*separated by "\|".*/, ""));
+    assert.equal(client.submitted.length, 0, "and nothing went to the API on a re-ask");
+  });
+});
+
+test("the end of a batch hands the turn back in the same words every time", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    const askOne = () => captureStdout(() => askCommand(client, { limit: 1 }));
+
+    // Two items left after this one, so there is a next batch to hand over to.
+    let output = await askOne();
+    output = await answer(client, RIGHT[glyphOf(output)]);
+    const summary = await askOne();
+
+    // Eight consecutive batches of one sitting closed on eight different
+    // sentences written by the driver, four of them asking whether to stop.
+    assert.match(summary, /Next batch whenever you're ready\./);
+    assert.match(summary, /1 done, 1 perfect/);
+    assert.ok(
+      summary.indexOf("1 done") < summary.indexOf("Next batch"),
+      `the summary first, then the turn, got: ${summary}`,
+    );
+  });
+});
+
+test("nothing left means nothing to carry on to", async () => {
+  await withTempCacheDir(async () => {
+    // A queue that actually drains: the shared fake hands back the same three
+    // assignments however many go in, which is fine for everything else here
+    // and is exactly the thing this test is about.
+    const client = fakeClient();
+    const everything = client.getAssignments;
+    client.getAssignments = async (...args) => {
+      const sent = new Set(client.submitted.map((review) => review.assignmentId));
+      return (await everything(...args)).filter((assignment) => !sent.has(assignment.id));
+    };
+
+    let output = await ask(client);
+    for (let position = 1; position <= 3; position += 1) {
+      output = await answer(client, RIGHT[glyphOf(output)]);
+    }
+    const summary = await ask(client);
+
+    assert.match(summary, /3 done, 3 perfect/);
+    assert.doesNotMatch(summary, /Next batch/, "an empty queue is not an offer of another batch");
+  });
+});
