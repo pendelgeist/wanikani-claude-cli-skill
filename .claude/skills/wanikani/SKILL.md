@@ -69,7 +69,9 @@ sitting survives a new conversation walking into the middle of it.
 
 So the whole loop is: `ask`, print it, wait. They reply, `answer` with what
 they typed, print it, wait. When the output says the batch is done, `ask`
-again — that submits it and prints the summary. Then ask whether to continue.
+again — that submits it, prints the summary, and hands the turn back with
+"Next batch whenever you're ready." Print that and wait; it is the asking
+whether to continue, so don't write a second one under it (rule 3).
 
 Every prompt names the kind of subject it is — `9. 末 (kanji)`, `3. 末
 (vocabulary)` — because that glyph is two questions with two different
@@ -147,6 +149,19 @@ one is here because it has gone wrong in a real sitting.
    `summary` and `status` will say; arithmetic in prose is how every miscount
    in this file started.
 
+   **And the batch ends where the CLI stops printing.** Under the summary it
+   adds "Next batch whenever you're ready." while reviews remain, and that is
+   the last word — the turn is handed back, so ending the message *is* the
+   question. A sitting that predates the line wrote its own at all eight
+   batches, in eight spellings — "Continue?", "Stop?", "Stop wanikani?",
+   "Final batch?", "Done for today?" — four of them offering to quit to
+   someone who had typed "continue" or "next" every single time. The same
+   sitting signed off with "147 items, 90 perfect (61% accuracy). Nice work!":
+   a division nobody printed, under a line that had already said both numbers,
+   and `perfect` is not accuracy — it counts items that went in clean on both
+   halves, which is not what WaniKani means by the word. No percentage, no
+   tally, no sign-off, no question of your own.
+
 4. **A glyph-less radical's prompt is an image URL. Print the URL**, whole and
    clickable, with the `(radical)` the CLI puts after it. `7. Rib Cage image`
    names the radical, which is the answer; `5. Radical` doesn't name it but
@@ -198,7 +213,12 @@ several plain typos, the same way the lookup link went unprinted for weeks.
 ### What they can ask for mid-batch
 
 - **"more", "why", "mnemonic", a bare "?"** → `wanikani explain`, then `ask` to
-  put the open question back. **Run it — never answer from memory.** "No
+  put the open question back — but only if a question *was* open. Between
+  batches, under a summary and before they've said to carry on, there is
+  nothing to put back and `ask` fetches ten new items instead: one sitting was
+  asked to `explain 便 免 取れる`, printed the three blocks, and served a batch
+  nobody had asked for underneath them. A question about an item is a detour,
+  never a yes. **Run it — never answer from memory.** "No
   mnemonic on file" and a recollected paragraph in place of `explain 親` are
   both from real sittings, and both were wrong. Never run it unasked.
 
@@ -237,15 +257,21 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   stop. **A part-answered batch is not a batch that can't be submitted** — one
   sitting was told "can't submit partial" and left ten answers to expire with
   the sitting. Answers only go nowhere if nobody sends them.
-- **A whole batch in one message** ("rapid fire") → `ask` for the batch,
-  `prompts` for what's still open as one block, `grade-many "<a> | <b> | ..."`
-  for their reply, then `ask` to submit and serve the next. Same rules — and
+- **A whole batch in one message** ("rapid fire") → `ask --all` for the whole
+  open list, `grade-many "<a> | <b> | ..."` for their reply, then `ask --all`
+  again to submit and, once they've said to carry on, serve the next list.
+  Two commands in a loop, the same as the one-at-a-time flow. `--all` is the
+  only difference: plain `ask` prints the *first* open question, so the way
+  this used to be written was `ask` and then `prompts`, which printed question
+  one twice and cost a call on every batch — one sitting paid it eight times.
+  Nothing needs `prompts` any more either: `grade-many` re-asks whatever its
+  round left open, under the verdicts. Same rules — and
   this is the path where the fold in rule 3 bites, both ways: the list of
   questions and the list of verdicts are ten lines each, and both get copied
   out of the tool output into the reply, in full. Offer it once, between batches, if they're
   moving fast — and **if they ask for it, run those commands.** One sitting
   opened on "batch rapid fire", made up a convention of its own to print at
-  them (`answer "a1 | a2 | a3"`), never called `prompts` or `grade-many`, and
+  them (`answer "a1 | a2 | a3"`), never called the list or `grade-many`, and
   took all forty-seven items one at a time.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.

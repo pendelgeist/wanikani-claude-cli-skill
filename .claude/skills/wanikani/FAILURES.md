@@ -152,6 +152,46 @@ sitting's list runs dry and the count comes live off the API instead.
 left of the fetched list, and the summary line says "all of them come due
 since the last fetch" when it's the former.
 
+**The sign-off nobody printed.** Eight consecutive batches of one sitting
+ended with the summary line and then a question the driver wrote itself, in
+eight spellings: "Continue?", "Next?", "Done?", "Stop?", "Stop wanikani?",
+"Final batch?", "Done for today?", "Done for today?" — four of them offering
+to quit to a user who typed "continue", "next" or "yes" every single time.
+The same sitting closed on "Session done: 147 items, 90 perfect (61%
+accuracy). 62 left. 5 moved up, 1 burned. Nice work!" The percentage is
+arithmetic on a line that had already printed both numbers, and it isn't even
+the right word: `perfect` counts items that went in clean on both halves,
+which is not what WaniKani calls accuracy. It is the same slot that produced
+"47 total (77% perfect)" (below, under things said that weren't true): the
+beat where a batch ends and the turn goes back is where prose gets invented,
+every time, because a summary reads as an ending that wants a sentence after
+it.
+→ `ask` prints "Next batch whenever you're ready." under the summary while
+reviews remain, so the sentence exists and is the same one each time. Nothing
+goes after it.
+
+**Two calls to ask one list.** The rapid-fire path was written as `ask` for
+the batch and then `prompts` for what's open, because `ask` prints only the
+first question. So every batch cost a round trip whose entire output was
+question one printed a second time — eight of them in one sitting. The same
+shape at the other end: `grade-many` ended on "Still open: 2 — still their
+turn (`prompts` re-asks what's left)", and three times in that sitting the
+driver ran `prompts` to learn what item 2 was, which the call that printed
+the line already knew.
+→ `ask --all` prints the whole open list, and `grade-many` prints its own
+leftovers underneath the verdicts. A rapid batch is two calls, the same as the
+one-at-a-time loop. (The once-a-sitting how-to stays off the leftover list:
+spending it on the two items left over from a round is how the next opening
+list ends up without it.)
+
+**`explain` read as a yes.** Asked to `explain 便 免 取れる` at the beat after
+a summary — before saying whether to carry on — the driver printed the three
+blocks and then called `ask`, which had no open question to put back and so
+fetched ten new items. The skill said "then `ask` to put the open question
+back" — true mid-batch, and between batches the same call is ten new items.
+→ SKILL.md says it: a question about an item is a detour, never a yes, and
+`ask` after `explain` only when something was open.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
