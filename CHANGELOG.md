@@ -10,6 +10,29 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-18 (later)
+
+- **A batch that skipped an item no longer grades the rest against the wrong
+  questions.** Answer a ten-item list with nine answers because you left one
+  out in the middle, and every answer after the gap used to be graded against
+  the question before its own. It happened: six misses on five items that were
+  answered correctly one place along, three SRS demotions, and nothing on
+  screen to show for it — each correction printed was a correct correction for
+  the item above it. `grade-many` now scores the reply against every in-order
+  pairing it admits *before* recording anything, and when one fits by a whole
+  item or more better than position-for-position, it records nothing, says
+  which item looks skipped, and prints the batch again to be answered — rather
+  than re-pairing the answers itself, which would be guessing at what you meant
+  on a record that goes to WaniKani. A reply that simply stops short still
+  grades as typed; that is what "answer as few as you like" has always meant,
+  and a full-length list is always graded as typed, which is the way past a
+  false alarm.
+- **The how-to says how to skip one.** `All in one message … answer as few as
+  you like; the rest keep` now ends `, and an empty slot ("a | | c") skips one
+  in the middle`. Interior blanks have always left an item open and
+  unrecorded; the line just never said so, and the end of the list is not where
+  people need to skip.
+
 ## 2026-09-18
 
 - **A rapid-fire batch is two calls now, not three.** `ask --all` prints every

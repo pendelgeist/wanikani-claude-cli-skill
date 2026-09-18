@@ -265,7 +265,17 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   this used to be written was `ask` and then `prompts`, which printed question
   one twice and cost a call on every batch — one sitting paid it eight times.
   Nothing needs `prompts` any more either: `grade-many` re-asks whatever its
-  round left open, under the verdicts. Same rules — and
+  round left open, under the verdicts.
+
+  **If `grade-many` says the answers don't line up, print the whole refusal
+  and wait.** A list that skips an item in the middle without leaving a gap
+  grades every answer after it against the question before its own; that went
+  unnoticed through a whole batch once and cost three SRS levels on items the
+  user had right. It records nothing, names the item that looks skipped, and
+  re-prints the batch underneath — so what goes on screen is that block, whole,
+  and what comes next is their list again. Don't re-align their answers
+  yourself and don't send a fixed-up version (rule 1); the answers are theirs,
+  and a full-length list is graded exactly as typed. Same rules — and
   this is the path where the fold in rule 3 bites, both ways: the list of
   questions and the list of verdicts are ten lines each, and both get copied
   out of the tool output into the reply, in full. Offer it once, between batches, if they're

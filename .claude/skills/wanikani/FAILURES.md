@@ -192,6 +192,63 @@ back" — true mid-batch, and between batches the same call is ten new items.
 → SKILL.md says it: a question about an item is a detour, never a yes, and
 `ask` after `explain` only when something was open.
 
+**A batch graded one question out of step.** Ten items, nine answers. The
+fourth item was a radical the user didn't know, and they left it out of the
+list rather than blanking it — so answer four went against item four, and
+every answer after it went against the question before its own:
+
+| item | got | which answers |
+| --- | --- | --- |
+| 4. 𠫓 (Trash) | "used chuuko" | 5. 中古 |
+| 5. 中古 | "sipmle" | 6. 単 |
+| 6. 単 (Simple) | "to lack something kaku" | 7. 欠く |
+| 7. 欠く | "to become naru" | 8. 成る |
+| 8. 成る | "decision dettei" | 9. 決定 |
+| 9. 決定 | "become sei" | 10. 成 |
+
+Six misses on five items the user plainly knew; 中古, 決定 and 持つ went in as
+demotions, two of them undeserved. Nothing on screen gave it away, because
+every correction printed was a correct correction *for the item above it* —
+中古's line really does say ちゅうこ. The tenth item fell off the end, was
+re-asked on its own, and came back ✓ on the same answer that had just been
+graded against 決定. `grade-many`'s existing guard covers the opposite case,
+a reply with more parts than there are open items, and says in its own comment
+that a misaligned batch "grades ten right answers as ten wrong ones against
+the wrong items, and nobody would see it until submit". A *short* reply can't
+be refused the same way: answering a few and keeping the rest is a documented
+thing to do, and is indistinguishable from this by counting alone.
+→ `lib/alignment.js` scores the reply against every in-order pairing it admits
+before anything is recorded, and refuses when one fits by a whole item or more
+better than position-for-position does. It asks for the batch again — naming
+the item that looks skipped and re-printing the questions — rather than
+re-pairing the answers itself: guessing at what somebody meant is not a thing
+to do to a record that submits to WaniKani, and one retype is cheap. A
+full-length list has nothing to shift and is always graded as typed, which is
+also the way past a false alarm. And the how-to now says how to skip one in
+the middle — an empty slot — which is the part that was missing: "answer as
+few as you like" is about the end of the list and says nothing about a gap in
+it.
+
+The margin is a whole item, so the one shape it still lets through is a skip
+whose only following answer is worth a single point (a radical, or kana
+vocabulary). Deliberate: below a whole item the evidence is indistinguishable
+from an answer that happens to sit near something else in the batch, and a
+false refusal costs a retype of ten answers.
+
+**A summary line edited on the way to the screen.** `4 done, 3 perfect · 内 →
+Burned · 94 done this sitting, 62 perfect · 14 left — all of them come due
+since the last fetch` was printed, and what reached the user was `4 done, 3
+perfect · 内→Burned · 94 total, 62 perfect (66%) · 14 left`. Three edits: a
+percentage added, "done this sitting" shortened to "total", and the clause
+explaining why 14 is more than 4 dropped — which is the one thing on that line
+that exists specifically to stop a number being resolved in prose. The same
+sitting also wrote `Open: 10` in place of `Still open: 10 — still their turn`,
+and closed on `Session: 94 done, 62 perfect (66%). Done!`
+→ Nothing new. Rule 3 covers it, the carry-on line gives the sign-off
+somewhere to stop, and this is the fourth transcript of the same habit; the
+record is here so the next person changing rule 3 knows prose has not fixed it
+three times.
+
 ## Still reachable — the five rules
 
 **Answering on the user's behalf.** Item 4 was printed, answered and graded
