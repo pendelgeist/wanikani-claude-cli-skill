@@ -100,10 +100,12 @@ four releases behind for three weeks.
 
 ## Using it with Claude
 
-Say `/wanikani`, or "do my wanikani reviews". Answer the questions as they come
-— meaning and reading on one line, in either order, separated by whatever comes
-to hand ("power ryoku", "power, ryoku", "power. ryoku"). Romaji or kana both
-work.
+Say `/wanikani`, or "do my wanikani reviews". Each batch of ten comes up as one
+list; answer it in one message, in order, separated by `|` — meaning and
+reading together for each item, in either order, separated by whatever comes to
+hand ("power ryoku | fur, ke | side. yoko"). Romaji or kana both work. Answer as
+few as you like; the rest come back under the verdicts. Say "one at a time" if
+you'd rather get the questions singly.
 
 Mid-sitting you can also say:
 
@@ -111,7 +113,7 @@ Mid-sitting you can also say:
 | --- | --- |
 | "more", "why", a bare "?" | The full entry for the item — mnemonics, parts, other readings, context sentences |
 | "explain 場" | The same for any item you name, whether or not it's in this batch |
-| "rapid fire" | The rest of the batch as one list, answered in one message separated by `\|`. "one at a time" goes back |
+| "one at a time" | One question per message instead of the whole batch as a list. "rapid fire" goes back |
 | "did that go through?" | Reads the local record rather than counting back through the chat |
 | "wait", "hold on" | Stops auto-advancing between items for the rest of the sitting |
 | "stop" | Sends what you've answered; the rest stays due |
