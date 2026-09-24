@@ -54,24 +54,42 @@ shell afterwards.
 
 ## Reviews
 
-Two commands, in a loop:
+Two commands, in a loop — and by default the batch goes on screen whole:
+
+```
+wanikani ask --all                        → prints every open question, as one list
+wanikani grade-many "<their whole reply>" → prints the verdicts, and re-asks whatever they left open
+```
+
+That's rapid fire, and it's the default: ten questions up, one message back
+with their answers separated by `|`, ten verdicts. `ask --all` fetches a
+batch when there isn't one, re-prints what's still open when there is, and
+submits a finished batch before serving the next. Neither command takes an
+id, **and there is no batch to keep track of** — that all lives in a file on
+disk, which is also how a sitting survives a new conversation walking into
+the middle of it.
+
+So the whole loop is: `ask --all`, copy the list into your reply (rule 3 —
+it's ten lines and the fold eats most of them), wait. They reply,
+`grade-many` with what they typed, copy the verdicts out whole, wait. A reply
+that answers only some of the list is fine — the rest come back underneath
+the verdicts, and that's the next thing they answer. When the output says the
+batch is done, `ask --all` again — that submits it, prints the summary, and
+hands the turn back with "Next batch whenever you're ready." Print that and
+wait; it is the asking whether to continue, so don't write a second one under
+it (rule 3). Once they say to carry on, `ask --all` serves the next list.
+
+**"one at a time"** switches to the single-question loop for the rest of the
+sitting, and "rapid fire" switches back:
 
 ```
 wanikani ask                              → prints the question
 wanikani answer "<their whole reply>"     → prints the verdict and the next question
 ```
 
-`ask` fetches a batch when there isn't one, re-asks the open item when there
-is, and submits a finished batch before serving the next. `answer` grades
-against whatever is open. **Neither takes an id, and there is no batch to
-keep track of** — that all lives in a file on disk, which is also how a
-sitting survives a new conversation walking into the middle of it.
-
-So the whole loop is: `ask`, print it, wait. They reply, `answer` with what
-they typed, print it, wait. When the output says the batch is done, `ask`
-again — that submits it, prints the summary, and hands the turn back with
-"Next batch whenever you're ready." Print that and wait; it is the asking
-whether to continue, so don't write a second one under it (rule 3).
+Same record, same batch, same submit — plain `ask` just prints the *first*
+open question instead of all of them, and `answer` grades whatever is open.
+Switching mid-batch is fine either way; nothing needs resetting.
 
 Every prompt names the kind of subject it is — `9. 末 (kanji)`, `3. 末
 (vocabulary)` — because that glyph is two questions with two different
@@ -92,6 +110,8 @@ one is here because it has gone wrong in a real sitting.
 
    The exception is a reply that isn't an answer at all. "tip 育" is a request
    for a hint, and it went into `answer` verbatim and cost the user the item.
+   The same goes for a list: a reply with a kanji in it is not a round of
+   answers.
    Anything with a kanji in it is a question — meanings are English and
    readings are kana — so send it to `explain` instead. `answer` refuses those
    now rather than grading them, but the refusal is a backstop, not the rule.
@@ -101,7 +121,8 @@ one is here because it has gone wrong in a real sitting.
    one item the user answered `bear.` — correctly — while the session passed
    its own `wave` to the grader and recorded a miss on an item they had
    right. Recognising an item is not permission to fill it in. **If they have
-   typed a reply, that reply is the only thing that goes into `answer`.**
+   typed a reply, that reply is the only thing that goes into `grade-many`
+   or `answer`.**
 
    **And a pause is not a reply.** A later sitting answered two of its own
    prompts with nothing typed under either — 学歴 came back right, and 好 went
@@ -212,8 +233,8 @@ several plain typos, the same way the lookup link went unprinted for weeks.
 
 ### What they can ask for mid-batch
 
-- **"more", "why", "mnemonic", a bare "?"** → `wanikani explain`, then `ask` to
-  put the open question back — but only if a question *was* open. Between
+- **"more", "why", "mnemonic", a bare "?"** → `wanikani explain`, then `ask
+  --all` (or `ask`, one at a time) to put the open questions back — but only if a question *was* open. Between
   batches, under a summary and before they've said to carry on, there is
   nothing to put back and `ask` fetches ten new items instead: one sitting was
   asked to `explain 便 免 取れる`, printed the three blocks, and served a batch
@@ -237,6 +258,9 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   copying the character across. **Asked straight after a verdict, they mean the
   item that just graded instead** — name it, `explain 放`, off the correction
   line. Bare there would explain the next item and hand over its answer.
+  **With a whole list on screen, bare means nothing in particular** — it would
+  explain item one, which may not be the one they're stuck on and hands over
+  its answer either way. Ask which number, then `explain` that item by name.
 - **Any other question about an item** — "what was that one again?", "how does
   this relate to X?" — goes through `explain` too, for the same reason, and
   ends the same way: the block, printed. If what they asked isn't in it, say
@@ -250,22 +274,22 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   nothing else does. **Don't theorise about the tool; ask it.** "CLI broken"
   and "use the WaniKani web interface instead" both went to a user in one
   sitting, over a problem that was one `status` call away from being visible.
-- **"wait", "hold on", "one at a time"** → stop auto-advancing and wait for
-  them between items, for the rest of the sitting.
+- **"wait", "hold on"** → in the one-at-a-time loop, stop auto-advancing and
+  wait for them between items, for the rest of the sitting. **"one at a
+  time"** → that loop, as above.
 - **"stop", "that's enough for now"** → `wanikani submit-batch` sends what
   they've answered so far and leaves the rest due. Say what it reports and
   stop. **A part-answered batch is not a batch that can't be submitted** — one
   sitting was told "can't submit partial" and left ten answers to expire with
   the sitting. Answers only go nowhere if nobody sends them.
-- **A whole batch in one message** ("rapid fire") → `ask --all` for the whole
-  open list, `grade-many "<a> | <b> | ..."` for their reply, then `ask --all`
-  again to submit and, once they've said to carry on, serve the next list.
-  Two commands in a loop, the same as the one-at-a-time flow. `--all` is the
-  only difference: plain `ask` prints the *first* open question, so the way
-  this used to be written was `ask` and then `prompts`, which printed question
-  one twice and cost a call on every batch — one sitting paid it eight times.
-  Nothing needs `prompts` any more either: `grade-many` re-asks whatever its
-  round left open, under the verdicts.
+- **"rapid fire"** after "one at a time" → back to `ask --all` and
+  `grade-many`. **And whichever mode it's in, if they ask for it, run those
+  commands.** One sitting opened on "batch rapid fire", made up a convention
+  of its own to print at them (`answer "a1 | a2 | a3"`), never called the list
+  or `grade-many`, and took all forty-seven items one at a time. Don't add
+  `prompts` to the loop either: `ask --all` is that list, and `ask` followed by
+  `prompts` printed question one twice and cost a call on every batch — one
+  sitting paid it eight times.
 
   **If `grade-many` says the answers don't line up, print the whole refusal
   and wait.** A list that skips an item in the middle without leaving a gap
@@ -275,14 +299,7 @@ several plain typos, the same way the lookup link went unprinted for weeks.
   re-prints the batch underneath — so what goes on screen is that block, whole,
   and what comes next is their list again. Don't re-align their answers
   yourself and don't send a fixed-up version (rule 1); the answers are theirs,
-  and a full-length list is graded exactly as typed. Same rules — and
-  this is the path where the fold in rule 3 bites, both ways: the list of
-  questions and the list of verdicts are ten lines each, and both get copied
-  out of the tool output into the reply, in full. Offer it once, between batches, if they're
-  moving fast — and **if they ask for it, run those commands.** One sitting
-  opened on "batch rapid fire", made up a convention of its own to print at
-  them (`answer "a1 | a2 | a3"`), never called the list or `grade-many`, and
-  took all forty-seven items one at a time.
+  and a full-length list is graded exactly as typed.
 - **"drill me on what I got wrong"** → `wanikani drill`, then
   `grade` per item. Nothing there is due and nothing submits; say that once.
 - **"critical items", "what am I worst at?"** → `wanikani critical-condition`

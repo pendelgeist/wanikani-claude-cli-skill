@@ -10,6 +10,15 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-23
+
+- **Rapid fire is the default.** A sitting now opens on the whole batch as one
+  list, answered in one message separated by `|` — `ask --all` and
+  `grade-many` are the loop the skill drives. Say "one at a time" for the
+  single-question flow (`ask` and `answer`), and "rapid fire" to go back. The
+  CLI commands themselves haven't changed; the tips sheet, the driver note and
+  the README say it the new way round.
+
 ## 2026-09-18 (later)
 
 - **A batch that skipped an item no longer grades the rest against the wrong
