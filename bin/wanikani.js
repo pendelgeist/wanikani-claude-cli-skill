@@ -44,7 +44,7 @@ Commands:
   ask [--limit N] [--all]
                         Print the question that's waiting: fetches a batch when there
                         isn't one, re-asks the open item when there is, submits a
-                        finished batch before serving the next. --all prints every
+                        finished batch and serves the next in the same call. --all prints every
                         open question instead of the first — the rapid-fire list,
                         so a batch answered in one message takes one call, not two
   answer "<their whole reply>" [--forgive meaning|reading]
