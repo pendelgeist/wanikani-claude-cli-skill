@@ -92,6 +92,26 @@ test("a mixed pull errs towards the restart, since the skill did move", async ()
   assert.match(output, /restart Claude Code/);
 });
 
+test("when the changelog moved, it prints a clean bullet list instead of commits", async () => {
+  const { origin, clone } = await aClonedRepo();
+  const log = (...b) => `# Changelog\n\n## 2026-09-29\n\n${b.join("\n")}\n`;
+  await commitUpstream(origin, "Add changelog", { "CHANGELOG.md": log("- **Old thing.** Long\n  explanation.") });
+  git(clone, "pull", "--quiet", "--ff-only");
+  await commitUpstream(origin, "Merge pull request #1 from x/y", {
+    "CHANGELOG.md": log(
+      "- **New thing.** A paragraph of\n  detail that stays out of the list.",
+      "- **Old thing.** Long\n  explanation.",
+    ),
+  });
+
+  const output = await captureStdout(() => updateCommand({ repoRoot: clone }));
+
+  assert.match(output, /^2026-09-29\n- New thing\.$/m);
+  assert.doesNotMatch(output, /Old thing/, "only what's new");
+  assert.doesNotMatch(output, /detail that stays out/);
+  assert.doesNotMatch(output, /Merge pull request/);
+});
+
 test("every commit in the range is named, not just the newest", async () => {
   const { origin, clone } = await aClonedRepo();
   await commitUpstream(origin, "First thing", { "lib/a.js": "a\n" });

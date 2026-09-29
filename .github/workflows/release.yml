@@ -1,0 +1,32 @@
+name: release
+
+# Every push to main is a release, tagged by the UTC minute it landed
+# (v2026.09.29-0311). Notes are the bullets CHANGELOG.md gained since the
+# previous tag — the same list `wanikani update` prints.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(date -u +%Y.%m.%d-%H%M)"
+          node scripts/release-notes.js > notes.md
+          git tag "$tag"
+          git push origin "$tag"
+          gh release create "$tag" --title "$tag" --notes-file notes.md

@@ -223,7 +223,8 @@ Worth being plain about, since it writes to your SRS:
 wanikani update
 ```
 
-Pulls this repo from wherever you ran the command, names what came in, and says
+Pulls this repo from wherever you ran the command, lists what came in as a short
+bullet list (the same one on each [release](../../releases)), and says
 whether the change is live already or wants a Claude Code restart.
 [`CHANGELOG.md`](CHANGELOG.md) says what's landed and when.
 
