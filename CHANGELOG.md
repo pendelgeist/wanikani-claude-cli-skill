@@ -1,7 +1,7 @@
 # Changelog
 
-Every push to `main` is a release, tagged by the UTC minute it landed
-(`v2026.09.29-0311`) with GitHub release notes to match. `wanikani update` pulls
+Every push to `main` is a release, tagged by the UTC second it landed
+(`v2026.09.29-031102`) with GitHub release notes to match. `wanikani update` pulls
 the latest, lists what's new as one bullet per change, and says whether it's
 live already or wants a Claude Code restart.
 
