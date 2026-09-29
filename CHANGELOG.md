@@ -1,8 +1,13 @@
 # Changelog
 
-No version numbers and no releases — the repo is the release. `wanikani update`
-pulls the latest and says whether the change is live already or wants a Claude
-Code restart.
+Every push to `main` is a release, tagged by the UTC second it landed
+(`v2026.09.29-031102`) with GitHub release notes to match. `wanikani update` pulls
+the latest, lists what's new as one bullet per change, and says whether it's
+live already or wants a Claude Code restart.
+
+Those bullets are the bold lead of each entry below, so start every new entry
+with a bold one-line summary of the change — that line is the release note; the
+rest is for people reading this file.
 
 Entries are newest first, dated by the day they landed on `main`, and each one
 says what changed for whoever is doing the reviews. Nearly all of them started
