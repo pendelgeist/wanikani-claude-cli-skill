@@ -685,7 +685,7 @@ test("the end of a batch hands the turn back in the same words every time", asyn
     const verdicts = await captureStdout(() =>
       gradeManyCommand(client, { answers: numbered.map((glyph) => RIGHT[glyph]).join(" | ") }),
     );
-    assert.match(verdicts, /That's the batch — next one whenever you're ready\./);
+    assert.match(verdicts, /Next batch whenever you're ready\./);
     assert.equal(client.submitted.length, 0, "still overrulable: nothing has gone to the API");
   });
 });

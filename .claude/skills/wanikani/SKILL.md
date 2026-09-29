@@ -76,8 +76,7 @@ it's ten lines and the fold eats most of them), wait. They reply,
 `grade-many` with what they typed, copy the verdicts out whole, wait. A reply
 that answers only some of the list is fine — the rest come back underneath
 the verdicts, and that's the next thing they answer. When the batch is fully
-answered, `grade-many` ends on "That's the batch — next one whenever you're
-ready." Print that and wait; it is the asking whether to continue, so don't
+answered, `grade-many` ends on "Next batch whenever you're ready." Print that and wait; it is the asking whether to continue, so don't
 write a second one under it (rule 3), and don't run `ask` until they reply.
 Once they say to carry on, **one** `ask --all` does both halves: it submits
 the batch, prints the summary, and puts the next list up under it. Copy all
@@ -175,9 +174,9 @@ one is here because it has gone wrong in a real sitting.
    in this file started.
 
    **And the batch ends where the CLI stops printing.** Under the verdicts that
-   finish a batch, `grade-many` adds "That's the batch — next one whenever
-   you're ready.", and that is the last word — the turn is handed back, so ending the message *is* the
-   question. A sitting that predates the line wrote its own at all eight
+   finish a batch, `grade-many` adds "Next batch whenever you're ready.", and
+   that is the last word — the turn is handed back, so ending the message *is*
+   the question. A sitting that predates the line wrote its own at all eight
    batches, in eight spellings — "Continue?", "Stop?", "Stop wanikani?",
    "Final batch?", "Done for today?" — four of them offering to quit to
    someone who had typed "continue" or "next" every single time. The same

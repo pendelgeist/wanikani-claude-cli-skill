@@ -14,9 +14,9 @@ the other end, with what each one cost before it was fixed.
 
 - **One "next" between batches, not two.** Finishing a batch used to take
   "next" to submit it and then "next" again to see a question. Now the round
-  that answers the last item ends on "That's the batch — next one whenever
-  you're ready.", and the "next" after it submits, prints the summary and puts
-  the next list up in one go. The verdicts are still overrulable until then.
+  that answers the last item ends on "Next batch whenever you're ready.", and
+  the "next" after it submits, prints the summary and puts the next list up in
+  one go. The verdicts are still overrulable until then.
 - **Rapid fire is less fussy about the separator.** `｜` (the bar a Japanese
   keyboard types) counts as `|`. A reply with no bar in it at all is also read
   as a list on `;`, `,` or ` / ` — when that cuts it into at least three pieces
