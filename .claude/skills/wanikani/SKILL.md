@@ -46,7 +46,7 @@ shell afterwards.
   printed every question twice — once as `answer`'s next prompt, once as `ask`
   re-asking the same open item — and on the last item of a batch it submitted
   and served the next one in the same breath, straight past the beat where the
-  user says whether to carry on.
+  user says whether to carry on (and past the last chance to `--forgive`).
 - **Never put the token value in a command.** It gets echoed into the visible
   tool call and from there into transcripts. Don't ask for it in chat either;
   the errors carry their own remedy — "No API token found" already says to
@@ -62,7 +62,9 @@ wanikani grade-many "<their whole reply>" → prints the verdicts, and re-asks w
 ```
 
 That's rapid fire, and it's the default: ten questions up, one message back
-with their answers separated by `|`, ten verdicts. `ask --all` fetches a
+with their answers separated by `|`, ten verdicts. (`grade-many` also takes a
+list separated by `;`, `,` or `｜` when there's no `|` in it — that's the CLI's
+call, not yours; the reply still goes in verbatim.) `ask --all` fetches a
 batch when there isn't one, re-prints what's still open when there is, and
 submits a finished batch before serving the next. Neither command takes an
 id, **and there is no batch to keep track of** — that all lives in a file on
@@ -73,11 +75,12 @@ So the whole loop is: `ask --all`, copy the list into your reply (rule 3 —
 it's ten lines and the fold eats most of them), wait. They reply,
 `grade-many` with what they typed, copy the verdicts out whole, wait. A reply
 that answers only some of the list is fine — the rest come back underneath
-the verdicts, and that's the next thing they answer. When the output says the
-batch is done, `ask --all` again — that submits it, prints the summary, and
-hands the turn back with "Next batch whenever you're ready." Print that and
-wait; it is the asking whether to continue, so don't write a second one under
-it (rule 3). Once they say to carry on, `ask --all` serves the next list.
+the verdicts, and that's the next thing they answer. When the batch is fully
+answered, `grade-many` ends on "Next batch whenever you're ready." Print that and wait; it is the asking whether to continue, so don't
+write a second one under it (rule 3), and don't run `ask` until they reply.
+Once they say to carry on, **one** `ask --all` does both halves: it submits
+the batch, prints the summary, and puts the next list up under it. Copy all
+of it. There is no second "next" to wait for.
 
 **"one at a time"** switches to the single-question loop for the rest of the
 sitting, and "rapid fire" switches back:
@@ -170,10 +173,10 @@ one is here because it has gone wrong in a real sitting.
    `summary` and `status` will say; arithmetic in prose is how every miscount
    in this file started.
 
-   **And the batch ends where the CLI stops printing.** Under the summary it
-   adds "Next batch whenever you're ready." while reviews remain, and that is
-   the last word — the turn is handed back, so ending the message *is* the
-   question. A sitting that predates the line wrote its own at all eight
+   **And the batch ends where the CLI stops printing.** Under the verdicts that
+   finish a batch, `grade-many` adds "Next batch whenever you're ready.", and
+   that is the last word — the turn is handed back, so ending the message *is*
+   the question. A sitting that predates the line wrote its own at all eight
    batches, in eight spellings — "Continue?", "Stop?", "Stop wanikani?",
    "Final batch?", "Done for today?" — four of them offering to quit to
    someone who had typed "continue" or "next" every single time. The same
@@ -234,9 +237,10 @@ several plain typos, the same way the lookup link went unprinted for weeks.
 ### What they can ask for mid-batch
 
 - **"more", "why", "mnemonic", a bare "?"** → `wanikani explain`, then `ask
-  --all` (or `ask`, one at a time) to put the open questions back — but only if a question *was* open. Between
-  batches, under a summary and before they've said to carry on, there is
-  nothing to put back and `ask` fetches ten new items instead: one sitting was
+  --all` (or `ask`, one at a time) to put the open questions back — but only if a question *was* open. Once
+  the batch is fully answered and before they've said to carry on, there is
+  nothing to put back and `ask` submits the batch and fetches ten new items
+  instead: one sitting was
   asked to `explain 便 免 取れる`, printed the three blocks, and served a batch
   nobody had asked for underneath them. A question about an item is a detour,
   never a yes. **Run it — never answer from memory.** "No

@@ -41,11 +41,14 @@ $ wanikani answer "above shou"
 3. 出る (vocabulary)
 ```
 
-Ten items later the batch submits itself and says what it did:
+Ten items later, the next `ask` submits the batch, says what it did, and
+serves the next one:
 
 ```
 $ wanikani ask
 10 done, 8 perfect · 上 → Guru · 52 left
+
+1. 下 (kanji)
 ```
 
 Every question says which kind of subject it is, the way WaniKani's own review
@@ -104,8 +107,11 @@ Say `/wanikani`, or "do my wanikani reviews". Each batch of ten comes up as one
 list; answer it in one message, in order, separated by `|` — meaning and
 reading together for each item, in either order, separated by whatever comes to
 hand ("power ryoku | fur, ke | side. yoko"). Romaji or kana both work. Answer as
-few as you like; the rest come back under the verdicts. Say "one at a time" if
-you'd rather get the questions singly.
+few as you like; the rest come back under the verdicts. No `|` key handy? A
+list separated by `;` or `,` works too, as long as there's no `|` anywhere in
+it — and `｜` from a Japanese keyboard counts as a bar. Once the verdicts say
+that's the batch, one "next" submits it and puts the next list up. Say "one at
+a time" if you'd rather get the questions singly.
 
 Mid-sitting you can also say:
 
@@ -266,7 +272,7 @@ terminal, for drills, and for the questions that come up mid-batch.
 | --- | --- |
 | `summary [--json]` | Level, reviews available, next review time. Reports the lesson count too, and says where lessons get done |
 | `review [--limit N]` | Full interactive review session |
-| `ask [--limit N] [--all]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch before serving the next. Batches are ten unless you say otherwise. `--all` prints every open question instead of the first — the rapid-fire list, so a batch answered in one message takes one call |
+| `ask [--limit N] [--all]` | The question that's waiting, printed: fetches a batch when there isn't one, re-asks the open item when there is, submits a finished batch and serves the next in the same call. Batches are ten unless you say otherwise. `--all` prints every open question instead of the first — the rapid-fire list, so a batch answered in one message takes one call |
 | `answer "<your whole reply>" [--forgive meaning\|reading]` | Grade that reply against whatever is open, then print the verdict and the next question. No id: the record knows which item is open. `--forgive` takes the last verdict back |
 | `queue [--limit N] [--answers] [--restart]` | Due reviews as JSON: questions and ids, no answers. Refuses while answers are graded and unsubmitted; `--restart` discards them deliberately, `--answers` restores the key for debugging |
 | `drill [--limit N]` | The items answered wrong recently, as questions — same shape as `queue`. Nothing in it is due and nothing submits |

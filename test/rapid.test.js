@@ -235,6 +235,40 @@ test("splitting a reply keeps the halves of an answer together", () => {
   assert.deepEqual(splitReplies("a\nb\n\nc"), ["a", "b", "c"]);
 });
 
+test("a list typed without the bar still splits, where it can only be a list", () => {
+  // "Quite picky on the | separator", from someone ten batches in. The
+  // full-width bar is the same key with the IME on.
+  assert.deepEqual(splitReplies("become sei｜wave nami｜double bai"), ["become sei", "wave nami", "double bai"]);
+  // No bar at all: semicolons, commas or a spaced slash, when they cut the
+  // reply into a list's worth of pieces.
+  const list = ["become sei", "wave nami", "double bai"];
+  assert.deepEqual(splitReplies("become sei; wave nami; double bai", { open: 10 }), list);
+  assert.deepEqual(splitReplies("become sei, wave nami, double bai,", { open: 10 }), list);
+  assert.deepEqual(splitReplies("become sei / wave nami / double bai", { open: 3 }), list);
+  // And nowhere it could be one answer. Two pieces is "fur, ke".
+  assert.deepEqual(splitReplies("fur, ke", { open: 10 }), ["fur, ke"]);
+  // More pieces than items is commas inside the answers too; nothing guesses.
+  assert.deepEqual(splitReplies("fur, ke, side, yoko", { open: 3 }), ["fur, ke, side, yoko"]);
+  // Two open items is below the line: "fur, ke" there would be two answers.
+  assert.deepEqual(splitReplies("a, b, c", { open: 2 }), ["a, b, c"]);
+  // A bar anywhere means the bar is the separator, commas and all.
+  assert.deepEqual(splitReplies("parent, shin | reassuring, kokoroduyoi, x", { open: 10 }), [
+    "parent, shin",
+    "reassuring, kokoroduyoi, x",
+  ]);
+});
+
+test("a batch answered with semicolons grades like one answered with bars", async () => {
+  const { out, grades } = await inABatch(async ({ order }) => {
+    const answers = order.map((subjectId) => RIGHT[subjectId].replace(",", "")).join("; ");
+    const out = await captureStdout(() => gradeManyCommand(client, { answers }));
+    return { out, grades: await loadGrades() };
+  });
+
+  assert.equal((out.match(/✓/g) ?? []).length, 3, `every item right, got: ${out}`);
+  assert.equal(Object.keys(grades).length, 3);
+});
+
 test("a round that leaves items open re-asks them rather than naming a command", async () => {
   // The common shape: an other-reading nudge doesn't settle the item, so the
   // batch comes back one short. The tail used to say "Still open: 2" and name

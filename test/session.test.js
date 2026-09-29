@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
+import { gradeManyCommand } from "../lib/commands/gradeMany.js";
 import { loadGrades, openItems } from "../lib/queueOrder.js";
 import { follows } from "../lib/commands/grade.js";
 import { explainCommand } from "../lib/commands/explain.js";
+import { submitBatchCommand } from "../lib/commands/submitBatch.js";
 import { withTempCacheDir, captureStdout, captureStreams } from "./helpers.js";
 
 /**
@@ -179,7 +181,8 @@ test("a sitting picked up after a break carries on rather than starting over", a
     // had been at it for forty items.
     let output = await ask(client);
     for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
-    await ask(client);
+    // "that's enough for now": sent, and no next batch served behind it.
+    await captureStdout(() => submitBatchCommand(client));
     const sitting = await (await import("../lib/queueOrder.js")).loadSitting();
     const idle = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     await writeJsonCache("queue-order.json", { ...sitting, touchedAt: idle });
@@ -674,21 +677,33 @@ test("ask --all re-serves the batch rather than fetching past it", async () => {
 test("the end of a batch hands the turn back in the same words every time", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient();
-    const askOne = () => captureStdout(() => askCommand(client, { limit: 1 }));
-
-    // Two items left after this one, so there is a next batch to hand over to.
-    let output = await askOne();
-    output = await answer(client, RIGHT[glyphOf(output)]);
-    const summary = await askOne();
+    const list = await captureStdout(() => askCommand(client, { limit: 3, all: true }));
+    const numbered = [...list.matchAll(/^\d+\. (\S+)/gm)].map((match) => match[1]);
 
     // Eight consecutive batches of one sitting closed on eight different
     // sentences written by the driver, four of them asking whether to stop.
-    assert.match(summary, /Next batch whenever you're ready\./);
-    assert.match(summary, /1 done, 1 perfect/);
-    assert.ok(
-      summary.indexOf("1 done") < summary.indexOf("Next batch"),
-      `the summary first, then the turn, got: ${summary}`,
+    const verdicts = await captureStdout(() =>
+      gradeManyCommand(client, { answers: numbered.map((glyph) => RIGHT[glyph]).join(" | ") }),
     );
+    assert.match(verdicts, /Next batch whenever you're ready\./);
+    assert.equal(client.submitted.length, 0, "still overrulable: nothing has gone to the API");
+  });
+});
+
+test("one 'next' submits the finished batch and serves the following one", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient();
+    let output = await ask(client);
+    for (let position = 1; position <= 3; position += 1) output = await answer(client, RIGHT[glyphOf(output)]);
+
+    // It used to take two: the first submitted and ended on "Next batch
+    // whenever you're ready.", the second fetched. The verdicts are the pause.
+    const next = await captureStdout(() => askCommand(client, { limit: 3, all: true }));
+    assert.match(next, /3 done, 3 perfect/);
+    assert.equal(client.submitted.length, 3);
+    assert.match(next, /^1\. /m, `and the next list under the summary, got: ${next}`);
+    assert.ok(next.indexOf("3 done") < next.search(/^1\. /m), "the summary first, then the questions");
+    assert.doesNotMatch(next, /whenever you're ready/);
   });
 });
 
