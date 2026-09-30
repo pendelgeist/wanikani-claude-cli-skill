@@ -125,8 +125,11 @@ test("every commit in the range is named, not just the newest", async () => {
 
 test("without changelog entries, commits show a date not a hash, and merges are left out", async () => {
   const { origin, clone } = await aClonedRepo();
+  git(origin, "checkout", "--quiet", "-b", "feature");
   await commitUpstream(origin, "Real change", { "lib/a.js": "a\n" });
-  await commitUpstream(origin, "Merge pull request #9 from x/y", { "lib/b.js": "b\n" });
+  git(origin, "checkout", "--quiet", "main");
+  await commitUpstream(origin, "Unrelated", { "lib/b.js": "b\n" });
+  git(origin, "merge", "--quiet", "--no-ff", "-m", "Merge pull request #9 from x/y", "feature");
 
   const output = await captureStdout(() => updateCommand({ repoRoot: clone }));
 
