@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { askCommand, answerCommand } from "../lib/commands/session.js";
 import { gradeManyCommand } from "../lib/commands/gradeMany.js";
@@ -392,6 +392,12 @@ test("a glyph-less radical arrives as its image URL, through ask and through ans
     },
   };
 
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ status: 200 });
+  after(() => {
+    globalThis.fetch = realFetch;
+  });
+
   await withTempCacheDir(async () => {
     // Naming it ("Rib Cage image", "5. Radical") is naming the answer, and a
     // sitting that did the second had the user miss a picture they never saw.
@@ -728,4 +734,38 @@ test("nothing left means nothing to carry on to", async () => {
     assert.match(summary, /3 done, 3 perfect/);
     assert.doesNotMatch(summary, /Next batch/, "an empty queue is not an offer of another batch");
   });
+});
+
+test("a radical whose image is dead (AccessDenied) falls back to its page, not the dead link", async () => {
+  const DEAD = {
+    id: 9,
+    object: "radical",
+    data: {
+      level: 1,
+      characters: null,
+      character_images: [{ content_type: "image/png", url: "https://files.wanikani.com/dead" }],
+      document_url: "https://www.wanikani.com/radicals/tofu",
+      meanings: [{ meaning: "Tofu", primary: true, accepted_answer: true }],
+      auxiliary_meanings: [],
+    },
+  };
+  const client = {
+    async getAssignments() {
+      return [{ id: 200, data: { subject_id: 9 } }];
+    },
+    async getSubjectsByIds(ids) {
+      return new Map(ids.map((id) => [id, DEAD]));
+    },
+  };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ status: 403 });
+  try {
+    await withTempCacheDir(async () => {
+      const out = await captureStdout(() => askCommand(client, { limit: 1 }));
+      assert.doesNotMatch(out, /files\.wanikani\.com/);
+      assert.match(out, /^1\. https:\/\/www\.wanikani\.com\/radicals\/tofu \(radical — image unavailable\)$/m);
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
