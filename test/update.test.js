@@ -123,6 +123,18 @@ test("every commit in the range is named, not just the newest", async () => {
   assert.match(output, /Second thing/);
 });
 
+test("without changelog entries, commits show a date not a hash, and merges are left out", async () => {
+  const { origin, clone } = await aClonedRepo();
+  await commitUpstream(origin, "Real change", { "lib/a.js": "a\n" });
+  await commitUpstream(origin, "Merge pull request #9 from x/y", { "lib/b.js": "b\n" });
+
+  const output = await captureStdout(() => updateCommand({ repoRoot: clone }));
+
+  assert.match(output, /^\d{4}-\d{2}-\d{2}  Real change$/m);
+  assert.doesNotMatch(output, /Merge pull request/);
+  assert.doesNotMatch(output, /^[0-9a-f]{7} /m);
+});
+
 test("a repo with its own commits is refused rather than quietly merged", async () => {
   const { origin, clone } = await aClonedRepo();
   await commitUpstream(origin, "Upstream work", { "lib/a.js": "a\n" });
