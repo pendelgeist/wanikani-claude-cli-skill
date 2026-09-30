@@ -15,6 +15,30 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-30
+
+- **`wanikani update` names changes by date, not hash.** With no changelog
+  entry to read from, it fell back to `git log --oneline`: a hash per commit,
+  and a "Merge pull request #68 …" line for every merge, which only repeated
+  the commit it merged. It now lists the real commits, each led by the day it
+  was made, and leaves the merges out. When the changelog did move you still
+  get the bullets, as before.
+- **A radical whose image link is dead no longer gets prompted with it.** One
+  radical's image URL came back from WaniKani as an S3 `AccessDenied` page, and
+  the prompt sent the person to a link that showed nothing. The CLI now checks
+  the image first — the PNG, then any other variant — and only a definite
+  403/404 rules one out, since a network hiccup proves nothing. If none loads,
+  the prompt says the image is unavailable and points at the radical's page
+  instead.
+
+## 2026-09-29
+
+- **Releases are tagged to the second, and `update` reads the changelog.** Every
+  push to `main` is a release (`v2026.09.29-031102`) with GitHub release notes
+  made from the bullets this file gained. `wanikani update` prints the same
+  one-line-per-change list instead of raw commits, and still says whether the
+  skill text moved (restart) or it was CLI only (live now).
+
 ## 2026-09-28
 
 - **One "next" between batches, not two.** Finishing a batch used to take
