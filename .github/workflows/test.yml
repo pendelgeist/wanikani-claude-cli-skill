@@ -26,3 +26,32 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  changelog:
+    # Every push to main is a release and its notes come from CHANGELOG.md, so
+    # a user-facing change with no entry ships as "No user-facing changes."
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    name: changelog entry
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require a CHANGELOG.md entry for user-facing changes
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          changed="$(git diff --name-only "$BASE"...HEAD)"
+          if ! echo "$changed" | grep -qE '^(lib/|bin/|\.claude/skills/)'; then
+            echo "No user-facing files changed."; exit 0
+          fi
+          if echo "$changed" | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md updated."; exit 0
+          fi
+          if printf '%s\n%s' "$TITLE" "$BODY" | grep -qiF '[no changelog]'; then
+            echo "Opted out with [no changelog]."; exit 0
+          fi
+          echo "::error::This changes lib/, bin/ or .claude/skills/ but not CHANGELOG.md. Add an entry (bold one-line summary first — it becomes the release note), or put [no changelog] in the PR title or body if there's nothing user-facing to say."
+          exit 1
