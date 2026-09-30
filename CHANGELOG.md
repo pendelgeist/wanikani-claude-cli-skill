@@ -15,6 +15,14 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-09-30 (later)
+
+- **Every merged pull request is now listed at the foot of this file.** One
+  line each, #19 to #69, linking to the PR with its date and what it did, so
+  the change behind any entry above is a click away. The index is ignored when
+  working out what a release added — otherwise its first appearance would have
+  been fifty "new" bullets in the release notes.
+
 ## 2026-09-30
 
 - **`wanikani update` names changes by date, not hash.** With no changelog
@@ -375,3 +383,63 @@ the other end, with what each one cost before it was fixed.
   the user's behalf**. A session had printed, answered and graded an item
   inside one message, submitting a perfect score for a question nobody was
   asked.
+
+## Pull requests
+
+One line per merged pull request, newest first, for finding the change behind
+an entry above — what it changed for whoever is doing the reviews is in the
+dated section for the same day. Pull requests #1–#17 predate this repo's
+recorded history and are summarised in the last entry above, #18 is where the
+history starts, and #58 never merged. From #70 on, the entry in the dated
+section *is* the record, so nothing is added here.
+
+- [#69](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/69) · 2026-09-30 — update: show dates instead of hashes and skip merge commits when there's no changelog entry; Test update's commit fallback with a real two-parent merge; Require a changelog entry for user-facing changes, and backfill the missing ones
+- [#68](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/68) · 2026-09-30 — Don't prompt with a dead radical image URL
+- [#67](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/67) · 2026-09-28 — Clean release notes: bullet list from the changelog in update, timestamp-tagged releases; Tag releases to the second
+- [#66](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/66) · 2026-09-28 — One 'next' between batches; accept ; , ｜ as list separators; Keep the original hand-back wording
+- [#65](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/65) · 2026-09-24 — Make rapid fire the default review loop
+- [#64](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/64) · 2026-09-18 — Catch a batch graded one question out of step
+- [#63](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/63) · 2026-09-18 — Cut the rapid-fire path to two calls and print the end-of-batch beat
+- [#62](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/62) · 2026-09-15 — Print the end of a batch instead of dumping it
+- [#61](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/61) · 2026-08-27 — Say which kind of subject a prompt is asking about
+- [#60](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/60) · 2026-08-25 — Keep a sitting through a break, and stop offering to undo a ✓
+- [#59](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/59) · 2026-08-24 — Stop a full stop in front of a reading costing the item
+- [#57](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/57) · 2026-08-22 — Sync the lockfile with the license field
+- [#56](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/56) · 2026-08-22 — Add an MIT license, and stop the package description promising lessons
+- [#55](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/55) · 2026-08-22 — Write the README for someone arriving cold, and add a changelog; Say WSL is where this runs, rather than where it might
+- [#54](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/54) · 2026-08-22 — Print the question first, and name what a near miss was near
+- [#53](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/53) · 2026-08-21 — Stop a drill saying "recorded" a line above "nothing recorded"
+- [#52](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/52) · 2026-08-21 — Add `critical`, WaniKani's own critical-condition list; Name it `critical-condition`, and keep `critical` as the short way in
+- [#51](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/51) · 2026-08-21 — Say the driver note once a sitting, and let `explain` mean the open item
+- [#50](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/50) · 2026-08-20 — Drop lessons, and fix the suggestion it turned up on the way out
+- [#49](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/49) · 2026-08-20 — Refuse a reply that's a question, rather than grading it as an answer
+- [#48](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/48) · 2026-08-20 — Cut the README to install and usage, and move the rest to docs/
+- [#47](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/47) · 2026-08-20 — Document upgrading, and correct the README against what the code does
+- [#46](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/46) · 2026-08-20 — Say when a meaning was close, and stop the sessions cd-ing about
+- [#45](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/45) · 2026-08-20 — Serve ten items a batch, not everything that happens to be due
+- [#44](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/44) · 2026-08-20 — Add `wanikani update`, so "update wanikani" needs no path from anyone
+- [#43](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/43) · 2026-08-20 — Let a space separate a volunteered reading on a meaning-only item
+- [#42](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/42) · 2026-08-20 — Make the skill runnable from anywhere, so it can be symlinked instead of copied
+- [#41](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/41) · 2026-08-20 — Judge a reading by its sound, not by the script the typing landed in
+- [#40](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/40) · 2026-08-20 — Drive the review loop from two commands, and cut the skill to what's left; Match the repo's line width in the two new files; Fix three gaps the redesign left, and cover the paths that had none; Ask the first question of a batch the same way as every other one
+- [#39](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/39) · 2026-08-19 — Take the tail back out, and make the post-grade turn empty
+- [#38](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/38) · 2026-08-19 — Issue the question tail from the CLI, and stop trimming meaning-only replies
+- [#37](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/37) · 2026-08-19 — Percent-encode the glyphs in lookup links so terminals linkify all of them
+- [#36](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/36) · 2026-08-18 — Hand over the whole message, and remember the misses
+- [#35](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/35) · 2026-08-18 — Say where grading happens, on every batch
+- [#34](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/34) · 2026-08-18 — Answer "did that go through?" from the record; Don't let a re-ask decide how well they did
+- [#33](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/33) · 2026-08-18 — Stop the answer coming back as the question
+- [#32](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/32) · 2026-08-17 — Ask the whole batch at once, without writing the list
+- [#31](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/31) · 2026-08-14 — Don't submit answers nobody gave today
+- [#30](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/30) · 2026-08-14 — Answer the question it just asked
+- [#29](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/29) · 2026-08-14 — Stop the sitting expiring underneath itself; Read "shinyuu" both ways, and stop the clock eating the record
+- [#28](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/28) · 2026-08-13 — Stop handing over the answers
+- [#27](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/27) · 2026-08-13 — Grade in code, not in prose; Take any separator someone reaches for; Keep the count in a file, and let `review` take both halves at once; Test the seam, the entry point, and the empty-record case
+- [#26](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/26) · 2026-08-13 — Say each thing once: consolidate the payloads, halve the repetition
+- [#25](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/25) · 2026-08-13 — Make the session advertise itself, one feature per batch; Drop the per-batch tip; keep the sheet you ask for
+- [#24](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/24) · 2026-08-13 — Add "more": the item-info screen, on request
+- [#23](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/23) · 2026-08-13 — Weld the lookup link onto the correction line so it can't be dropped
+- [#22](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/22) · 2026-08-13 — Say which reading WaniKani wants instead of marking the other one wrong
+- [#21](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/21) · 2026-08-10 — Give the how-to-answer note a home, and name three print failures
+- [#20](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/20) · 2026-08-10 — Print a radical's image URL, and lead with the loop
+- [#19](https://github.com/pendelgeist/wanikani-claude-cli-skill/pull/19) · 2026-08-10 — Compose the prompt, corrections and batch summary in the CLI
