@@ -23,3 +23,8 @@ test("no changelog before is everything new; identical files are nothing", () =>
   assert.equal(newEntries("", "## A\n\n- **x.** y\n").length, 1);
   assert.deepEqual(newEntries("## A\n\n- q\n", "## A\n\n- q\n"), []);
 });
+
+test("the pull request index at the foot is not a release", () => {
+  const after = "## B\n\n- **Fresh.** y\n\n## Pull requests\n\n- [#1](u) · d — t\n";
+  assert.deepEqual(newEntries("", after), [{ heading: "B", bullets: ["Fresh."] }]);
+});
