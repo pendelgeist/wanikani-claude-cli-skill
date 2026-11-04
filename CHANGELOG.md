@@ -24,6 +24,13 @@ the other end, with what each one cost before it was fixed.
   left" while `summary` said 436. The count now comes from the API every
   batch (same as `summary`), and says how many of them came due since the
   list was fetched — "436 left — 260 of them come due since the last fetch".
+- **Each batch is drawn from what's due now, not from the list the sitting
+  started with.** The list is checked against WaniKani before every batch:
+  items you already reviewed on the website or phone drop out instead of
+  coming back as "rejected outright", and reviews that unlocked during the
+  sitting get asked instead of waiting until the old list ran out. The order
+  you were working through stays the same, so an unanswered item stays at the
+  top.
 
 ## 2026-09-30 (later)
 

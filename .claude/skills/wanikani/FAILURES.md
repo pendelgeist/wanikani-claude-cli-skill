@@ -162,7 +162,9 @@ was in the count. The same old list served two items that had already been
 reviewed elsewhere, which came back as "rejected outright".
 → What's left is always a live count from the API, and the line says how many
 of those came due since the list was fetched. The list is only the fallback
-when the API can't be reached.
+when the API can't be reached. And the list itself is checked against the API
+before every batch: what was reviewed elsewhere drops out, what came due goes
+on the end, and what's still due keeps its place.
 
 **The sign-off nobody printed.** Eight consecutive batches of one sitting
 ended with the summary line and then a question the driver wrote itself, in

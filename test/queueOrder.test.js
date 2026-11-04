@@ -34,9 +34,13 @@ function fakeClient(dueCount) {
   const client = {
     assignmentCalls: 0,
     dueCount,
+    // Reviewed — here or on the website — and so no longer due.
+    reviewed: new Set(),
     async getAssignments() {
       client.assignmentCalls += 1;
-      return Array.from({ length: client.dueCount }, (_, i) => ({ id: 100 + i, data: { subject_id: 200 + i } }));
+      return Array.from({ length: client.dueCount }, (_, i) => ({ id: 100 + i, data: { subject_id: 200 + i } })).filter(
+        (assignment) => !client.reviewed.has(assignment.id),
+      );
     },
     async getSubjectsByIds(ids) {
       return new Map(ids.map((id) => [id, fakeSubject(id)]));
@@ -57,14 +61,13 @@ test("the first batch fetches due assignments live and caches the order", async 
   });
 });
 
-test("a second batch slices the cached order instead of re-fetching", async () => {
+test("a second batch keeps the sitting's order rather than reshuffling", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient(25);
 
     const first = await getReviewQueue(client, { limit: 10 });
     const second = await getReviewQueue(client, { limit: 10 });
 
-    assert.equal(client.assignmentCalls, 1);
     // Nothing was submitted in between, so the same items are still pending.
     assert.deepEqual(
       second.map((item) => item.assignmentId),
@@ -79,14 +82,72 @@ test("submitting advances the queue to the next, non-overlapping batch", async (
 
     const first = await getReviewQueue(client, { limit: 10 });
     await markSubmitted(first.map((item) => item.assignmentId));
+    for (const item of first) client.reviewed.add(item.assignmentId);
     const second = await getReviewQueue(client, { limit: 10 });
 
-    assert.equal(client.assignmentCalls, 1);
     const firstIds = new Set(first.map((item) => item.assignmentId));
     assert.equal(
       second.filter((item) => firstIds.has(item.assignmentId)).length,
       0,
       "a submitted item should not come back in the next batch",
+    );
+  });
+});
+
+test("each batch drops what was reviewed elsewhere and adds what came due, keeping the order", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient(5);
+    const before = (await getReviewQueue(client, { limit: 2 })).map((item) => item.assignmentId);
+
+    // Reviewed on the phone during a break, and three more unlocked. The old
+    // list served the first kind and submitted them as "rejected outright",
+    // and never asked the second kind until it ran dry.
+    const gone = before[1];
+    client.reviewed.add(gone);
+    client.dueCount = 8;
+
+    const listBefore = (await loadQueueOrder()).items.map((item) => item.assignmentId);
+    await getReviewQueue(client, { limit: 2 });
+    const refreshed = (await loadQueueOrder()).items.map((item) => item.assignmentId);
+
+    assert.ok(!refreshed.includes(gone), "an item reviewed elsewhere is dropped");
+    assert.deepEqual(
+      refreshed.slice(0, 4),
+      listBefore.filter((id) => id !== gone),
+      "what's still due keeps its place, so an unanswered item stays at the top",
+    );
+    assert.deepEqual(new Set(refreshed.slice(4)), new Set([105, 106, 107]), "new arrivals go on the end");
+  });
+});
+
+test("a refresh keeps the sitting, and says nothing the batch summary already said", async () => {
+  await withTempCacheDir(async () => {
+    const { takeNewlyDue, addSessionTotals } = await import("../lib/queueOrder.js");
+    const client = fakeClient(3);
+    await getReviewQueue(client, { limit: 2 });
+    await addSessionTotals({ submitted: 40, perfect: 30 });
+
+    client.dueCount = 6;
+    await getReviewQueue(client, { limit: 2 });
+
+    assert.deepEqual((await loadQueueOrder()).totals, { submitted: 40, perfect: 30 });
+    assert.equal(await takeNewlyDue(), 0);
+  });
+});
+
+test("a refresh that can't reach the API serves the list it has", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient(3);
+    const first = await getReviewQueue(client, { limit: 3 });
+
+    client.getAssignments = async () => {
+      throw new Error("network down");
+    };
+    const second = await getReviewQueue(client, { limit: 3 });
+
+    assert.deepEqual(
+      second.map((item) => item.assignmentId),
+      first.map((item) => item.assignmentId),
     );
   });
 });
