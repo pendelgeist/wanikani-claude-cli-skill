@@ -15,6 +15,16 @@ as something going wrong in a real sitting;
 [`FAILURES.md`](.claude/skills/wanikani/FAILURES.md) is the same history from
 the other end, with what each one cost before it was fixed.
 
+## 2026-11-04
+
+- **"N left" at the end of a batch is now what WaniKani says is due.** It
+  was counting what remained of the list fetched at the start of the sitting,
+  and grading kept that list alive indefinitely — so in a long sitting it
+  missed everything that came due since. One sitting ended a batch on "176
+  left" while `summary` said 436. The count now comes from the API every
+  batch (same as `summary`), and says how many of them came due since the
+  list was fetched — "436 left — 260 of them come due since the last fetch".
+
 ## 2026-09-30 (later)
 
 - **Every merged pull request is now listed at the foot of this file.** One

@@ -33,9 +33,10 @@ function fakeSubject(id) {
 function fakeClient(dueCount) {
   const client = {
     assignmentCalls: 0,
+    dueCount,
     async getAssignments() {
       client.assignmentCalls += 1;
-      return Array.from({ length: dueCount }, (_, i) => ({ id: 100 + i, data: { subject_id: 200 + i } }));
+      return Array.from({ length: client.dueCount }, (_, i) => ({ id: 100 + i, data: { subject_id: 200 + i } }));
     },
     async getSubjectsByIds(ids) {
       return new Map(ids.map((id) => [id, fakeSubject(id)]));
@@ -289,27 +290,38 @@ test("the first fetch of a sitting has nothing to have come due since", async ()
   });
 });
 
-test("countRemainingReviews uses the cached order, then asks the API once it is empty", async () => {
+test("countRemainingReviews asks the API, and says how much of it the sitting's list never saw", async () => {
   await withTempCacheDir(async () => {
     const client = fakeClient(3);
 
     const batch = await getReviewQueue(client, { limit: 2 });
-    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false });
-    assert.equal(client.assignmentCalls, 1, "a cached order should answer for free");
+    // The list has all three, and the API agrees: nothing new.
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false, newlyDue: 0 });
 
-    await markSubmitted(batch.map((item) => item.assignmentId));
-    assert.deepEqual(await countRemainingReviews(client), { remaining: 1, unfetched: false });
+    // Five due now, two of them unlocked after the fetch. Counting the list
+    // said 3 here — and in a real sitting, 176 where `summary` said 436.
+    client.dueCount = 5;
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 5, unfetched: false, newlyDue: 2 });
 
     const rest = await getReviewQueue(client, { limit: 10 });
-    await markSubmitted(rest.map((item) => item.assignmentId));
+    await markSubmitted([...batch, ...rest].map((item) => item.assignmentId));
 
-    // Order exhausted — this one has to go and look, which is also how
-    // reviews unlocked mid-session get noticed. Everything it finds is by
-    // definition newer than the fetch that emptied the list, and `unfetched`
-    // is what lets the batch summary say so instead of leaving "7 left" and
-    // "31 left" seven items apart to be explained in prose.
-    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: true });
-    assert.equal(client.assignmentCalls, 2);
+    // The list is empty, so everything the API still has arrived after it,
+    // and `unfetched` lets the batch summary say so.
+    assert.equal((await loadQueueOrder()).items.length, 0);
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 5, unfetched: true, newlyDue: 5 });
+  });
+});
+
+test("countRemainingReviews falls back to the list when the API can't be reached", async () => {
+  await withTempCacheDir(async () => {
+    const client = fakeClient(3);
+    await getReviewQueue(client, { limit: 2 });
+
+    client.getAssignments = async () => {
+      throw new Error("network down");
+    };
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false, newlyDue: 0 });
   });
 });
 
@@ -320,7 +332,7 @@ test("a count with no sitting behind it doesn't claim anything came due", async 
     // Nothing fetched, so there is no fetch for these to be newer than. The
     // same holds for a sitting that aged out: its unsubmitted items would be
     // counted here, and calling them newly due would be a guess.
-    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false });
+    assert.deepEqual(await countRemainingReviews(client), { remaining: 3, unfetched: false, newlyDue: 0 });
   });
 });
 

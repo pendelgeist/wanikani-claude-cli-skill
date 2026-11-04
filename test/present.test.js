@@ -242,6 +242,14 @@ test("batchSummaryLine explains a remainder that went up rather than down", () =
   );
 });
 
+test("the batch line says how many of what's left are new, when only some are", () => {
+  assert.equal(
+    batchSummaryLine({ submitted: 10, perfect: 7, remaining: 436, remainingNewlyDue: 260 }),
+    "10 done, 7 perfect · 436 left — 260 of them come due since the last fetch",
+  );
+  assert.equal(batchSummaryLine({ submitted: 10, perfect: 7, remaining: 20, remainingNewlyDue: 0 }), "10 done, 7 perfect · 20 left");
+});
+
 test("batchSummaryLine switches to counts once naming becomes a list", () => {
   const highlights = [
     { characters: "一", tierChange: "promoted", endingSrsStage: 5 },
