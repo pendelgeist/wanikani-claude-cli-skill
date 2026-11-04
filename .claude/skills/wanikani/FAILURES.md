@@ -152,6 +152,20 @@ sitting's list runs dry and the count comes live off the API instead.
 left of the fetched list, and the summary line says "all of them come due
 since the last fetch" when it's the former.
 
+**A remainder that was the list's, not the queue's.** A long sitting ended a
+batch on "237 done this sitting, 132 perfect · 176 left", and `summary` one
+turn later said 436 reviews were available. The 176 was what was left of the
+list fetched when the sitting began; grading in it counts as activity, so it
+never aged out — not even across a ninety-minute break, because the first
+thing after the break was a grade — and nothing that came due after that fetch
+was in the count. The same old list served two items that had already been
+reviewed elsewhere, which came back as "rejected outright".
+→ What's left is always a live count from the API, and the line says how many
+of those came due since the list was fetched. The list is only the fallback
+when the API can't be reached. And the list itself is checked against the API
+before every batch: what was reviewed elsewhere drops out, what came due goes
+on the end, and what's still due keeps its place.
+
 **The sign-off nobody printed.** Eight consecutive batches of one sitting
 ended with the summary line and then a question the driver wrote itself, in
 eight spellings: "Continue?", "Next?", "Done?", "Stop?", "Stop wanikani?",

@@ -10,7 +10,7 @@ function apiError(message, status) {
   return err;
 }
 
-function fakeClient({ stages = { starting: 4, ending: 5 }, failOn = [], failure, due = 0 } = {}) {
+function fakeClient({ stages = { starting: 4, ending: 5 }, failOn = [], failure, due = 0, dueIds = null } = {}) {
   const client = {
     submitted: [],
     async submitReview({ assignmentId, incorrectMeaningAnswers, incorrectReadingAnswers }) {
@@ -19,7 +19,10 @@ function fakeClient({ stages = { starting: 4, ending: 5 }, failOn = [], failure,
       return { data: { starting_srs_stage: stages.starting, ending_srs_stage: stages.ending } };
     },
     async getAssignments() {
-      return Array.from({ length: due }, (_, i) => ({ id: i, data: { subject_id: i } }));
+      // `dueIds` names exactly what the API says is due; `due` is that many
+      // assignments the sitting has never seen.
+      if (dueIds) return dueIds.map((id) => ({ id, data: { subject_id: id } }));
+      return Array.from({ length: due }, (_, i) => ({ id: 1000 + i, data: { subject_id: 1000 + i } }));
     },
   };
   return client;
@@ -145,7 +148,7 @@ test("submitBatchCommand prints a ready-to-use summary line", async () => {
     });
 
     const output = await captureStdout(() =>
-      submitBatchCommand(fakeClient({ stages: { starting: 8, ending: 9 } }), { json: true }),
+      submitBatchCommand(fakeClient({ stages: { starting: 8, ending: 9 }, dueIds: [3] }), { json: true }),
     );
 
     const { summaryLine } = JSON.parse(output);
@@ -184,7 +187,7 @@ test("submitBatchCommand reports how many reviews are left", async () => {
       [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
     );
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient(), { json: true }));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ dueIds: [3] }), { json: true }));
 
     assert.equal(JSON.parse(output).remaining, 1);
   });
@@ -221,11 +224,36 @@ test("a count that simply went down says nothing extra about it", async () => {
       [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
     );
 
-    const output = await captureStdout(() => submitBatchCommand(fakeClient({ due: 31 }), { json: true }));
+    const output = await captureStdout(() => submitBatchCommand(fakeClient({ dueIds: [3] }), { json: true }));
     const { remaining, summaryLine } = JSON.parse(output);
 
-    assert.equal(remaining, 1, "one left in the fetched list, so no need to ask the API");
+    assert.equal(remaining, 1);
     assert.match(summaryLine, /1 left$/);
+  });
+});
+
+test("what's left is what the API says is due, not what's left of an old list", async () => {
+  await withTempCacheDir(async () => {
+    // The sitting's list was fetched hours ago and kept alive by grading in
+    // it, so it never refetched. One sitting ended a batch on "176 left" with
+    // `summary` saying 436 a turn later: everything that came due since the
+    // fetch was missing from the count. One item still in the list (3), and
+    // four the list never saw.
+    await graded(
+      [
+        [1, {}],
+        [2, {}],
+      ],
+      [{ assignmentId: 1 }, { assignmentId: 2 }, { assignmentId: 3 }],
+    );
+
+    const output = await captureStdout(() =>
+      submitBatchCommand(fakeClient({ dueIds: [3, 50, 51, 52, 53] }), { json: true }),
+    );
+    const { remaining, summaryLine } = JSON.parse(output);
+
+    assert.equal(remaining, 5);
+    assert.match(summaryLine, /5 left — 4 of them come due since the last fetch$/);
   });
 });
 
